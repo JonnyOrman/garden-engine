@@ -3,5 +3,27 @@
 version = 3
 
 [[package]]
+name = "garden"
+version = "0.1.0"
+
+[[package]]
+name = "garden_games"
+version = "0.1.0"
+dependencies = [
+ "garden",
+]
+
+[[package]]
+name = "garden_glutin"
+version = "0.1.0"
+dependencies = [
+ "garden",
+ "garden_games",
+]
+
+[[package]]
 name = "garden_glutin_example"
 version = "0.1.0"
+dependencies = [
+ "garden_glutin",
+]

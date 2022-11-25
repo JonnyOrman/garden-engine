@@ -26,6 +26,7 @@ pub trait GetEnder<TEnd> {
     fn get_ender(&self) -> &TEnd;
 }
 
+#[derive(Copy, Clone)]
 pub struct Component<'a> {
     name: &'a str
 }
@@ -234,6 +235,7 @@ pub trait CanRun {
     fn can_run(&self) -> bool;
 }
 
+#[derive(Copy, Clone)]
 pub struct GameLoopChecker<TGetLoopRunningStatus> {
     get_loop_running_status: TGetLoopRunningStatus
 }
@@ -250,12 +252,20 @@ impl<TGetLoopRunningStatus: GetLoopRunningStatus> CanRun for GameLoopChecker<TGe
     }
 }
 
+pub trait Create<T> {
+    fn create(&self) -> T;
+}
+
+pub trait Check {
+    fn check(&self) -> bool;
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{Component, GetName};
 
     #[test]
-    fn when_component_is_constructed_then_it_has_the_correct_name() {
+    fn when_a_component_is_constructed_then_it_has_the_correct_name() {
         let component = Component::new("Test Component");
 
         let result = component.get_name();

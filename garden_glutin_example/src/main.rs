@@ -1,3 +1,5 @@
+use garden_glutin::start;
+
 fn main() {
-    println!("Hello, world!");
+    start("Garden: Glutin Example")
 }

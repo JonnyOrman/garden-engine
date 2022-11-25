@@ -1,3 +1,7 @@
+pub struct ContentDefinition {
+    
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
