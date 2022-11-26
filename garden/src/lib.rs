@@ -1,7 +1,10 @@
+use mockall::*;
+
 pub trait GetName {
     fn get_name(&self) -> &str;
 }
 
+#[automock]
 pub trait Initialise {
     fn initialise(&self);
 }
@@ -10,6 +13,7 @@ pub trait GetInitialiser<TInitialise> {
     fn get_initialiser(&self) -> &TInitialise;
 }
 
+#[automock]
 pub trait RunLoop {
     fn run_loop(&self);
 }
@@ -18,6 +22,7 @@ pub trait GetLoopRunner<TRunLoop> {
     fn get_loop_runner(&self) -> &TRunLoop;
 }
 
+#[automock]
 pub trait End {
     fn end(&self);
 }
@@ -41,12 +46,16 @@ impl<'a> GetName for Component<'a> {
     }
 }
 
-pub struct InitialisationComponent<'a, TInitialise> {
+pub struct InitialisationComponent<
+    'a,
+    TInitialise: Initialise> {
     name: &'a str,
     initialise: TInitialise
 }
 
-impl<'a, TInitialise> InitialisationComponent<'a, TInitialise> {
+impl<
+    'a,
+    TInitialise: Initialise> InitialisationComponent<'a, TInitialise> {
     fn new(
         name: &'a str,
         initialise: TInitialise) -> Self{Self{
@@ -54,14 +63,18 @@ impl<'a, TInitialise> InitialisationComponent<'a, TInitialise> {
             initialise}}
 }
 
-impl<'a, TInitialise> GetName for InitialisationComponent<'a, TInitialise> {
+impl<
+    'a,
+    TInitialise: Initialise> GetName for InitialisationComponent<'a, TInitialise> {
     fn get_name(&self) -> &'a str {
         self.name
     }
 }
 
-impl<'a, TInitialise> GetEnder<TInitialise> for InitialisationComponent<'a, TInitialise> {
-    fn get_ender(&self) -> &TInitialise {
+impl<
+    'a,
+    TInitialise: Initialise> GetInitialiser<TInitialise> for InitialisationComponent<'a, TInitialise> {
+    fn get_initialiser(&self) -> &TInitialise {
         &self.initialise
     }
 }
@@ -235,23 +248,6 @@ pub trait CanRun {
     fn can_run(&self) -> bool;
 }
 
-#[derive(Copy, Clone)]
-pub struct GameLoopChecker<TGetLoopRunningStatus> {
-    get_loop_running_status: TGetLoopRunningStatus
-}
-
-impl<TGetLoopRunningStatus> GameLoopChecker<TGetLoopRunningStatus> {
-    fn new(
-        get_loop_running_status: TGetLoopRunningStatus) -> Self{Self{
-            get_loop_running_status}}
-}
-
-impl<TGetLoopRunningStatus: GetLoopRunningStatus> CanRun for GameLoopChecker<TGetLoopRunningStatus> {
-    fn can_run(&self) -> bool {
-        self.get_loop_running_status.get_loop_running_status()
-    }
-}
-
 pub trait Create<T> {
     fn create(&self) -> T;
 }
@@ -262,14 +258,296 @@ pub trait Check {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Component, GetName};
+    use crate::{Component, GetName, InitialisationComponent, Initialise};
+
+    use super::*;
 
     #[test]
-    fn when_a_component_is_constructed_then_it_has_the_correct_name() {
-        let component = Component::new("Test Component");
+    fn when_a_component_gets_its_name_then_the_name_is_returned() {
+        let name = "Test Component";
+;
+        let component = Component::new(name);
 
         let result = component.get_name();
 
-        assert_eq!("Test Component", result);
+        assert_eq!(name, result);
+    }
+
+    #[test]
+    fn when_an_initialisation_component_gets_its_name_then_the_name_is_returned() {
+        let name = "Test Component";
+
+        let initialise = MockInitialise::new();
+
+        let component = InitialisationComponent::new(
+            name,
+            initialise
+        );
+
+        let result = component.get_name();
+
+        assert_eq!(name, result);
+    }
+
+    #[test]
+    fn when_an_initialisation_component_gets_its_initialiser_then_the_initialiser_is_returned() {
+        let mut initialise = MockInitialise::new();
+
+        initialise.expect_initialise().times(1).returning(|| ());
+
+        let component = InitialisationComponent::new(
+            "Test Component",
+            initialise
+        );
+
+        component.get_initialiser().initialise();
+    }
+
+    #[test]
+    fn when_a_loop_component_gets_its_name_then_the_name_is_returned() {
+        let name = "Test Component";
+
+        let run_loop = MockRunLoop::new();
+
+        let component = LoopComponent::new(
+            name,
+            run_loop
+        );
+
+        let result = component.get_name();
+
+        assert_eq!(name, result);
+    }
+
+    #[test]
+    fn when_a_loop_component_gets_its_loop_runner_then_the_loop_runner_is_returned() {
+        let mut run_loop = MockRunLoop::new();
+
+        run_loop.expect_run_loop().times(1).returning(|| ());
+
+        let component = LoopComponent::new(
+            "Test Component",
+            run_loop
+        );
+
+        component.get_loop_runner().run_loop();
+    }
+
+    #[test]
+    fn when_an_end_component_gets_its_name_then_the_name_is_returned() {
+        let name = "Test Component";
+
+        let end = MockEnd::new();
+
+        let component = EndComponent::new(
+            name,
+            end
+        );
+
+        let result = component.get_name();
+
+        assert_eq!(name, result);
+    }
+
+    #[test]
+    fn when_an_end_component_gets_its_ender_then_the_ender_is_returned() {
+        let mut end = MockEnd::new();
+
+        end.expect_end().times(1).returning(|| ());
+
+        let component = EndComponent::new(
+            "Test Component",
+            end
+        );
+
+        component.get_ender().end();
+    }
+
+    #[test]
+    fn when_a_full_component_gets_its_name_then_the_name_is_returned() {
+        let name = "Test Component";
+
+        let initialise = MockInitialise::new();
+
+        let run_loop = MockRunLoop::new();
+
+        let end = MockEnd::new();
+
+        let component = FullComponent::new(
+            name,
+            initialise,
+            run_loop,
+            end
+        );
+
+        let result = component.get_name();
+
+        assert_eq!(name, result);
+    }
+
+    #[test]
+    fn when_a_full_component_gets_its_initialiser_then_the_initialiser_is_returned() {
+        let mut initialise = MockInitialise::new();
+
+        let run_loop = MockRunLoop::new();
+
+        let end = MockEnd::new();
+
+        initialise.expect_initialise().times(1).returning(|| ());
+
+        let component = FullComponent::new(
+            "Test Component",
+            initialise,
+            run_loop,
+            end
+        );
+
+        component.get_initialiser().initialise();
+    }
+
+    #[test]
+    fn when_a_full_component_gets_its_loop_runner_then_the_loop_runner_is_returned() {
+        let initialise = MockInitialise::new();
+
+        let mut run_loop = MockRunLoop::new();
+
+        let end = MockEnd::new();
+
+        run_loop.expect_run_loop().times(1).returning(|| ());
+
+        let component = FullComponent::new(
+            "Test Component",
+            initialise,
+            run_loop,
+            end
+        );
+
+        component.get_loop_runner().run_loop();
+    }
+
+    #[test]
+    fn when_a_full_component_gets_its_ender_then_the_ender_is_returned() {
+        let initialise = MockInitialise::new();
+
+        let run_loop = MockRunLoop::new();
+
+        let mut end = MockEnd::new();
+
+        end.expect_end().times(1).returning(|| ());
+
+        let component = FullComponent::new(
+            "Test Component",
+            initialise,
+            run_loop,
+            end
+        );
+
+        component.get_ender().end();
+    }
+
+    #[test]
+    fn when_an_initialisation_end_component_gets_its_name_then_the_name_is_returned() {
+        let name = "Test Component";
+
+        let initialise = MockInitialise::new();
+
+        let end = MockEnd::new();
+
+        let component = InitialisationEndComponent::new(
+            name,
+            initialise,
+            end
+        );
+
+        let result = component.get_name();
+
+        assert_eq!(name, result);
+    }
+
+    #[test]
+    fn when_an_initialisation_end_component_gets_its_initialiser_then_the_initialiser_is_returned() {
+        let mut initialise = MockInitialise::new();
+
+        let end = MockEnd::new();
+
+        initialise.expect_initialise().times(1).returning(|| ());
+
+        let component = InitialisationEndComponent::new(
+            "Test Component",
+            initialise,
+            end
+        );
+
+        component.get_initialiser().initialise();
+    }
+
+    #[test]
+    fn when_an_initialisation_end_component_gets_its_ender_then_the_ender_is_returned() {
+        let initialise = MockInitialise::new();
+
+        let mut end = MockEnd::new();
+
+        end.expect_end().times(1).returning(|| ());
+
+        let component = InitialisationEndComponent::new(
+            "Test Component",
+            initialise,
+            end
+        );
+
+        component.get_ender().end();
+    }
+
+    #[test]
+    fn when_a_loop_end_component_gets_its_name_then_the_name_is_returned() {
+        let name = "Test Component";
+
+        let run_loop = MockRunLoop::new();
+
+        let end = MockEnd::new();
+
+        let component = LoopEndComponent::new(
+            name,
+            run_loop,
+            end
+        );
+
+        let result = component.get_name();
+
+        assert_eq!(name, result);
+    }
+
+    #[test]
+    fn when_a_loop_end_component_gets_its_loop_runner_then_the_loop_runner_is_returned() {
+        let mut run_loop = MockRunLoop::new();
+
+        let end = MockEnd::new();
+
+        run_loop.expect_run_loop().times(1).returning(|| ());
+
+        let component = LoopEndComponent::new(
+            "Test Component",
+            run_loop,
+            end
+        );
+
+        component.get_loop_runner().run_loop();
+    }
+
+    #[test]
+    fn when_a_loop_end_component_gets_its_ender_then_the_ender_is_returned() {
+        let run_loop = MockRunLoop::new();
+
+        let mut end = MockEnd::new();
+
+        end.expect_end().times(1).returning(|| ());
+
+        let component = LoopEndComponent::new(
+            "Test Component",
+            run_loop,
+            end
+        );
+
+        component.get_ender().end();
     }
 }
