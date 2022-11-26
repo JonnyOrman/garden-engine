@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use garden::{Check, Component, Create, End, GetName};
 
 use mockall::*;
@@ -204,15 +206,18 @@ pub fn create_engine<
     )
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct StartSystem<TEngineStarter: Run> {
-    engine_starter: TEngineStarter, //,
-                                    //component_initialisers: Vec<Box<dyn Run>>
+    engine_starter: TEngineStarter,
+    component_initialisers: Vec<Rc<dyn Run>>,
 }
 
 impl<TEngineStarter: Run> StartSystem<TEngineStarter> {
-    fn new(engine_starter: TEngineStarter) -> Self {
-        Self { engine_starter }
+    fn new(engine_starter: TEngineStarter, component_initialisers: Vec<Rc<dyn Run>>) -> Self {
+        Self {
+            engine_starter,
+            component_initialisers,
+        }
     }
 }
 
@@ -225,22 +230,24 @@ pub fn create_start_system<
 ) -> StartSystem<TEngineStarter> {
     let engine_starter = engine_starter_creator.create();
 
-    StartSystem::<TEngineStarter>::new(engine_starter)
+    let component_initialisers = Vec::<Rc<dyn Run>>::new();
+
+    StartSystem::<TEngineStarter>::new(engine_starter, component_initialisers)
 }
 
 impl<TEngineStarter: Run> Run for StartSystem<TEngineStarter> {
     fn run(&self) {
         self.engine_starter.run();
 
-        // for component_initialiser in self.component_initialisers.iter() {
-        //     component_initialiser.run()
-        // }
+        for component_initialiser in self.component_initialisers.iter() {
+            component_initialiser.run()
+        }
     }
 }
 
 impl<'a, TEngineStarter: Run> AddRun for StartSystem<TEngineStarter> {
     fn add_run(&self, run: &dyn Run) {
-        //self.initialisation_components.push(Box::new(run))
+        //self.component_initialisers.push(Rc::new(run))
     }
 }
 
@@ -291,23 +298,26 @@ fn create_loop_runner() -> GameLoopRunner {
     GameLoopRunner::new()
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct EndSystem<TEngineEnder: Run> {
-    engine_ender: TEngineEnder, //,
-                                //component_initialisers: Vec<Box<dyn Run>>
+    engine_ender: TEngineEnder,
+    component_enders: Vec<Rc<dyn Run>>,
 }
 
 impl<TEngineEnder: Run> EndSystem<TEngineEnder> {
-    fn new(engine_ender: TEngineEnder) -> Self {
-        Self { engine_ender }
+    fn new(engine_ender: TEngineEnder, component_enders: Vec<Rc<dyn Run>>) -> Self {
+        Self {
+            engine_ender,
+            component_enders,
+        }
     }
 }
 
 impl<TEngineEnder: Run> Run for EndSystem<TEngineEnder> {
     fn run(&self) {
-        // for component_ender in self.component_enders.iter() {
-        //     component_ender.run()
-        // }
+        for component_ender in self.component_enders.iter() {
+            component_ender.run()
+        }
 
         self.engine_ender.run();
     }
@@ -315,7 +325,7 @@ impl<TEngineEnder: Run> Run for EndSystem<TEngineEnder> {
 
 impl<'a, TEngineEnder: Run> AddRun for EndSystem<TEngineEnder> {
     fn add_run(&self, run: &dyn Run) {
-        //self.component_enders.push(Box::new(run))
+        //self.component_enders.push(Rc::new(run))
     }
 }
 
@@ -328,7 +338,9 @@ pub fn create_end_system<
 ) -> EndSystem<TEngineEnder> {
     let engine_ender = engine_ender_creator.create();
 
-    EndSystem::<TEngineEnder>::new(engine_ender)
+    let component_enders = Vec::<Rc<dyn Run>>::new();
+
+    EndSystem::<TEngineEnder>::new(engine_ender, component_enders)
 }
 
 #[derive(Copy, Clone)]
@@ -485,12 +497,15 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn when_a_start_system_runs_then_the_engine_starter_runs() {
         let mut engine_starter = MockRun::new();
 
         engine_starter.expect_run().times(1).returning(|| ());
 
-        let start_system = StartSystem::new(engine_starter);
+        let component_initialisers = Vec::<Rc<dyn Run>>::new();
+
+        let start_system = StartSystem::new(engine_starter, component_initialisers);
 
         start_system.run();
     }
@@ -531,12 +546,15 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn when_an_end_system_runs_then_engine_ender_runs() {
         let mut engine_ender = MockRun::new();
 
         engine_ender.expect_run().times(1).returning(|| ());
 
-        let end_system = EndSystem::new(engine_ender);
+        let component_enders = Vec::<Rc<dyn Run>>::new();
+
+        let end_system = EndSystem::new(engine_ender, component_enders);
 
         end_system.run();
     }
