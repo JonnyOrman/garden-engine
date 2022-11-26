@@ -1,5 +1,6 @@
 use mockall::*;
 
+#[automock]
 pub trait GetName {
     fn get_name(&self) -> &str;
 }
@@ -33,11 +34,13 @@ pub trait GetEnder<TEnd> {
 
 #[derive(Copy, Clone)]
 pub struct Component<'a> {
-    name: &'a str
+    name: &'a str,
 }
 
 impl<'a> Component<'a> {
-    fn new(name: &'a str) -> Self{Self{name}}
+    fn new(name: &'a str) -> Self {
+        Self { name }
+    }
 }
 
 impl<'a> GetName for Component<'a> {
@@ -46,34 +49,26 @@ impl<'a> GetName for Component<'a> {
     }
 }
 
-pub struct InitialisationComponent<
-    'a,
-    TInitialise: Initialise> {
+pub struct InitialisationComponent<'a, TInitialise: Initialise> {
     name: &'a str,
-    initialise: TInitialise
+    initialise: TInitialise,
 }
 
-impl<
-    'a,
-    TInitialise: Initialise> InitialisationComponent<'a, TInitialise> {
-    fn new(
-        name: &'a str,
-        initialise: TInitialise) -> Self{Self{
-            name,
-            initialise}}
+impl<'a, TInitialise: Initialise> InitialisationComponent<'a, TInitialise> {
+    fn new(name: &'a str, initialise: TInitialise) -> Self {
+        Self { name, initialise }
+    }
 }
 
-impl<
-    'a,
-    TInitialise: Initialise> GetName for InitialisationComponent<'a, TInitialise> {
+impl<'a, TInitialise: Initialise> GetName for InitialisationComponent<'a, TInitialise> {
     fn get_name(&self) -> &'a str {
         self.name
     }
 }
 
-impl<
-    'a,
-    TInitialise: Initialise> GetInitialiser<TInitialise> for InitialisationComponent<'a, TInitialise> {
+impl<'a, TInitialise: Initialise> GetInitialiser<TInitialise>
+    for InitialisationComponent<'a, TInitialise>
+{
     fn get_initialiser(&self) -> &TInitialise {
         &self.initialise
     }
@@ -81,15 +76,13 @@ impl<
 
 pub struct LoopComponent<'a, TRunLoop> {
     name: &'a str,
-    run_loop: TRunLoop
+    run_loop: TRunLoop,
 }
 
 impl<'a, TRunLoop> LoopComponent<'a, TRunLoop> {
-    fn new(
-        name: &'a str,
-        run_loop: TRunLoop) -> Self{Self{
-            name,
-            run_loop}}
+    fn new(name: &'a str, run_loop: TRunLoop) -> Self {
+        Self { name, run_loop }
+    }
 }
 
 impl<'a, TRunLoop> GetName for LoopComponent<'a, TRunLoop> {
@@ -106,15 +99,13 @@ impl<'a, TRunLoop> GetLoopRunner<TRunLoop> for LoopComponent<'a, TRunLoop> {
 
 pub struct EndComponent<'a, TEnd> {
     name: &'a str,
-    end: TEnd
+    end: TEnd,
 }
 
 impl<'a, TEnd> EndComponent<'a, TEnd> {
-    fn new(
-        name: &'a str,
-        end: TEnd) -> Self{Self{
-            name,
-            end}}
+    fn new(name: &'a str, end: TEnd) -> Self {
+        Self { name, end }
+    }
 }
 
 impl<'a, TEnd> GetName for EndComponent<'a, TEnd> {
@@ -133,19 +124,18 @@ pub struct FullComponent<'a, TInitialise, TRunLoop, TEnd> {
     name: &'a str,
     initialise: TInitialise,
     run_loop: TRunLoop,
-    end: TEnd
+    end: TEnd,
 }
 
 impl<'a, TInitialise, TRunLoop, TEnd> FullComponent<'a, TInitialise, TRunLoop, TEnd> {
-    fn new(
-        name: &'a str,
-        initialise: TInitialise,
-        run_loop: TRunLoop,
-        end: TEnd) -> Self{Self{
+    fn new(name: &'a str, initialise: TInitialise, run_loop: TRunLoop, end: TEnd) -> Self {
+        Self {
             name,
             initialise,
             run_loop,
-            end}}
+            end,
+        }
+    }
 }
 
 impl<'a, TInitialise, TRunLoop, TEnd> GetName for FullComponent<'a, TInitialise, TRunLoop, TEnd> {
@@ -154,19 +144,25 @@ impl<'a, TInitialise, TRunLoop, TEnd> GetName for FullComponent<'a, TInitialise,
     }
 }
 
-impl<'a, TInitialise, TRunLoop, TEnd> GetInitialiser<TInitialise> for FullComponent<'a, TInitialise, TRunLoop, TEnd> {
+impl<'a, TInitialise, TRunLoop, TEnd> GetInitialiser<TInitialise>
+    for FullComponent<'a, TInitialise, TRunLoop, TEnd>
+{
     fn get_initialiser(&self) -> &TInitialise {
         &self.initialise
     }
 }
 
-impl<'a, TInitialise, TRunLoop, TEnd> GetLoopRunner<TRunLoop> for FullComponent<'a, TInitialise, TRunLoop, TEnd> {
+impl<'a, TInitialise, TRunLoop, TEnd> GetLoopRunner<TRunLoop>
+    for FullComponent<'a, TInitialise, TRunLoop, TEnd>
+{
     fn get_loop_runner(&self) -> &TRunLoop {
         &self.run_loop
     }
 }
 
-impl<'a, TInitialise, TRunLoop, TEnd> GetEnder<TEnd> for FullComponent<'a, TInitialise, TRunLoop, TEnd> {
+impl<'a, TInitialise, TRunLoop, TEnd> GetEnder<TEnd>
+    for FullComponent<'a, TInitialise, TRunLoop, TEnd>
+{
     fn get_ender(&self) -> &TEnd {
         &self.end
     }
@@ -175,17 +171,17 @@ impl<'a, TInitialise, TRunLoop, TEnd> GetEnder<TEnd> for FullComponent<'a, TInit
 pub struct InitialisationEndComponent<'a, TInitialise, TEnd> {
     name: &'a str,
     initialise: TInitialise,
-    end: TEnd
+    end: TEnd,
 }
 
 impl<'a, TInitialise, TEnd> InitialisationEndComponent<'a, TInitialise, TEnd> {
-    fn new(
-        name: &'a str,
-        initialise: TInitialise,
-        end: TEnd) -> Self{Self{
+    fn new(name: &'a str, initialise: TInitialise, end: TEnd) -> Self {
+        Self {
             name,
             initialise,
-            end}}
+            end,
+        }
+    }
 }
 
 impl<'a, TInitialise, TEnd> GetName for InitialisationEndComponent<'a, TInitialise, TEnd> {
@@ -194,7 +190,9 @@ impl<'a, TInitialise, TEnd> GetName for InitialisationEndComponent<'a, TInitiali
     }
 }
 
-impl<'a, TInitialise, TEnd> GetInitialiser<TInitialise> for InitialisationEndComponent<'a, TInitialise, TEnd> {
+impl<'a, TInitialise, TEnd> GetInitialiser<TInitialise>
+    for InitialisationEndComponent<'a, TInitialise, TEnd>
+{
     fn get_initialiser(&self) -> &TInitialise {
         &self.initialise
     }
@@ -209,17 +207,17 @@ impl<'a, TInitialise, TEnd> GetEnder<TEnd> for InitialisationEndComponent<'a, TI
 pub struct LoopEndComponent<'a, TRunLoop, TEnd> {
     name: &'a str,
     run_loop: TRunLoop,
-    end: TEnd
+    end: TEnd,
 }
 
 impl<'a, TRunLoop, TEnd> LoopEndComponent<'a, TRunLoop, TEnd> {
-    fn new(
-        name: &'a str,
-        run_loop: TRunLoop,
-        end: TEnd) -> Self{Self{
+    fn new(name: &'a str, run_loop: TRunLoop, end: TEnd) -> Self {
+        Self {
             name,
             run_loop,
-            end}}
+            end,
+        }
+    }
 }
 
 impl<'a, TRunLoop, TEnd> GetName for LoopEndComponent<'a, TRunLoop, TEnd> {
@@ -252,6 +250,7 @@ pub trait Create<T> {
     fn create(&self) -> T;
 }
 
+#[automock]
 pub trait Check {
     fn check(&self) -> bool;
 }
@@ -265,7 +264,6 @@ mod tests {
     #[test]
     fn when_a_component_gets_its_name_then_the_name_is_returned() {
         let name = "Test Component";
-;
         let component = Component::new(name);
 
         let result = component.get_name();
@@ -279,10 +277,7 @@ mod tests {
 
         let initialise = MockInitialise::new();
 
-        let component = InitialisationComponent::new(
-            name,
-            initialise
-        );
+        let component = InitialisationComponent::new(name, initialise);
 
         let result = component.get_name();
 
@@ -295,10 +290,7 @@ mod tests {
 
         initialise.expect_initialise().times(1).returning(|| ());
 
-        let component = InitialisationComponent::new(
-            "Test Component",
-            initialise
-        );
+        let component = InitialisationComponent::new("Test Component", initialise);
 
         component.get_initialiser().initialise();
     }
@@ -309,10 +301,7 @@ mod tests {
 
         let run_loop = MockRunLoop::new();
 
-        let component = LoopComponent::new(
-            name,
-            run_loop
-        );
+        let component = LoopComponent::new(name, run_loop);
 
         let result = component.get_name();
 
@@ -325,10 +314,7 @@ mod tests {
 
         run_loop.expect_run_loop().times(1).returning(|| ());
 
-        let component = LoopComponent::new(
-            "Test Component",
-            run_loop
-        );
+        let component = LoopComponent::new("Test Component", run_loop);
 
         component.get_loop_runner().run_loop();
     }
@@ -339,10 +325,7 @@ mod tests {
 
         let end = MockEnd::new();
 
-        let component = EndComponent::new(
-            name,
-            end
-        );
+        let component = EndComponent::new(name, end);
 
         let result = component.get_name();
 
@@ -355,10 +338,7 @@ mod tests {
 
         end.expect_end().times(1).returning(|| ());
 
-        let component = EndComponent::new(
-            "Test Component",
-            end
-        );
+        let component = EndComponent::new("Test Component", end);
 
         component.get_ender().end();
     }
@@ -373,12 +353,7 @@ mod tests {
 
         let end = MockEnd::new();
 
-        let component = FullComponent::new(
-            name,
-            initialise,
-            run_loop,
-            end
-        );
+        let component = FullComponent::new(name, initialise, run_loop, end);
 
         let result = component.get_name();
 
@@ -395,12 +370,7 @@ mod tests {
 
         initialise.expect_initialise().times(1).returning(|| ());
 
-        let component = FullComponent::new(
-            "Test Component",
-            initialise,
-            run_loop,
-            end
-        );
+        let component = FullComponent::new("Test Component", initialise, run_loop, end);
 
         component.get_initialiser().initialise();
     }
@@ -415,12 +385,7 @@ mod tests {
 
         run_loop.expect_run_loop().times(1).returning(|| ());
 
-        let component = FullComponent::new(
-            "Test Component",
-            initialise,
-            run_loop,
-            end
-        );
+        let component = FullComponent::new("Test Component", initialise, run_loop, end);
 
         component.get_loop_runner().run_loop();
     }
@@ -435,12 +400,7 @@ mod tests {
 
         end.expect_end().times(1).returning(|| ());
 
-        let component = FullComponent::new(
-            "Test Component",
-            initialise,
-            run_loop,
-            end
-        );
+        let component = FullComponent::new("Test Component", initialise, run_loop, end);
 
         component.get_ender().end();
     }
@@ -453,11 +413,7 @@ mod tests {
 
         let end = MockEnd::new();
 
-        let component = InitialisationEndComponent::new(
-            name,
-            initialise,
-            end
-        );
+        let component = InitialisationEndComponent::new(name, initialise, end);
 
         let result = component.get_name();
 
@@ -465,18 +421,15 @@ mod tests {
     }
 
     #[test]
-    fn when_an_initialisation_end_component_gets_its_initialiser_then_the_initialiser_is_returned() {
+    fn when_an_initialisation_end_component_gets_its_initialiser_then_the_initialiser_is_returned()
+    {
         let mut initialise = MockInitialise::new();
 
         let end = MockEnd::new();
 
         initialise.expect_initialise().times(1).returning(|| ());
 
-        let component = InitialisationEndComponent::new(
-            "Test Component",
-            initialise,
-            end
-        );
+        let component = InitialisationEndComponent::new("Test Component", initialise, end);
 
         component.get_initialiser().initialise();
     }
@@ -489,11 +442,7 @@ mod tests {
 
         end.expect_end().times(1).returning(|| ());
 
-        let component = InitialisationEndComponent::new(
-            "Test Component",
-            initialise,
-            end
-        );
+        let component = InitialisationEndComponent::new("Test Component", initialise, end);
 
         component.get_ender().end();
     }
@@ -506,11 +455,7 @@ mod tests {
 
         let end = MockEnd::new();
 
-        let component = LoopEndComponent::new(
-            name,
-            run_loop,
-            end
-        );
+        let component = LoopEndComponent::new(name, run_loop, end);
 
         let result = component.get_name();
 
@@ -525,11 +470,7 @@ mod tests {
 
         run_loop.expect_run_loop().times(1).returning(|| ());
 
-        let component = LoopEndComponent::new(
-            "Test Component",
-            run_loop,
-            end
-        );
+        let component = LoopEndComponent::new("Test Component", run_loop, end);
 
         component.get_loop_runner().run_loop();
     }
@@ -542,11 +483,7 @@ mod tests {
 
         end.expect_end().times(1).returning(|| ());
 
-        let component = LoopEndComponent::new(
-            "Test Component",
-            run_loop,
-            end
-        );
+        let component = LoopEndComponent::new("Test Component", run_loop, end);
 
         component.get_ender().end();
     }

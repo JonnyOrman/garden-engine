@@ -1,39 +1,44 @@
 use garden_games::{
-    GameInstance,
-    Run,
-    AddRun,
-    create_game_instance_builder, StartSystem, LoopSystem, EndSystem, GameNameProvider, Engine, GameLoopRunner
+    create_game_instance_builder, AddRun, EndSystem, Engine, GameInstance, GameLoopRunner,
+    GameNameProvider, LoopSystem, Run, StartSystem,
 };
 
-use garden::{
-    GetName,
-    Create,
-    Check
-};
+use garden::{Check, Create, GetName};
 
 pub fn start(game_name: &str) {
-    let game_instance = compose::<StartSystem<EngineStarter>, LoopSystem<EngineLoopChecker, GameLoopRunner>, EndSystem<EngineEnder>, GameNameProvider>(game_name);
+    let game_instance = compose::<
+        StartSystem<EngineStarter>,
+        LoopSystem<EngineLoopChecker, GameLoopRunner>,
+        EndSystem<EngineEnder>,
+        GameNameProvider,
+    >(game_name);
 
     game_instance.run();
 }
 
-fn compose<
+fn compose<'a, TStart: Run + AddRun, TLoop: Run + AddRun, TEnd: Run + AddRun, TGetName: GetName>(
+    name: &'a str,
+) -> GameInstance<
     'a,
-    TStart: Run + AddRun,
-    TLoop: Run + AddRun,
-    TEnd: Run + AddRun,
-    TGetName: GetName>(name: &'a str) -> GameInstance<'a, Engine<StartSystem<EngineStarter>, LoopSystem<EngineLoopChecker, GameLoopRunner>, EndSystem<EngineEnder>, GameNameProvider>> {
+    Engine<
+        StartSystem<EngineStarter>,
+        LoopSystem<EngineLoopChecker, GameLoopRunner>,
+        EndSystem<EngineEnder>,
+        GameNameProvider,
+    >,
+> {
     let game_instance_builder = create_game_instance_builder::<
         EngineStarter,
         EngineStarterCreator,
         EngineLoopChecker,
         EngineLoopCheckerCreator,
         EngineEnder,
-        EngineEnderCreator>(
+        EngineEnderCreator,
+    >(
         name,
         EngineStarterCreator::new(),
         EngineLoopCheckerCreator::new(),
-        EngineEnderCreator::new()
+        EngineEnderCreator::new(),
     );
 
     game_instance_builder.build()
@@ -43,19 +48,21 @@ fn compose<
 pub struct EngineStarter {}
 
 impl EngineStarter {
-    fn new() -> Self{Self{}}
+    fn new() -> Self {
+        Self {}
+    }
 }
 
 impl Run for EngineStarter {
-    fn run(&self) {
-
-    }
+    fn run(&self) {}
 }
 
 pub struct EngineStarterCreator {}
 
 impl EngineStarterCreator {
-    fn new() -> Self{Self{}}
+    fn new() -> Self {
+        Self {}
+    }
 }
 
 impl Create<EngineStarter> for EngineStarterCreator {
@@ -68,7 +75,9 @@ impl Create<EngineStarter> for EngineStarterCreator {
 pub struct EngineLoopChecker {}
 
 impl EngineLoopChecker {
-    fn new() -> Self{Self{}}
+    fn new() -> Self {
+        Self {}
+    }
 }
 
 impl Check for EngineLoopChecker {
@@ -80,7 +89,9 @@ impl Check for EngineLoopChecker {
 pub struct EngineLoopCheckerCreator {}
 
 impl EngineLoopCheckerCreator {
-    fn new() -> Self{Self{}}
+    fn new() -> Self {
+        Self {}
+    }
 }
 
 impl Create<EngineLoopChecker> for EngineLoopCheckerCreator {
@@ -93,7 +104,9 @@ impl Create<EngineLoopChecker> for EngineLoopCheckerCreator {
 pub struct EngineEnder {}
 
 impl EngineEnder {
-    fn new() -> Self{Self{}}
+    fn new() -> Self {
+        Self {}
+    }
 }
 
 impl Run for EngineEnder {
@@ -103,7 +116,9 @@ impl Run for EngineEnder {
 pub struct EngineEnderCreator {}
 
 impl EngineEnderCreator {
-    fn new() -> Self{Self{}}
+    fn new() -> Self {
+        Self {}
+    }
 }
 
 impl Create<EngineEnder> for EngineEnderCreator {
@@ -114,9 +129,63 @@ impl Create<EngineEnder> for EngineEnderCreator {
 
 #[cfg(test)]
 mod tests {
+    use garden::{Check, Create};
+    use garden_games::Run;
+
+    use crate::{
+        EngineEnder, EngineLoopChecker, EngineLoopCheckerCreator, EngineStarter,
+        EngineStarterCreator,
+    };
+
     #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
+    #[ignore]
+    fn when_an_engine_starter_runs_then_the_engine_starts() {
+        let engine_starter = EngineStarter::new();
+
+        engine_starter.run();
+    }
+
+    #[test]
+    #[ignore]
+    fn when_an_engine_starter_creator_creates_an_engine_starter_then_an_engine_starter_is_created()
+    {
+        let engine_starter_creator = EngineStarterCreator::new();
+
+        let engine_starter = engine_starter_creator.create();
+    }
+
+    #[test]
+    #[ignore]
+    fn when_an_engine_loop_checker_checks_if_the_loop_can_run_then_it_checks_if_it_can_run() {
+        let engine_loop_checker = EngineLoopChecker::new();
+
+        let result = engine_loop_checker.check();
+
+        assert!(result);
+    }
+
+    #[test]
+    #[ignore]
+    fn when_an_engine_loop_checker_creates_an_engine_loop_checker_then_an_engine_loop_checker_is_created(
+    ) {
+        let engine_loop_checker_creator = EngineLoopCheckerCreator::new();
+
+        let engine_loop_checker = engine_loop_checker_creator.create();
+    }
+
+    #[test]
+    #[ignore]
+    fn when_an_engine_ender_runs_then_the_engine_ends() {
+        let engine_ender = EngineEnder::new();
+
+        engine_ender.run();
+    }
+
+    #[test]
+    #[ignore]
+    fn when_an_engine_ender_creator_creates_an_engine_ender_then_an_engine_ender_is_created() {
+        let engine_ender_creator = EngineStarterCreator::new();
+
+        let engine_ender = engine_ender_creator.create();
     }
 }

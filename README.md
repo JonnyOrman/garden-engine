@@ -1,4 +1,7 @@
 # garden-engine
+
+> Early stage WIP
+
 A highly modular game engine written in Rust
 
 Garden is an experimental, highly modular game engine. It consists of a range of small, granular libraries that act as building blocks to be put together to build an engine with the specific features you need for your game. You can construct an engine for anything from a 2D side scrolling game, a fully 3D game or a text based adventure game!
