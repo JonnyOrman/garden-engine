@@ -19,20 +19,23 @@ pub trait RunLoop {
     fn run_loop(&self);
 }
 
+#[automock]
+pub trait Run {
+    fn run(&self);
+}
+
+pub trait AddRun {
+    fn add_run(&self, run: &dyn Run);
+}
+
 pub trait GetLoopRunner<TRunLoop> {
     fn get_loop_runner(&self) -> &TRunLoop;
 }
 
-#[automock]
-pub trait End {
-    fn end(&self);
+pub trait GetEnder<TEnder> {
+    fn get_ender(&self) -> &TEnder;
 }
 
-pub trait GetEnder<TEnd> {
-    fn get_ender(&self) -> &TEnd;
-}
-
-#[derive(Copy, Clone)]
 pub struct Component<'a> {
     name: &'a str,
 }
@@ -97,25 +100,25 @@ impl<'a, TRunLoop> GetLoopRunner<TRunLoop> for LoopComponent<'a, TRunLoop> {
     }
 }
 
-pub struct EndComponent<'a, TEnd> {
+pub struct EndComponent<'a, TEnder> {
     name: &'a str,
-    end: TEnd,
+    end: TEnder,
 }
 
-impl<'a, TEnd> EndComponent<'a, TEnd> {
-    fn new(name: &'a str, end: TEnd) -> Self {
+impl<'a, TEnder> EndComponent<'a, TEnder> {
+    fn new(name: &'a str, end: TEnder) -> Self {
         Self { name, end }
     }
 }
 
-impl<'a, TEnd> GetName for EndComponent<'a, TEnd> {
+impl<'a, TEnder> GetName for EndComponent<'a, TEnder> {
     fn get_name(&self) -> &'a str {
         self.name
     }
 }
 
-impl<'a, TEnd> GetEnder<TEnd> for EndComponent<'a, TEnd> {
-    fn get_ender(&self) -> &TEnd {
+impl<'a, TEnder> GetEnder<TEnder> for EndComponent<'a, TEnder> {
+    fn get_ender(&self) -> &TEnder {
         &self.end
     }
 }
@@ -238,21 +241,8 @@ impl<'a, TRunLoop, TEnd> GetEnder<TEnd> for LoopEndComponent<'a, TRunLoop, TEnd>
     }
 }
 
-pub trait GetLoopRunningStatus {
-    fn get_loop_running_status(&self) -> bool;
-}
-
-pub trait CanRun {
-    fn can_run(&self) -> bool;
-}
-
 pub trait Create<T> {
     fn create(&self) -> T;
-}
-
-#[automock]
-pub trait Check {
-    fn check(&self) -> bool;
 }
 
 #[cfg(test)]
@@ -323,7 +313,7 @@ mod tests {
     fn when_an_end_component_gets_its_name_then_the_name_is_returned() {
         let name = "Test Component";
 
-        let end = MockEnd::new();
+        let end = MockRun::new();
 
         let component = EndComponent::new(name, end);
 
@@ -334,13 +324,13 @@ mod tests {
 
     #[test]
     fn when_an_end_component_gets_its_ender_then_the_ender_is_returned() {
-        let mut end = MockEnd::new();
+        let mut end = MockRun::new();
 
-        end.expect_end().times(1).returning(|| ());
+        end.expect_run().times(1).returning(|| ());
 
         let component = EndComponent::new("Test Component", end);
 
-        component.get_ender().end();
+        component.get_ender().run();
     }
 
     #[test]
@@ -351,7 +341,7 @@ mod tests {
 
         let run_loop = MockRunLoop::new();
 
-        let end = MockEnd::new();
+        let end = MockRun::new();
 
         let component = FullComponent::new(name, initialise, run_loop, end);
 
@@ -366,7 +356,7 @@ mod tests {
 
         let run_loop = MockRunLoop::new();
 
-        let end = MockEnd::new();
+        let end = MockRun::new();
 
         initialise.expect_initialise().times(1).returning(|| ());
 
@@ -381,7 +371,7 @@ mod tests {
 
         let mut run_loop = MockRunLoop::new();
 
-        let end = MockEnd::new();
+        let end = MockRun::new();
 
         run_loop.expect_run_loop().times(1).returning(|| ());
 
@@ -396,13 +386,13 @@ mod tests {
 
         let run_loop = MockRunLoop::new();
 
-        let mut end = MockEnd::new();
+        let mut end = MockRun::new();
 
-        end.expect_end().times(1).returning(|| ());
+        end.expect_run().times(1).returning(|| ());
 
         let component = FullComponent::new("Test Component", initialise, run_loop, end);
 
-        component.get_ender().end();
+        component.get_ender().run();
     }
 
     #[test]
@@ -411,7 +401,7 @@ mod tests {
 
         let initialise = MockInitialise::new();
 
-        let end = MockEnd::new();
+        let end = MockRun::new();
 
         let component = InitialisationEndComponent::new(name, initialise, end);
 
@@ -425,7 +415,7 @@ mod tests {
     {
         let mut initialise = MockInitialise::new();
 
-        let end = MockEnd::new();
+        let end = MockRun::new();
 
         initialise.expect_initialise().times(1).returning(|| ());
 
@@ -438,13 +428,13 @@ mod tests {
     fn when_an_initialisation_end_component_gets_its_ender_then_the_ender_is_returned() {
         let initialise = MockInitialise::new();
 
-        let mut end = MockEnd::new();
+        let mut end = MockRun::new();
 
-        end.expect_end().times(1).returning(|| ());
+        end.expect_run().times(1).returning(|| ());
 
         let component = InitialisationEndComponent::new("Test Component", initialise, end);
 
-        component.get_ender().end();
+        component.get_ender().run();
     }
 
     #[test]
@@ -453,7 +443,7 @@ mod tests {
 
         let run_loop = MockRunLoop::new();
 
-        let end = MockEnd::new();
+        let end = MockRun::new();
 
         let component = LoopEndComponent::new(name, run_loop, end);
 
@@ -466,7 +456,7 @@ mod tests {
     fn when_a_loop_end_component_gets_its_loop_runner_then_the_loop_runner_is_returned() {
         let mut run_loop = MockRunLoop::new();
 
-        let end = MockEnd::new();
+        let end = MockRun::new();
 
         run_loop.expect_run_loop().times(1).returning(|| ());
 
@@ -479,12 +469,12 @@ mod tests {
     fn when_a_loop_end_component_gets_its_ender_then_the_ender_is_returned() {
         let run_loop = MockRunLoop::new();
 
-        let mut end = MockEnd::new();
+        let mut end = MockRun::new();
 
-        end.expect_end().times(1).returning(|| ());
+        end.expect_run().times(1).returning(|| ());
 
         let component = LoopEndComponent::new("Test Component", run_loop, end);
 
-        component.get_ender().end();
+        component.get_ender().run();
     }
 }
