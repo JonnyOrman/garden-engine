@@ -27,8 +27,8 @@ impl<'a, TEngine: RunEngine> RunGameInstance for GameInstance<'a, TEngine> {
     }
 }
 
-pub trait CreateLoopSystem<TLoopSystem, TContent> {
-    fn create_loop_system(&self, event_loop: &EventLoop<()>, content: TContent) -> TLoopSystem;
+pub trait CreateLoopSystem<TLoopSystem> {
+    fn create_loop_system(&self, event_loop: &EventLoop<()>) -> TLoopSystem;
 }
 
 pub trait RunEngine {
@@ -128,17 +128,15 @@ pub fn create_game_instance_builder<
     TEngineStarter: StartEngine,
     TEngineStarterCreator: Create<TEngineStarter>,
     TLoopSystem: RunLoopSystem + AddRun,
-    TLoopSystemCreator: CreateLoopSystem<TLoopSystem, TContent>,
+    TLoopSystemCreator: CreateLoopSystem<TLoopSystem>,
     TEngineEnder: EndEngine,
     TEngineEnderCreator: Create<TEngineEnder>,
-    TContent,
 >(
     name: &'a str,
     engine_starter_creator: TEngineStarterCreator,
     loop_system_creator: TLoopSystemCreator,
     engine_ender_creator: TEngineEnderCreator,
     event_loop: &EventLoop<()>,
-    content: TContent,
 ) -> GameInstanceBuilder<
     'a,
     Engine<StartSystem<TEngineStarter>, TLoopSystem, EndSystem<TEngineEnder>, GameNameProvider<'a>>,
@@ -150,14 +148,12 @@ pub fn create_game_instance_builder<
         TLoopSystemCreator,
         TEngineEnder,
         TEngineEnderCreator,
-        TContent,
     >(
         name,
         engine_starter_creator,
         loop_system_creator,
         engine_ender_creator,
         event_loop,
-        content,
     );
 
     let game_instance_buillder = GameInstanceBuilder::<
@@ -178,17 +174,15 @@ pub fn create_engine<
     TEngineStarter: StartEngine,
     TEngineStarterCreator: Create<TEngineStarter>,
     TLoopSystem: RunLoopSystem + AddRun,
-    TLoopSystemCreator: CreateLoopSystem<TLoopSystem, TContent>,
+    TLoopSystemCreator: CreateLoopSystem<TLoopSystem>,
     TEngineEnder: EndEngine,
     TEngineEnderCreator: Create<TEngineEnder>,
-    TContent,
 >(
     name: &'a str,
     engine_starter_creator: TEngineStarterCreator,
     loop_system_creator: TLoopSystemCreator,
     engine_ender_creator: TEngineEnderCreator,
     event_loop: &EventLoop<()>,
-    content: TContent,
 ) -> Engine<StartSystem<TEngineStarter>, TLoopSystem, EndSystem<TEngineEnder>, GameNameProvider<'a>>
 {
     Engine::<
@@ -198,7 +192,7 @@ pub fn create_engine<
         GameNameProvider,
     >::new(
         create_start_system::<TEngineStarter, TEngineStarterCreator>(engine_starter_creator),
-        loop_system_creator.create_loop_system(event_loop, content),
+        loop_system_creator.create_loop_system(event_loop),
         create_end_system::<TEngineEnder, TEngineEnderCreator>(engine_ender_creator),
         create_game_name_provider(name)
     )
