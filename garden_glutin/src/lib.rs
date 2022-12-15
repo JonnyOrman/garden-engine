@@ -8,7 +8,7 @@ use garden_content::{
     Content, GetNumberOfObjects, GetNumberOfVertices, GetVertexDataPtr, Rgb, Triangle,
     TrianglePoint, TwoDPoint,
 };
-use garden_content_loading::{ContentLoader, LoadContent};
+use garden_content_loading::{compose_content_loader, LoadContent};
 use garden_games::{EndEngine, EndSystem, GameNameProvider, StartEngine, StartSystem};
 
 use garden::{AddRun, Create, Run};
@@ -859,15 +859,11 @@ impl<TContent: GetNumberOfVertices + GetVertexDataPtr> CreateGLutin<TContent> fo
         gl.GenBuffers(1, &mut vbo);
         gl.BindBuffer(gl::ARRAY_BUFFER, vbo);
 
-        let ptr_to_use = content.get_vertex_data_ptr() as *const _;
-        let message3 = format!("get_vertex_data_ptr ptr to use {:p}", ptr_to_use);
-        println!("{}", message3);
-
         gl.BufferData(
             gl::ARRAY_BUFFER,
             (content.get_number_of_vertices() * std::mem::size_of::<f32>() as i32)
                 as gl::types::GLsizeiptr,
-            ptr_to_use,
+            content.get_vertex_data_ptr() as *const _,
             gl::STATIC_DRAW,
         );
 
@@ -1259,7 +1255,7 @@ impl<
 
         let redraw_events_cleared_event = self.redraw_events_cleared_event_creator.create();
 
-        let content_loader = ContentLoader::new();
+        let content_loader = compose_content_loader();
         let content = content_loader.load_content();
 
         let event_runner = EventRunner::new(
