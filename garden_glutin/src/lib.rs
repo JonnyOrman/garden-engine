@@ -4,7 +4,11 @@ use std::{
     ops::Deref,
 };
 
-use garden_content::{GetNumberOfObjects, GetNumberOfVertices, GetVertexDataPtr};
+use garden_content::{
+    Content, GetNumberOfObjects, GetNumberOfVertices, GetVertexDataPtr, Rgb, Triangle,
+    TrianglePoint, TwoDPoint,
+};
+use garden_content_loading::{ContentLoader, LoadContent};
 use garden_games::{EndEngine, EndSystem, GameNameProvider, StartEngine, StartSystem};
 
 use garden::{AddRun, Create, Run};
@@ -40,23 +44,16 @@ pub mod gl {
     pub use Gles2 as Gl;
 }
 
-pub fn start<
-    'a,
-    TContent: 'static + GetNumberOfObjects + GetNumberOfVertices + GetVertexDataPtr,
->(
-    game_name: &'a str,
-    content: TContent,
-) {
+pub fn start<'a>(game_name: &'a str) {
     let event_loop = EventLoopBuilder::new().build().into();
-    let game_instance = compose::<TContent>(game_name, &event_loop, content);
+    let game_instance = compose(game_name, &event_loop);
 
     game_instance.run_game_instance(event_loop);
 }
 
-fn compose<'a, TContent: 'static + GetNumberOfObjects + GetNumberOfVertices + GetVertexDataPtr>(
+fn compose<'a>(
     name: &'a str,
     event_loop: &EventLoop<()>,
-    content: TContent,
 ) -> GameInstance<
     'a,
     Engine<
@@ -67,7 +64,7 @@ fn compose<'a, TContent: 'static + GetNumberOfObjects + GetNumberOfVertices + Ge
                 WindowResizedEvent,
                 WindowCloseRequestedEvent,
                 RedrawEventsClearedEvent,
-                TContent,
+                Content<Triangle<TrianglePoint<TwoDPoint, Rgb>>>,
                 Renderer,
             >,
         >,
@@ -84,7 +81,7 @@ fn compose<'a, TContent: 'static + GetNumberOfObjects + GetNumberOfVertices + Ge
                 WindowResizedEvent,
                 WindowCloseRequestedEvent,
                 RedrawEventsClearedEvent,
-                TContent,
+                Content<Triangle<TrianglePoint<TwoDPoint, Rgb>>>,
                 Renderer,
             >,
         >,
@@ -100,7 +97,6 @@ fn compose<'a, TContent: 'static + GetNumberOfObjects + GetNumberOfVertices + Ge
         >,
         EngineEnder,
         EngineEnderCreator,
-        TContent,
     >(
         name,
         EngineStarterCreator::new(),
@@ -117,7 +113,6 @@ fn compose<'a, TContent: 'static + GetNumberOfObjects + GetNumberOfVertices + Ge
         ),
         EngineEnderCreator::new(),
         event_loop,
-        content,
     );
 
     game_instance_builder.build_game_instance()
@@ -1192,7 +1187,6 @@ impl<
         TWindowResizedEventCreator: Create<WindowResizedEvent>,
         TWindowCloseRequestedEventCreator: Create<WindowCloseRequestedEvent>,
         TRedrawEventsClearedEventCreator: Create<RedrawEventsClearedEvent>,
-        TContent: GetNumberOfObjects + GetNumberOfVertices + GetVertexDataPtr,
     >
     CreateLoopSystem<
         LoopSystem<
@@ -1201,11 +1195,10 @@ impl<
                 WindowResizedEvent,
                 WindowCloseRequestedEvent,
                 RedrawEventsClearedEvent,
-                TContent,
+                Content<Triangle<TrianglePoint<TwoDPoint, Rgb>>>,
                 Renderer,
             >,
         >,
-        TContent,
     >
     for LoopSystemCreator<
         TDisplayCreator,
@@ -1221,14 +1214,13 @@ impl<
     fn create_loop_system(
         &self,
         event_loop: &EventLoop<()>,
-        content: TContent,
     ) -> LoopSystem<
         EventRunner<
             ResumedEvent<GlWindowCreator>,
             WindowResizedEvent,
             WindowCloseRequestedEvent,
             RedrawEventsClearedEvent,
-            TContent,
+            Content<Triangle<TrianglePoint<TwoDPoint, Rgb>>>,
             Renderer,
         >,
     > {
@@ -1266,6 +1258,9 @@ impl<
         let window_close_requested_event = self.window_close_requested_event_creator.create();
 
         let redraw_events_cleared_event = self.redraw_events_cleared_event_creator.create();
+
+        let content_loader = ContentLoader::new();
+        let content = content_loader.load_content();
 
         let event_runner = EventRunner::new(
             window,

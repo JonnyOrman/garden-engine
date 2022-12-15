@@ -1,9 +1,9 @@
 [package]
-name = "garden_glutin_example"
+name = "garden_content_loading"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-garden_glutin = { path = "../garden_glutin" }
+garden_content = { path = "../garden_content" }
