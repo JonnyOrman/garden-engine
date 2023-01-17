@@ -427,6 +427,9 @@ dependencies = [
 name = "garden"
 version = "0.1.0"
 dependencies = [
+ "cfg_aliases",
+ "gl_generator",
+ "glutin",
  "mockall",
 ]
 
@@ -435,6 +438,16 @@ name = "garden_content"
 version = "0.1.0"
 dependencies = [
  "mockall",
+]
+
+[[package]]
+name = "garden_content_component"
+version = "0.1.0"
+dependencies = [
+ "garden",
+ "garden_content",
+ "garden_content_loading",
+ "garden_winit",
 ]
 
 [[package]]
@@ -472,10 +485,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "garden_glutin_example"
+name = "garden_glutin_example_2"
 version = "0.1.0"
 dependencies = [
+ "garden_content_component",
+ "garden_games",
  "garden_glutin",
+ "garden_winit",
 ]
 
 [[package]]

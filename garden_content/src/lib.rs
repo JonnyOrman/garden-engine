@@ -204,8 +204,8 @@ mod tests {
     use mockall::mock;
 
     use crate::{
-        Content, GetNumberOfObjects, GetNumberOfVertices, GetVertexData, GetVertexDataPtr, Rgb,
-        Triangle, TrianglePoint, TwoDPoint,
+        Content, GetNumberOfObjects, GetNumberOfVertices, GetVertexData, Rgb, Triangle,
+        TrianglePoint, TwoDPoint,
     };
 
     #[test]
