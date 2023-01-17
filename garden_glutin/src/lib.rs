@@ -4,17 +4,11 @@ use std::{
     ops::Deref,
 };
 
-use garden_content::{
-    Content, GetNumberOfObjects, GetNumberOfVertices, GetVertexDataPtr, Rgb, Triangle,
-    TrianglePoint, TwoDPoint,
-};
-use garden_content_loading::{compose_content_loader, LoadContent};
-use garden_games::{EndEngine, EndSystem, GameNameProvider, StartEngine, StartSystem};
+use garden_games::{EndEngine, StartEngine};
 
-use garden::{AddRun, Create, Run};
+use garden::{gl, Create, RunFullComponent};
 use garden_winit::{
-    create_game_instance_builder, BuildGameInstance, CreateLoopSystem, Engine, GameInstance,
-    RunGameInstance, RunLoopSystem,
+    create_game_instance_builder, CreateLoopSystem, GameInstanceBuilder, RunLoopSystem,
 };
 use glutin::{
     config::{Config, ConfigTemplateBuilder},
@@ -37,42 +31,50 @@ use winit::{
 
 use glutin::surface::{Surface, SwapInterval};
 
-pub mod gl {
-    #![allow(clippy::all)]
-    include!(concat!(env!("OUT_DIR"), "/gl_bindings.rs"));
-
-    pub use Gles2 as Gl;
-}
-
-pub fn start<'a>(game_name: &'a str) {
-    let event_loop = EventLoopBuilder::new().build().into();
-    let game_instance = compose(game_name, &event_loop);
-
-    game_instance.run_game_instance(event_loop);
-}
-
-fn compose<'a>(
-    name: &'a str,
-    event_loop: &EventLoop<()>,
-) -> GameInstance<
-    'a,
-    Engine<
-        StartSystem<EngineStarter>,
-        LoopSystem<
-            EventRunner<
-                ResumedEvent<GlWindowCreator>,
-                WindowResizedEvent,
-                WindowCloseRequestedEvent,
-                RedrawEventsClearedEvent,
-                Content<Triangle<TrianglePoint<TwoDPoint, Rgb>>>,
-                Renderer,
-            >,
+pub fn generate_game_instance_builder_and_event_loop<'a>(
+    game_name: &'a str,
+) -> (
+    GameInstanceBuilder<
+        EngineStarterCreator,
+        LoopSystemCreator<
+            DisplayCreator,
+            ContextAttributesCreator,
+            FallbackContextAttributesCreator,
+            NotCurrentGlContextCreator,
+            ResumedEventCreator,
+            WindowResizedEventCreator,
+            WindowCloseRequestedEventCreator,
+            RedrawEventsClearedEventCreator,
         >,
-        EndSystem<EngineEnder>,
-        GameNameProvider<'a>,
+        EngineEnderCreator,
     >,
+    EventLoop<()>,
+) {
+    let event_loop = EventLoopBuilder::new().build();
+    let game_instance_builder = generate_game_instance_builder(game_name, &event_loop);
+
+    (game_instance_builder, event_loop)
+}
+
+fn generate_game_instance_builder<'a>(
+    game_name: &'a str,
+    event_loop: &EventLoop<()>,
+) -> GameInstanceBuilder<
+    'a,
+    EngineStarterCreator,
+    LoopSystemCreator<
+        DisplayCreator,
+        ContextAttributesCreator,
+        FallbackContextAttributesCreator,
+        NotCurrentGlContextCreator,
+        ResumedEventCreator,
+        WindowResizedEventCreator,
+        WindowCloseRequestedEventCreator,
+        RedrawEventsClearedEventCreator,
+    >,
+    EngineEnderCreator,
 > {
-    let game_instance_builder = create_game_instance_builder::<
+    create_game_instance_builder::<
         EngineStarter,
         EngineStarterCreator,
         LoopSystem<
@@ -81,7 +83,6 @@ fn compose<'a>(
                 WindowResizedEvent,
                 WindowCloseRequestedEvent,
                 RedrawEventsClearedEvent,
-                Content<Triangle<TrianglePoint<TwoDPoint, Rgb>>>,
                 Renderer,
             >,
         >,
@@ -98,7 +99,7 @@ fn compose<'a>(
         EngineEnder,
         EngineEnderCreator,
     >(
-        name,
+        game_name,
         EngineStarterCreator::new(),
         LoopSystemCreator::new(
             DisplayCreator::new(),
@@ -112,10 +113,8 @@ fn compose<'a>(
             RedrawEventsClearedEventCreator::new(),
         ),
         EngineEnderCreator::new(),
-        event_loop,
-    );
-
-    game_instance_builder.build_game_instance()
+        &event_loop,
+    )
 }
 
 pub struct EngineStarter {}
@@ -185,7 +184,7 @@ impl CreateGlWindow for GlWindowCreator {
     }
 }
 
-pub trait RunResumedEvent<TContent, TRenderer> {
+pub trait RunResumedEvent<TRenderer> {
     fn run_resumed_event(
         &mut self,
         window: &mut Option<Window>,
@@ -195,7 +194,7 @@ pub trait RunResumedEvent<TContent, TRenderer> {
         gl_display: &Display,
         state: &mut Option<(PossiblyCurrentContext, GlWindow)>,
         renderer: &mut Option<TRenderer>,
-        content: &TContent,
+        components: &Vec<Box<dyn RunFullComponent>>,
     );
 }
 
@@ -209,8 +208,8 @@ impl<TGlWindowCreator: CreateGlWindow> ResumedEvent<TGlWindowCreator> {
     }
 }
 
-impl<TGlWindowCreator: CreateGlWindow, TContent: GetNumberOfVertices + GetVertexDataPtr>
-    RunResumedEvent<TContent, Renderer> for ResumedEvent<TGlWindowCreator>
+impl<TGlWindowCreator: CreateGlWindow> RunResumedEvent<Renderer>
+    for ResumedEvent<TGlWindowCreator>
 {
     fn run_resumed_event(
         &mut self,
@@ -221,7 +220,7 @@ impl<TGlWindowCreator: CreateGlWindow, TContent: GetNumberOfVertices + GetVertex
         gl_display: &Display,
         state: &mut Option<(PossiblyCurrentContext, GlWindow)>,
         renderer: &mut Option<Renderer>,
-        content: &TContent,
+        components: &Vec<Box<dyn RunFullComponent>>,
     ) {
         #[cfg(target_os = "android")]
         println!("Android window available");
@@ -237,7 +236,7 @@ impl<TGlWindowCreator: CreateGlWindow, TContent: GetNumberOfVertices + GetVertex
             .make_current(&gl_window.surface)
             .unwrap();
 
-        renderer.get_or_insert_with(|| generate_renderer(gl_display, content));
+        renderer.get_or_insert_with(|| generate_renderer(gl_display, components));
 
         if let Err(res) = gl_window
             .surface
@@ -318,12 +317,12 @@ impl Create<WindowResizedEvent> for WindowResizedEventCreator {
     }
 }
 
-pub trait RunRedrawEventsClearedEvent<TContent, TRenderer> {
+pub trait RunRedrawEventsClearedEvent<TRenderer> {
     fn run_redraw_events_cleared_event(
         &mut self,
         state: &mut Option<(PossiblyCurrentContext, GlWindow)>,
         renderer: &mut Option<TRenderer>,
-        content: &TContent,
+        components: &Vec<Box<dyn RunFullComponent>>,
     );
 }
 
@@ -335,17 +334,15 @@ impl RedrawEventsClearedEvent {
     }
 }
 
-impl<TContent: GetNumberOfObjects, TRenderer: Render<TContent>>
-    RunRedrawEventsClearedEvent<TContent, TRenderer> for RedrawEventsClearedEvent
-{
+impl<TRenderer: Render> RunRedrawEventsClearedEvent<TRenderer> for RedrawEventsClearedEvent {
     fn run_redraw_events_cleared_event(
         &mut self,
         state: &mut Option<(PossiblyCurrentContext, GlWindow)>,
         renderer: &mut Option<TRenderer>,
-        content: &TContent,
+        components: &Vec<Box<dyn RunFullComponent>>,
     ) {
         if let Some((gl_context, gl_window)) = state {
-            renderer.as_ref().unwrap().draw(content);
+            renderer.as_ref().unwrap().draw(components);
             gl_window.window.request_redraw();
 
             gl_window.surface.swap_buffers(gl_context).unwrap();
@@ -400,13 +397,17 @@ impl Create<WindowCloseRequestedEvent> for WindowCloseRequestedEventCreator {
 }
 
 pub trait RunEvents {
-    fn run_resumed_event(&mut self, window_target: &EventLoopWindowTarget<()>);
+    fn run_resumed_event(
+        &mut self,
+        window_target: &EventLoopWindowTarget<()>,
+        components: &Vec<Box<dyn RunFullComponent>>,
+    );
 
     fn run_window_resized_event(&mut self, size: PhysicalSize<u32>);
 
     fn run_window_close_requested_event(&mut self, control_flow: &mut ControlFlow);
 
-    fn run_redraw_events_cleared_event(&mut self);
+    fn run_redraw_events_cleared_event(&mut self, components: &Vec<Box<dyn RunFullComponent>>);
 }
 
 pub struct EventRunner<
@@ -414,7 +415,6 @@ pub struct EventRunner<
     TWindowResizedEvent,
     TWindowCloseRequestedEvent,
     TRedrawEventsClearedEvent,
-    TContent,
     TRenderer,
 > {
     window: Option<Window>,
@@ -427,15 +427,13 @@ pub struct EventRunner<
     window_resized_event: TWindowResizedEvent,
     window_close_requested_event: TWindowCloseRequestedEvent,
     redraw_events_cleared_event: TRedrawEventsClearedEvent,
-    content: TContent,
 }
 
 impl<
-        TResumedEvent: RunResumedEvent<TContent, TRenderer>,
+        TResumedEvent: RunResumedEvent<TRenderer>,
         TWindowResizedEvent: RunWindowResizedEvent<TRenderer>,
         TWindowCloseRequestedEvent: RunWindowCloseRequestedEvent,
-        TRedrawEventsClearedEvent: RunRedrawEventsClearedEvent<TContent, TRenderer>,
-        TContent,
+        TRedrawEventsClearedEvent: RunRedrawEventsClearedEvent<TRenderer>,
         TRenderer,
     >
     EventRunner<
@@ -443,7 +441,6 @@ impl<
         TWindowResizedEvent,
         TWindowCloseRequestedEvent,
         TRedrawEventsClearedEvent,
-        TContent,
         TRenderer,
     >
 {
@@ -458,7 +455,6 @@ impl<
         window_resized_event: TWindowResizedEvent,
         window_close_requested_event: TWindowCloseRequestedEvent,
         redraw_events_cleared_event: TRedrawEventsClearedEvent,
-        content: TContent,
     ) -> Self {
         Self {
             window,
@@ -471,17 +467,15 @@ impl<
             window_resized_event,
             window_close_requested_event,
             redraw_events_cleared_event,
-            content,
         }
     }
 }
 
 impl<
-        TResumedEvent: RunResumedEvent<TContent, TRenderer>,
+        TResumedEvent: RunResumedEvent<TRenderer>,
         TWindowResizedEvent: RunWindowResizedEvent<TRenderer>,
         TWindowCloseRequestedEvent: RunWindowCloseRequestedEvent,
-        TRedrawEventsClearedEvent: RunRedrawEventsClearedEvent<TContent, TRenderer>,
-        TContent,
+        TRedrawEventsClearedEvent: RunRedrawEventsClearedEvent<TRenderer>,
         TRenderer,
     > RunEvents
     for EventRunner<
@@ -489,11 +483,14 @@ impl<
         TWindowResizedEvent,
         TWindowCloseRequestedEvent,
         TRedrawEventsClearedEvent,
-        TContent,
         TRenderer,
     >
 {
-    fn run_resumed_event(&mut self, window_target: &EventLoopWindowTarget<()>) {
+    fn run_resumed_event(
+        &mut self,
+        window_target: &EventLoopWindowTarget<()>,
+        components: &Vec<Box<dyn RunFullComponent>>,
+    ) {
         self.resumed_event.run_resumed_event(
             &mut self.window,
             window_target,
@@ -502,7 +499,7 @@ impl<
             &self.gl_display,
             &mut self.state,
             &mut self.renderer,
-            &mut self.content,
+            components,
         )
     }
 
@@ -519,33 +516,40 @@ impl<
             .run_window_close_requested_event(control_flow)
     }
 
-    fn run_redraw_events_cleared_event(&mut self) {
+    fn run_redraw_events_cleared_event(&mut self, components: &Vec<Box<dyn RunFullComponent>>) {
         self.redraw_events_cleared_event
-            .run_redraw_events_cleared_event(&mut self.state, &mut self.renderer, &self.content)
+            .run_redraw_events_cleared_event(&mut self.state, &mut self.renderer, components)
     }
 }
 
 pub struct LoopSystem<TEventRunner> {
     event_runner: TEventRunner,
+    components: Vec<Box<dyn RunFullComponent>>,
 }
 
 impl<TEventRunner> LoopSystem<TEventRunner> {
     fn new(event_runner: TEventRunner) -> Self {
-        Self { event_runner }
+        Self {
+            event_runner,
+            components: Vec::new(),
+        }
     }
 }
 
-impl<TEventRunner> AddRun for LoopSystem<TEventRunner> {
-    fn add_run(&self, run: &dyn Run) {}
-}
-
 impl<TEventRunner: 'static + RunEvents> RunLoopSystem for LoopSystem<TEventRunner> {
-    fn run_loop_system(mut self, event_loop: EventLoop<()>) {
+    fn run_loop_system(
+        mut self,
+        event_loop: EventLoop<()>,
+        components: Vec<Box<dyn RunFullComponent>>,
+    ) {
+        self.components = components;
+
         event_loop.run(move |event, window_target, control_flow| {
             control_flow.set_wait();
             match event {
                 Event::Resumed => {
-                    self.event_runner.run_resumed_event(window_target);
+                    self.event_runner
+                        .run_resumed_event(window_target, &self.components);
                 }
                 Event::WindowEvent { event, .. } => match event {
                     WindowEvent::Resized(size) => self.event_runner.run_window_resized_event(size),
@@ -554,7 +558,9 @@ impl<TEventRunner: 'static + RunEvents> RunLoopSystem for LoopSystem<TEventRunne
                         .run_window_close_requested_event(control_flow),
                     _ => (),
                 },
-                Event::RedrawEventsCleared => self.event_runner.run_redraw_events_cleared_event(),
+                Event::RedrawEventsCleared => self
+                    .event_runner
+                    .run_redraw_events_cleared_event(&self.components),
                 _ => (),
             }
         })
@@ -587,8 +593,8 @@ impl GlWindow {
     }
 }
 
-pub trait Render<TContent> {
-    fn draw(&self, content: &TContent);
+pub trait Render {
+    fn draw(&self, components: &Vec<Box<dyn RunFullComponent>>);
 }
 
 pub trait Resize {
@@ -618,8 +624,8 @@ impl Renderer {
     }
 }
 
-impl<TContent: GetNumberOfObjects> Render<TContent> for Renderer {
-    fn draw(&self, content: &TContent) {
+impl Render for Renderer {
+    fn draw(&self, components: &Vec<Box<dyn RunFullComponent>>) {
         unsafe {
             self.gl.UseProgram(self.program);
 
@@ -629,12 +635,8 @@ impl<TContent: GetNumberOfObjects> Render<TContent> for Renderer {
             self.gl.ClearColor(0.1, 0.1, 0.1, 0.9);
             self.gl.Clear(gl::COLOR_BUFFER_BIT);
 
-            for n in 0..content.get_number_of_objects() {
-                self.gl.DrawArrays(
-                    gl::TRIANGLES,
-                    ((n as i32) * 5) - (2 * n as i32),
-                    ((n as i32) * 5) - (2 * n as i32) + 3,
-                );
+            for component in components.iter() {
+                component.on_draw(&self.gl);
             }
         }
     }
@@ -823,8 +825,12 @@ impl SetupVertexAttrib for VertexAttribSetup {
     }
 }
 
-pub trait CreateGLutin<TContent> {
-    unsafe fn create_glutin(self, gl: &gl::Gl, content: &TContent) -> gl::types::GLuint;
+pub trait CreateGLutin {
+    unsafe fn create_glutin(
+        self,
+        gl: &gl::Gl,
+        components: &Vec<Box<dyn RunFullComponent>>,
+    ) -> gl::types::GLuint;
 }
 
 pub struct VaoCreator {}
@@ -835,8 +841,12 @@ impl VaoCreator {
     }
 }
 
-impl<TContent> CreateGLutin<TContent> for VaoCreator {
-    unsafe fn create_glutin(self, gl: &gl::Gl, content: &TContent) -> gl::types::GLuint {
+impl CreateGLutin for VaoCreator {
+    unsafe fn create_glutin(
+        self,
+        gl: &gl::Gl,
+        components: &Vec<Box<dyn RunFullComponent>>,
+    ) -> gl::types::GLuint {
         let mut vao = std::mem::zeroed();
         gl.GenVertexArrays(1, &mut vao);
         gl.BindVertexArray(vao);
@@ -853,26 +863,31 @@ impl VboCreator {
     }
 }
 
-impl<TContent: GetNumberOfVertices + GetVertexDataPtr> CreateGLutin<TContent> for VboCreator {
-    unsafe fn create_glutin(self, gl: &gl::Gl, content: &TContent) -> gl::types::GLuint {
+impl CreateGLutin for VboCreator {
+    unsafe fn create_glutin(
+        self,
+        gl: &gl::Gl,
+        components: &Vec<Box<dyn RunFullComponent>>,
+    ) -> gl::types::GLuint {
         let mut vbo = std::mem::zeroed();
         gl.GenBuffers(1, &mut vbo);
         gl.BindBuffer(gl::ARRAY_BUFFER, vbo);
 
-        gl.BufferData(
-            gl::ARRAY_BUFFER,
-            (content.get_number_of_vertices() * std::mem::size_of::<f32>() as i32)
-                as gl::types::GLsizeiptr,
-            content.get_vertex_data_ptr() as *const _,
-            gl::STATIC_DRAW,
-        );
+        for component in components.iter() {
+            println!("RENDER COMPONENT");
+            component.on_create_glutin_vbo(gl);
+        }
 
         vbo
     }
 }
 
-pub trait CreateRenderer<TRenderer, TContent> {
-    fn create_renderer(self, display: &Display, content: &TContent) -> TRenderer;
+pub trait CreateRenderer<TRenderer> {
+    fn create_renderer(
+        self,
+        display: &Display,
+        components: &Vec<Box<dyn RunFullComponent>>,
+    ) -> TRenderer;
 }
 
 pub struct RendererCreator<
@@ -925,10 +940,9 @@ impl<
         TShaderCreator: CreateShaders,
         TProgramCreator: CreateProgram,
         TVertexAttribSetup: SetupVertexAttrib,
-        TVaoCreator: CreateGLutin<TContent>,
-        TVboCreator: CreateGLutin<TContent>,
-        TContent,
-    > CreateRenderer<Renderer, TContent>
+        TVaoCreator: CreateGLutin,
+        TVboCreator: CreateGLutin,
+    > CreateRenderer<Renderer>
     for RendererCreator<
         TGlCreator,
         TShaderCreator,
@@ -938,7 +952,11 @@ impl<
         TVboCreator,
     >
 {
-    fn create_renderer(self, display: &Display, content: &TContent) -> Renderer {
+    fn create_renderer(
+        self,
+        display: &Display,
+        components: &Vec<Box<dyn RunFullComponent>>,
+    ) -> Renderer {
         unsafe {
             let gl = self.gl_creator.create_gl(display);
 
@@ -957,9 +975,9 @@ impl<
             gl.DeleteShader(vertex_shader);
             gl.DeleteShader(fragment_shader);
 
-            let vao = self.vao_creator.create_glutin(&gl, content);
+            let vao = self.vao_creator.create_glutin(&gl, components);
 
-            let vbo = self.vbo_creator.create_glutin(&gl, content);
+            let vbo = self.vbo_creator.create_glutin(&gl, components);
 
             self.vertex_attrib_setup.setup(&gl, program);
 
@@ -986,11 +1004,8 @@ fn compose_renderer_creator() -> RendererCreator<
     )
 }
 
-fn generate_renderer<TContent: GetNumberOfVertices + GetVertexDataPtr>(
-    display: &Display,
-    content: &TContent,
-) -> Renderer {
-    compose_renderer_creator().create_renderer(display, content)
+fn generate_renderer(display: &Display, components: &Vec<Box<dyn RunFullComponent>>) -> Renderer {
+    compose_renderer_creator().create_renderer(display, components)
 }
 
 fn get_gl_string(gl: &gl::Gl, variant: gl::types::GLenum) -> Option<&'static CStr> {
@@ -1191,7 +1206,6 @@ impl<
                 WindowResizedEvent,
                 WindowCloseRequestedEvent,
                 RedrawEventsClearedEvent,
-                Content<Triangle<TrianglePoint<TwoDPoint, Rgb>>>,
                 Renderer,
             >,
         >,
@@ -1216,7 +1230,6 @@ impl<
             WindowResizedEvent,
             WindowCloseRequestedEvent,
             RedrawEventsClearedEvent,
-            Content<Triangle<TrianglePoint<TwoDPoint, Rgb>>>,
             Renderer,
         >,
     > {
@@ -1255,9 +1268,6 @@ impl<
 
         let redraw_events_cleared_event = self.redraw_events_cleared_event_creator.create();
 
-        let content_loader = compose_content_loader();
-        let content = content_loader.load_content();
-
         let event_runner = EventRunner::new(
             window,
             gl_config,
@@ -1269,7 +1279,6 @@ impl<
             window_resized_event,
             window_close_requested_event,
             redraw_events_cleared_event,
-            content,
         );
 
         LoopSystem::new(event_runner)
@@ -1338,6 +1347,27 @@ impl Create<EngineEnder> for EngineEnderCreator {
     fn create(&self) -> EngineEnder {
         EngineEnder::new()
     }
+}
+
+pub fn create_glutin_game_instance_builder<'a>(
+    game_name: &str,
+    event_loop: EventLoop<()>,
+) -> GameInstanceBuilder<
+    'a,
+    EngineStarterCreator,
+    LoopSystemCreator<
+        DisplayCreator,
+        ContextAttributesCreator,
+        FallbackContextAttributesCreator,
+        NotCurrentGlContextCreator,
+        ResumedEventCreator,
+        WindowResizedEventCreator,
+        WindowCloseRequestedEventCreator,
+        RedrawEventsClearedEventCreator,
+    >,
+    EngineEnderCreator,
+> {
+    todo!()
 }
 
 const VERTEX_SHADER_SOURCE: &[u8] = b"

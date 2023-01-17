@@ -1,9 +1,5 @@
-use garden::{AddRun, Create, GetName, Run};
+use garden::{Create, GetName, Run};
 use mockall::automock;
-
-pub trait AddComponentEnder {
-    fn add_component_ender(&self, component_ender: &dyn Run);
-}
 
 pub struct EndSystem<TEngineEnder> {
     component_enders: Vec<Box<dyn Run>>,
@@ -29,10 +25,6 @@ impl<TEngineEnder: EndEngine> End for EndSystem<TEngineEnder> {
     }
 }
 
-impl<TEngineEnder> AddComponentEnder for EndSystem<TEngineEnder> {
-    fn add_component_ender(&self, component_ender: &dyn Run) {}
-}
-
 #[automock]
 pub trait StartEngine {
     fn start_engine(self);
@@ -53,32 +45,17 @@ pub trait End {
 
 pub struct StartSystem<TEngineStarter> {
     engine_starter: TEngineStarter,
-    component_starters: Vec<Box<dyn Run>>,
 }
 
 impl<TEngineStarter: StartEngine> StartSystem<TEngineStarter> {
-    fn new(engine_starter: TEngineStarter, component_starters: Vec<Box<dyn Run>>) -> Self {
-        Self {
-            engine_starter,
-            component_starters,
-        }
+    fn new(engine_starter: TEngineStarter) -> Self {
+        Self { engine_starter }
     }
 }
 
 impl<TEngineStarter: StartEngine> Start for StartSystem<TEngineStarter> {
     fn start(self) {
         self.engine_starter.start_engine();
-
-        for component_starter in self.component_starters.iter() {
-            component_starter.run()
-        }
-    }
-}
-
-impl<'a, TEngineStarter: StartEngine> AddRun for StartSystem<TEngineStarter> {
-    fn add_run(&self, run: &dyn Run) {
-        panic!("garden_games::StartSystem::add_run not implemented")
-        //self.component_initialisers.push(Rc::new(run))
     }
 }
 
@@ -91,15 +68,7 @@ pub fn create_start_system<
 ) -> StartSystem<TEngineStarter> {
     let engine_starter = engine_starter_creator.create();
 
-    let component_starters = Vec::<Box<dyn Run>>::new();
-
-    StartSystem::<TEngineStarter>::new(engine_starter, component_starters)
-}
-
-impl<'a, TEngineEnder: EndEngine> AddRun for EndSystem<TEngineEnder> {
-    fn add_run(&self, run: &dyn Run) {
-        panic!("garden_games::EndSystem::add_run not implemented")
-    }
+    StartSystem::<TEngineStarter>::new(engine_starter)
 }
 
 pub fn create_end_system<'a, TEngineEnder: EndEngine, TEngineEnderCreator: Create<TEngineEnder>>(

@@ -6,6 +6,7 @@
 # More information here https://doc.rust-lang.org/cargo/guide/cargo-toml-vs-cargo-lock.html
 garden/Cargo.lock
 garden_content/Cargo.lock
+garden_content_component/Cargo.lock
 garden_content_loading/Cargo.lock
 garden_games/Cargo.lock
 garden_glutin/Cargo.lock
