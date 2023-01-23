@@ -437,6 +437,7 @@ dependencies = [
 name = "garden_content"
 version = "0.1.0"
 dependencies = [
+ "garden",
  "mockall",
 ]
 

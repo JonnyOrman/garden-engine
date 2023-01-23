@@ -2,6 +2,7 @@
     "content": {
         "triangles": [
             {
+                "name": "Triangle1",
                 "point1": {
                     "twoDPoint": {
                         "x": -1.0,
@@ -37,6 +38,7 @@
                 }
             },
             {
+                "name": "Triangle2",
                 "point1": {
                     "twoDPoint": {
                         "x": 0.0,
