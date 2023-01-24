@@ -72,24 +72,36 @@ impl<TJsonToTriangleConverter: ConvertJsonToValue<Triangle<TrianglePoint<TwoDPoi
     }
 }
 
-pub struct JsonToTriangleConverter<TJsonToTrianglePointConverter> {
+pub struct JsonToTriangleConverter<TJsonToStringConverter, TJsonToTrianglePointConverter> {
+    json_to_string_converter: TJsonToStringConverter,
     json_to_triangle_point_converter: TJsonToTrianglePointConverter,
 }
 
-impl<TJsonToTrianglePointConverter> JsonToTriangleConverter<TJsonToTrianglePointConverter> {
-    pub fn new(json_to_triangle_point_converter: TJsonToTrianglePointConverter) -> Self {
+impl<TJsonToStringConverter, TJsonToTrianglePointConverter>
+    JsonToTriangleConverter<TJsonToStringConverter, TJsonToTrianglePointConverter>
+{
+    pub fn new(
+        json_to_string_converter: TJsonToStringConverter,
+        json_to_triangle_point_converter: TJsonToTrianglePointConverter,
+    ) -> Self {
         Self {
+            json_to_string_converter,
             json_to_triangle_point_converter,
         }
     }
 }
 
-impl<TJsonToTrianglePointConverter: ConvertJsonToValue<TrianglePoint<TwoDPoint, Rgb>>>
-    ConvertJsonToValue<Triangle<TrianglePoint<TwoDPoint, Rgb>>>
-    for JsonToTriangleConverter<TJsonToTrianglePointConverter>
+impl<
+        TJsonToStringConverter: ConvertJsonToValue<String>,
+        TJsonToTrianglePointConverter: ConvertJsonToValue<TrianglePoint<TwoDPoint, Rgb>>,
+    > ConvertJsonToValue<Triangle<TrianglePoint<TwoDPoint, Rgb>>>
+    for JsonToTriangleConverter<TJsonToStringConverter, TJsonToTrianglePointConverter>
 {
     fn convert_json_to_value(&self, json: &Value) -> Triangle<TrianglePoint<TwoDPoint, Rgb>> {
         Triangle::new(
+            self.json_to_string_converter
+                .convert_json_to_value(&json["name"]),
+            //json.as_str().unwrap(),
             self.json_to_triangle_point_converter
                 .convert_json_to_value(&json["point1"]),
             self.json_to_triangle_point_converter
@@ -182,6 +194,20 @@ impl<TJsonToF32Converter: ConvertJsonToValue<f32>> ConvertJsonToValue<Rgb>
     }
 }
 
+pub struct JsonToStringConverter {}
+
+impl JsonToStringConverter {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl ConvertJsonToValue<String> for JsonToStringConverter {
+    fn convert_json_to_value(&self, json: &Value) -> String {
+        json.as_str().unwrap().to_string()
+    }
+}
+
 pub struct JsonToF32Converter {}
 
 impl JsonToF32Converter {
@@ -198,6 +224,7 @@ impl ConvertJsonToValue<f32> for JsonToF32Converter {
 
 pub fn compose_json_to_content_converter() -> JsonToContentConverter<
     JsonToTriangleConverter<
+        JsonToStringConverter,
         JsonToTrianglePointConverter<
             JsonToTwoDPointConverter<JsonToF32Converter>,
             JsonToRgbConverter<JsonToF32Converter>,
@@ -208,14 +235,19 @@ pub fn compose_json_to_content_converter() -> JsonToContentConverter<
     let json_to_rgb_converter = JsonToRgbConverter::new(JsonToF32Converter::new());
     let json_to_triangle_point_converter =
         JsonToTrianglePointConverter::new(json_to_two_d_point_converter, json_to_rgb_converter);
-    let json_to_triangle_converter = JsonToTriangleConverter::new(json_to_triangle_point_converter);
+    let json_to_triangle_converter = JsonToTriangleConverter::new(
+        JsonToStringConverter::new(),
+        json_to_triangle_point_converter,
+    );
     let json_to_content_converter = JsonToContentConverter::new(json_to_triangle_converter);
+
     json_to_content_converter
 }
 
 pub fn compose_content_loader() -> ContentLoader<
     JsonToContentConverter<
         JsonToTriangleConverter<
+            JsonToStringConverter,
             JsonToTrianglePointConverter<
                 JsonToTwoDPointConverter<JsonToF32Converter>,
                 JsonToRgbConverter<JsonToF32Converter>,
@@ -316,7 +348,8 @@ mod tests {
         });
 
         let expected_result = Content::<Triangle<TrianglePoint<TwoDPoint, Rgb>>>::new(vec![
-            Triangle::<TrianglePoint<TwoDPoint, Rgb>>::new(
+            Triangle::<'static, TrianglePoint<TwoDPoint, Rgb>>::new(
+                "Triangle1",
                 TrianglePoint::<TwoDPoint, Rgb>::new(
                     TwoDPoint::new(-1.0, -1.0),
                     Rgb::new(1.0, 0.0, 0.0),
@@ -331,6 +364,7 @@ mod tests {
                 ),
             ),
             Triangle::<TrianglePoint<TwoDPoint, Rgb>>::new(
+                "Triangle2",
                 TrianglePoint::<TwoDPoint, Rgb>::new(
                     TwoDPoint::new(0.0, 0.0),
                     Rgb::new(1.0, 0.0, 0.0),
