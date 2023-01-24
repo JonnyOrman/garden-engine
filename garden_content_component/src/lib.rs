@@ -3,7 +3,7 @@ use garden::{
 };
 use garden_content::{
     Content, GetNumberOfObjects, GetNumberOfVertices, GetVertexDataPtr, Rgb, Triangle,
-    TrianglePoint, TwoDPoint,
+    TriangleInstance, TrianglePoint, TwoDPoint,
 };
 use garden_content_loading::{compose_content_loader, LoadContent};
 use garden_winit::AddComponent;
@@ -16,11 +16,18 @@ pub fn add_content<TGameInstanceBuilder: AddComponent>(
     game_instance_builder.add(component);
 }
 
-fn compose_component() -> ContentComponent {
+fn compose_component() -> ContentComponent<
+    Content<
+        Triangle<TrianglePoint<TwoDPoint, Rgb>>,
+        TriangleInstance<TrianglePoint<TwoDPoint, Rgb>>,
+    >,
+> {
     let content_loader = compose_content_loader();
     let content = content_loader.load_content();
 
-    ContentComponent::new(content)
+    let content_component = ContentComponent::new(content);
+
+    content_component
 }
 
 pub struct ContentInitialiser {}
@@ -47,29 +54,29 @@ impl RunLoop for ContentLoopRunner {
     fn run_loop(&self) {}
 }
 
-pub struct ContentComponent {
-    content: Content<Triangle<TrianglePoint<TwoDPoint, Rgb>>>,
+pub struct ContentComponent<TContent> {
+    content: TContent,
 }
 
-impl ContentComponent {
-    fn new(content: Content<Triangle<TrianglePoint<TwoDPoint, Rgb>>>) -> Self {
+impl<TContent> ContentComponent<TContent> {
+    fn new(content: TContent) -> Self {
         Self { content }
     }
 }
 
-impl Initialise for ContentComponent {
+impl<TContent> Initialise for ContentComponent<TContent> {
     fn initialise(&self) {}
 }
 
-impl RunLoop for ContentComponent {
+impl<TContent> RunLoop for ContentComponent<TContent> {
     fn run_loop(&self) {}
 }
 
-impl RunEndComponent for ContentComponent {
+impl<TContent> RunEndComponent for ContentComponent<TContent> {
     fn run_end_component(self) {}
 }
 
-impl OnDraw for ContentComponent {
+impl<TContent: GetNumberOfObjects> OnDraw for ContentComponent<TContent> {
     unsafe fn on_draw(&self, gl: &garden::gl::Gl) {
         for n in 0..self.content.get_number_of_objects() {
             gl.DrawArrays(
@@ -81,7 +88,9 @@ impl OnDraw for ContentComponent {
     }
 }
 
-impl OnCreateGlutinVbo for ContentComponent {
+impl<TContent: GetNumberOfVertices + GetVertexDataPtr> OnCreateGlutinVbo
+    for ContentComponent<TContent>
+{
     unsafe fn on_create_glutin_vbo(&self, gl: &gl::Gl) {
         gl.BufferData(
             gl::ARRAY_BUFFER,
@@ -93,4 +102,7 @@ impl OnCreateGlutinVbo for ContentComponent {
     }
 }
 
-impl RunFullComponent for ContentComponent {}
+impl<TContent: GetNumberOfVertices + GetVertexDataPtr + GetNumberOfObjects> RunFullComponent
+    for ContentComponent<TContent>
+{
+}
