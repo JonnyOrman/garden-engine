@@ -165,50 +165,106 @@ impl<TTrianglePoint> GetNumberOfVertices for Triangle<TTrianglePoint> {
     }
 }
 
-pub struct Content<TTriangle> {
+pub struct TriangleInstance<TTrianglePoint> {
+    name: String,
+    contentName: String,
+    point_1: TTrianglePoint,
+    point_2: TTrianglePoint,
+    point_3: TTrianglePoint,
+    number_of_vertices: i32,
+    vertex_data: Vec<f32>,
+}
+
+impl<TTrianglePoint: GetVertexData + GetNumberOfVertices> TriangleInstance<TTrianglePoint> {
+    pub fn new(
+        name: String,
+        contentName: String,
+        point_1: TTrianglePoint,
+        point_2: TTrianglePoint,
+        point_3: TTrianglePoint,
+    ) -> Self {
+        let mut vertex_data = vec![];
+
+        vertex_data.append(&mut point_1.get_vertex_data().clone());
+        vertex_data.append(&mut point_2.get_vertex_data().clone());
+        vertex_data.append(&mut point_3.get_vertex_data().clone());
+
+        let number_of_vertices = point_1.get_number_of_vertices()
+            + point_2.get_number_of_vertices()
+            + point_3.get_number_of_vertices();
+
+        Self {
+            name,
+            contentName,
+            point_1,
+            point_2,
+            point_3,
+            number_of_vertices,
+            vertex_data,
+        }
+    }
+}
+
+impl<TTrianglePoint> GetVertexData for TriangleInstance<TTrianglePoint> {
+    fn get_vertex_data(&self) -> Vec<f32> {
+        self.vertex_data.clone()
+    }
+}
+
+impl<TTrianglePoint> GetNumberOfVertices for TriangleInstance<TTrianglePoint> {
+    fn get_number_of_vertices(&self) -> i32 {
+        self.number_of_vertices
+    }
+}
+
+pub struct Content<TTriangle, TTriangleInstance> {
     triangles: Vec<TTriangle>,
+    triangle_instances: Vec<TTriangleInstance>,
     vertex_data: Vec<f32>,
     number_of_vertices: i32,
 }
 
-impl<TTriangle: GetVertexData + GetNumberOfVertices> Content<TTriangle> {
-    pub fn new(triangles: Vec<TTriangle>) -> Self {
+impl<TTriangle, TTriangleInstance: GetVertexData + GetNumberOfVertices>
+    Content<TTriangle, TTriangleInstance>
+{
+    pub fn new(triangles: Vec<TTriangle>, triangle_instances: Vec<TTriangleInstance>) -> Self {
         let mut number_of_vertices = 0;
 
         let mut vertex_data = vec![];
 
-        for triangle in triangles.iter() {
-            number_of_vertices += triangle.get_number_of_vertices();
-            vertex_data.append(&mut triangle.get_vertex_data());
+        for triangle_instance in triangle_instances.iter() {
+            number_of_vertices += triangle_instance.get_number_of_vertices();
+            vertex_data.append(&mut triangle_instance.get_vertex_data());
         }
 
         Self {
             triangles,
+            triangle_instances,
             vertex_data,
             number_of_vertices,
         }
     }
 }
 
-impl<TTriangle> GetVertexData for Content<TTriangle> {
+impl<TTriangle, TTriangleInstance> GetVertexData for Content<TTriangle, TTriangleInstance> {
     fn get_vertex_data(&self) -> Vec<f32> {
         self.vertex_data.clone()
     }
 }
 
-impl<TTriangle> GetNumberOfVertices for Content<TTriangle> {
+impl<TTriangle, TTriangleInstance> GetNumberOfVertices for Content<TTriangle, TTriangleInstance> {
     fn get_number_of_vertices(&self) -> i32 {
         self.number_of_vertices
     }
 }
 
-impl<TTriangle> GetNumberOfObjects for Content<TTriangle> {
+impl<TTriangle, TTriangleInstance> GetNumberOfObjects for Content<TTriangle, TTriangleInstance> {
     fn get_number_of_objects(&self) -> i32 {
-        self.triangles.len() as i32
+        self.triangle_instances.len() as i32
     }
 }
 
-impl<TTriangle> GetVertexDataPtr for Content<TTriangle> {
+impl<TTriangle, TTriangleInstance> GetVertexDataPtr for Content<TTriangle, TTriangleInstance> {
     fn get_vertex_data_ptr(&self) -> *const f32 {
         self.vertex_data.as_ptr()
     }
