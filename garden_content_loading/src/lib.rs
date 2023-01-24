@@ -375,11 +375,11 @@ pub fn compose_content_loader() -> ContentLoader<
     ContentLoader::new(compose_json_to_content_converter())
 }
 
-//pub fn load<TContent>(content: &TContent) {}
-
 #[cfg(test)]
 mod tests {
-    use garden_content::{Content, GetVertexData, Rgb, Triangle, TrianglePoint, TwoDPoint};
+    use garden_content::{
+        Content, GetVertexData, Rgb, Triangle, TriangleInstance, TrianglePoint, TwoDPoint,
+    };
     use garden_json::ConvertJsonToValue;
     use serde_json::json;
 
@@ -393,6 +393,7 @@ mod tests {
             "content": {
                 "triangles": [
                     {
+                        "name": "Triangle1",
                         "point1": {
                             "twoDPoint": {
                                 "x": -1.0,
@@ -406,42 +407,7 @@ mod tests {
                         },
                         "point2": {
                             "twoDPoint": {
-                                "x": -0.5,
-                                "y": 0.0
-                            },
-                            "rgb": {
-                                "r": 0.0,
-                                "g": 1.0,
-                                "b": 0.0
-                            }
-                        },
-                        "point3": {
-                            "twoDPoint": {
                                 "x": 0.0,
-                                "y": -1.0
-                            },
-                            "rgb": {
-                                "r": 0.0,
-                                "g": 0.0,
-                                "b": 1.0
-                            }
-                        }
-                    },
-                    {
-                        "point1": {
-                            "twoDPoint": {
-                                "x": 0.0,
-                                "y": 0.0
-                            },
-                            "rgb": {
-                                "r": 1.0,
-                                "g": 0.0,
-                                "b": 0.0
-                            }
-                        },
-                        "point2": {
-                            "twoDPoint": {
-                                "x": 0.5,
                                 "y": 1.0
                             },
                             "rgb": {
@@ -463,41 +429,139 @@ mod tests {
                         }
                     }
                 ]
-            }
+            },
+            "objects": [
+                {
+                    "name": "Triangle1-a",
+                    "contentName": "Triangle1",
+                    "point1": {
+                        "twoDPoint": {
+                            "x": -1.0,
+                            "y": -1.0
+                        },
+                        "rgb": {
+                            "r": 1.0,
+                            "g": 0.0,
+                            "b": 0.0
+                        }
+                    },
+                    "point2": {
+                        "twoDPoint": {
+                            "x": -0.5,
+                            "y": 0.0
+                        },
+                        "rgb": {
+                            "r": 0.0,
+                            "g": 1.0,
+                            "b": 0.0
+                        }
+                    },
+                    "point3": {
+                        "twoDPoint": {
+                            "x": 0.0,
+                            "y": -1.0
+                        },
+                        "rgb": {
+                            "r": 0.0,
+                            "g": 0.0,
+                            "b": 1.0
+                        }
+                    }
+                },
+                {
+                    "name": "Triangle1-b",
+                    "contentName": "Triangle1",
+                    "point1": {
+                        "twoDPoint": {
+                            "x": 0.0,
+                            "y": 0.0
+                        },
+                        "rgb": {
+                            "r": 1.0,
+                            "g": 0.0,
+                            "b": 0.0
+                        }
+                    },
+                    "point2": {
+                        "twoDPoint": {
+                            "x": 0.5,
+                            "y": 1.0
+                        },
+                        "rgb": {
+                            "r": 0.0,
+                            "g": 1.0,
+                            "b": 0.0
+                        }
+                    },
+                    "point3": {
+                        "twoDPoint": {
+                            "x": 1.0,
+                            "y": 0.0
+                        },
+                        "rgb": {
+                            "r": 0.0,
+                            "g": 0.0,
+                            "b": 1.0
+                        }
+                    }
+                }
+            ]
         });
 
-        let expected_result = Content::<Triangle<TrianglePoint<TwoDPoint, Rgb>>>::new(vec![
-            Triangle::<'static, TrianglePoint<TwoDPoint, Rgb>>::new(
-                "Triangle1",
+        let expected_result = Content::<
+            Triangle<TrianglePoint<TwoDPoint, Rgb>>,
+            TriangleInstance<TrianglePoint<TwoDPoint, Rgb>>,
+        >::new(
+            vec![Triangle::<TrianglePoint<TwoDPoint, Rgb>>::new(
+                "Triangle1".to_string(),
                 TrianglePoint::<TwoDPoint, Rgb>::new(
                     TwoDPoint::new(-1.0, -1.0),
                     Rgb::new(1.0, 0.0, 0.0),
                 ),
                 TrianglePoint::<TwoDPoint, Rgb>::new(
-                    TwoDPoint::new(-0.5, 0.0),
-                    Rgb::new(0.0, 1.0, 0.0),
-                ),
-                TrianglePoint::<TwoDPoint, Rgb>::new(
-                    TwoDPoint::new(0.0, -1.0),
-                    Rgb::new(0.0, 0.0, 1.0),
-                ),
-            ),
-            Triangle::<TrianglePoint<TwoDPoint, Rgb>>::new(
-                "Triangle2",
-                TrianglePoint::<TwoDPoint, Rgb>::new(
-                    TwoDPoint::new(0.0, 0.0),
-                    Rgb::new(1.0, 0.0, 0.0),
-                ),
-                TrianglePoint::<TwoDPoint, Rgb>::new(
-                    TwoDPoint::new(0.5, 1.0),
+                    TwoDPoint::new(0.0, 1.0),
                     Rgb::new(0.0, 1.0, 0.0),
                 ),
                 TrianglePoint::<TwoDPoint, Rgb>::new(
                     TwoDPoint::new(1.0, 0.0),
                     Rgb::new(0.0, 0.0, 1.0),
                 ),
-            ),
-        ]);
+            )],
+            vec![
+                TriangleInstance::<TrianglePoint<TwoDPoint, Rgb>>::new(
+                    "Triangle1-a".to_string(),
+                    "Triangle1".to_string(),
+                    TrianglePoint::<TwoDPoint, Rgb>::new(
+                        TwoDPoint::new(-1.0, -1.0),
+                        Rgb::new(1.0, 0.0, 0.0),
+                    ),
+                    TrianglePoint::<TwoDPoint, Rgb>::new(
+                        TwoDPoint::new(-0.5, 0.0),
+                        Rgb::new(0.0, 1.0, 0.0),
+                    ),
+                    TrianglePoint::<TwoDPoint, Rgb>::new(
+                        TwoDPoint::new(0.0, -1.0),
+                        Rgb::new(0.0, 0.0, 1.0),
+                    ),
+                ),
+                TriangleInstance::<TrianglePoint<TwoDPoint, Rgb>>::new(
+                    "Triangle1-b".to_string(),
+                    "Triangle1".to_string(),
+                    TrianglePoint::<TwoDPoint, Rgb>::new(
+                        TwoDPoint::new(0.0, 0.0),
+                        Rgb::new(1.0, 0.0, 0.0),
+                    ),
+                    TrianglePoint::<TwoDPoint, Rgb>::new(
+                        TwoDPoint::new(0.5, 1.0),
+                        Rgb::new(0.0, 1.0, 0.0),
+                    ),
+                    TrianglePoint::<TwoDPoint, Rgb>::new(
+                        TwoDPoint::new(1.0, 0.0),
+                        Rgb::new(0.0, 0.0, 1.0),
+                    ),
+                ),
+            ],
+        );
 
         let result = json_to_content_converter.convert_json_to_value(&json);
 
