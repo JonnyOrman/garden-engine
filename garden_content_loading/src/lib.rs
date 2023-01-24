@@ -17,7 +17,7 @@ impl<
         TJsonToContentConverter: ConvertJsonToValue<
             Content<
                 Triangle<TrianglePoint<TwoDPoint, Rgb>>,
-                TriangleInstance<TrianglePoint<TwoDPoint, Rgb>>,
+                TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
             >,
         >,
     > ContentLoader<TJsonToContentConverter>
@@ -34,14 +34,14 @@ impl<
         TJsonToContentConverter: ConvertJsonToValue<
             Content<
                 Triangle<TrianglePoint<TwoDPoint, Rgb>>,
-                TriangleInstance<TrianglePoint<TwoDPoint, Rgb>>,
+                TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
             >,
         >,
     >
     LoadContent<
         Content<
             Triangle<TrianglePoint<TwoDPoint, Rgb>>,
-            TriangleInstance<TrianglePoint<TwoDPoint, Rgb>>,
+            TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
         >,
     > for ContentLoader<TJsonToContentConverter>
 {
@@ -49,7 +49,7 @@ impl<
         self,
     ) -> Content<
         Triangle<TrianglePoint<TwoDPoint, Rgb>>,
-        TriangleInstance<TrianglePoint<TwoDPoint, Rgb>>,
+        TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
     > {
         let file_contents = fs::read_to_string("content.json").unwrap();
 
@@ -81,12 +81,12 @@ impl<TJsonToTriangleConverter, TJsonToTriangleInstanceConverter>
 impl<
         'a,
         TJsonToTriangleConverter: ConvertJsonToValue<Triangle<TrianglePoint<TwoDPoint, Rgb>>>,
-        TJsonToTriangleInstanceConverter: ConvertJsonToValue<TriangleInstance<TrianglePoint<TwoDPoint, Rgb>>>,
+        TJsonToTriangleInstanceConverter: ConvertJsonToValue<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>>,
     >
     ConvertJsonToValue<
         Content<
             Triangle<TrianglePoint<TwoDPoint, Rgb>>,
-            TriangleInstance<TrianglePoint<TwoDPoint, Rgb>>,
+            TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
         >,
     > for JsonToContentConverter<TJsonToTriangleConverter, TJsonToTriangleInstanceConverter>
 {
@@ -95,7 +95,7 @@ impl<
         json: &Value,
     ) -> Content<
         Triangle<TrianglePoint<TwoDPoint, Rgb>>,
-        TriangleInstance<TrianglePoint<TwoDPoint, Rgb>>,
+        TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
     > {
         let mut triangles = vec![];
 
@@ -162,20 +162,31 @@ impl<
     }
 }
 
-pub struct JsonToTriangleInstanceConverter<TJsonToStringConverter, TJsonToTrianglePointConverter> {
+pub struct JsonToTriangleInstanceConverter<
+    TJsonToStringConverter,
+    TJsonToTwoDPointConverter,
+    TJsonToTrianglePointConverter,
+> {
     json_to_string_converter: TJsonToStringConverter,
+    json_to_two_d_point_converter: TJsonToTwoDPointConverter,
     json_to_triangle_point_converter: TJsonToTrianglePointConverter,
 }
 
-impl<TJsonToStringConverter, TJsonToTrianglePointConverter>
-    JsonToTriangleInstanceConverter<TJsonToStringConverter, TJsonToTrianglePointConverter>
+impl<TJsonToStringConverter, TJsonToTwoDPointConverter, TJsonToTrianglePointConverter>
+    JsonToTriangleInstanceConverter<
+        TJsonToStringConverter,
+        TJsonToTwoDPointConverter,
+        TJsonToTrianglePointConverter,
+    >
 {
     fn new(
         json_to_string_converter: TJsonToStringConverter,
+        json_to_two_d_point_converter: TJsonToTwoDPointConverter,
         json_to_triangle_point_converter: TJsonToTrianglePointConverter,
     ) -> Self {
         Self {
             json_to_string_converter,
+            json_to_two_d_point_converter,
             json_to_triangle_point_converter,
         }
     }
@@ -183,19 +194,26 @@ impl<TJsonToStringConverter, TJsonToTrianglePointConverter>
 
 impl<
         TJsonToStringConverter: ConvertJsonToValue<String>,
+        TJsonToTwoDPointConverter: ConvertJsonToValue<TwoDPoint>,
         TJsonToTrianglePointConverter: ConvertJsonToValue<TrianglePoint<TwoDPoint, Rgb>>,
-    > ConvertJsonToValue<TriangleInstance<TrianglePoint<TwoDPoint, Rgb>>>
-    for JsonToTriangleInstanceConverter<TJsonToStringConverter, TJsonToTrianglePointConverter>
+    > ConvertJsonToValue<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>>
+    for JsonToTriangleInstanceConverter<
+        TJsonToStringConverter,
+        TJsonToTwoDPointConverter,
+        TJsonToTrianglePointConverter,
+    >
 {
     fn convert_json_to_value(
         &self,
         json: &Value,
-    ) -> TriangleInstance<TrianglePoint<TwoDPoint, Rgb>> {
+    ) -> TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>> {
         TriangleInstance::new(
             self.json_to_string_converter
                 .convert_json_to_value(&json["name"]),
             self.json_to_string_converter
                 .convert_json_to_value(&json["contentName"]),
+            self.json_to_two_d_point_converter
+                .convert_json_to_value(&json["position"]),
             self.json_to_triangle_point_converter
                 .convert_json_to_value(&json["point1"]),
             self.json_to_triangle_point_converter
@@ -326,6 +344,7 @@ pub fn compose_json_to_content_converter() -> JsonToContentConverter<
     >,
     JsonToTriangleInstanceConverter<
         JsonToStringConverter,
+        JsonToTwoDPointConverter<JsonToF32Converter>,
         JsonToTrianglePointConverter<
             JsonToTwoDPointConverter<JsonToF32Converter>,
             JsonToRgbConverter<JsonToF32Converter>,
@@ -341,6 +360,7 @@ pub fn compose_json_to_content_converter() -> JsonToContentConverter<
     );
     let json_to_triangle_instance_converter = JsonToTriangleInstanceConverter::new(
         JsonToStringConverter::new(),
+        JsonToTwoDPointConverter::new(JsonToF32Converter::new()),
         JsonToTrianglePointConverter::new(
             JsonToTwoDPointConverter::new(JsonToF32Converter::new()),
             JsonToRgbConverter::new(JsonToF32Converter::new()),
@@ -365,6 +385,7 @@ pub fn compose_content_loader() -> ContentLoader<
         >,
         JsonToTriangleInstanceConverter<
             JsonToStringConverter,
+            JsonToTwoDPointConverter<JsonToF32Converter>,
             JsonToTrianglePointConverter<
                 JsonToTwoDPointConverter<JsonToF32Converter>,
                 JsonToRgbConverter<JsonToF32Converter>,

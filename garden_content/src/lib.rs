@@ -165,9 +165,10 @@ impl<TTrianglePoint> GetNumberOfVertices for Triangle<TTrianglePoint> {
     }
 }
 
-pub struct TriangleInstance<TTrianglePoint> {
+pub struct TriangleInstance<TPosition, TTrianglePoint> {
     name: String,
     contentName: String,
+    position: TPosition,
     point_1: TTrianglePoint,
     point_2: TTrianglePoint,
     point_3: TTrianglePoint,
@@ -175,10 +176,13 @@ pub struct TriangleInstance<TTrianglePoint> {
     vertex_data: Vec<f32>,
 }
 
-impl<TTrianglePoint: GetVertexData + GetNumberOfVertices> TriangleInstance<TTrianglePoint> {
+impl<TPosition, TTrianglePoint: GetVertexData + GetNumberOfVertices>
+    TriangleInstance<TPosition, TTrianglePoint>
+{
     pub fn new(
         name: String,
         contentName: String,
+        position: TPosition,
         point_1: TTrianglePoint,
         point_2: TTrianglePoint,
         point_3: TTrianglePoint,
@@ -196,6 +200,7 @@ impl<TTrianglePoint: GetVertexData + GetNumberOfVertices> TriangleInstance<TTria
         Self {
             name,
             contentName,
+            position,
             point_1,
             point_2,
             point_3,
@@ -209,19 +214,21 @@ impl<TTrianglePoint: GetVertexData + GetNumberOfVertices> TriangleInstance<TTria
     }
 }
 
-impl<TTrianglePoint> GetName for TriangleInstance<TTrianglePoint> {
+impl<TPosition, TTrianglePoint> GetName for TriangleInstance<TPosition, TTrianglePoint> {
     fn get_name(&self) -> &str {
         &self.name
     }
 }
 
-impl<TTrianglePoint> GetVertexData for TriangleInstance<TTrianglePoint> {
+impl<TPosition, TTrianglePoint> GetVertexData for TriangleInstance<TPosition, TTrianglePoint> {
     fn get_vertex_data(&self) -> Vec<f32> {
         self.vertex_data.clone()
     }
 }
 
-impl<TTrianglePoint> GetNumberOfVertices for TriangleInstance<TTrianglePoint> {
+impl<TPosition, TTrianglePoint> GetNumberOfVertices
+    for TriangleInstance<TPosition, TTrianglePoint>
+{
     fn get_number_of_vertices(&self) -> i32 {
         self.number_of_vertices
     }
