@@ -43,6 +43,7 @@
         {
             "name": "Triangle1-a",
             "contentName": "Triangle1",
+            "scale": 0.5,
             "position": {
                 "x": -0.5,
                 "y": -0.5
@@ -84,6 +85,7 @@
         {
             "name": "Triangle1-b",
             "contentName": "Triangle1",
+            "scale": 0.5,
             "position": {
                 "x": 0.5,
                 "y": 0.5

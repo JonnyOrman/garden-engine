@@ -16,6 +16,16 @@ pub trait GetVertexDataPtr {
     fn get_vertex_data_ptr(&self) -> *const f32;
 }
 
+pub trait GetX {
+    fn get_x(&self) -> f32;
+}
+
+pub trait GetY {
+    fn get_y(&self) -> f32;
+}
+
+pub trait Get2DCoordiantes: GetX + GetY {}
+
 pub struct TwoDPoint {
     x: f32,
     y: f32,
@@ -30,6 +40,20 @@ impl TwoDPoint {
         Self { x, y, vertex_data }
     }
 }
+
+impl GetX for TwoDPoint {
+    fn get_x(&self) -> f32 {
+        self.x
+    }
+}
+
+impl GetY for TwoDPoint {
+    fn get_y(&self) -> f32 {
+        self.y
+    }
+}
+
+impl Get2DCoordiantes for TwoDPoint {}
 
 impl GetVertexData for TwoDPoint {
     fn get_vertex_data(&self) -> Vec<f32> {
@@ -67,6 +91,10 @@ impl GetNumberOfVertices for Rgb {
     fn get_number_of_vertices(&self) -> i32 {
         Rgb::NUMBER_OF_VERTICES
     }
+}
+
+pub trait GetRgb<TRgb> {
+    fn get_rgb(self) -> TRgb;
 }
 
 pub struct TrianglePoint<TTwoDPoint, TRgb> {
@@ -107,6 +135,24 @@ impl<TTwoDPoint, TRgb> GetVertexData for TrianglePoint<TTwoDPoint, TRgb> {
 impl<TTwoDPoint, TRgb> GetNumberOfVertices for TrianglePoint<TTwoDPoint, TRgb> {
     fn get_number_of_vertices(&self) -> i32 {
         self.number_of_vertices
+    }
+}
+
+impl<TTwoDPoint: GetX, TRgb> GetX for TrianglePoint<TTwoDPoint, TRgb> {
+    fn get_x(&self) -> f32 {
+        self.point.get_x()
+    }
+}
+
+impl<TTwoDPoint: GetY, TRgb> GetY for TrianglePoint<TTwoDPoint, TRgb> {
+    fn get_y(&self) -> f32 {
+        self.point.get_y()
+    }
+}
+
+impl<TTwoDPoint: GetY, TRgb> GetRgb<TRgb> for TrianglePoint<TTwoDPoint, TRgb> {
+    fn get_rgb(self) -> TRgb {
+        self.rgb
     }
 }
 
@@ -168,6 +214,7 @@ impl<TTrianglePoint> GetNumberOfVertices for Triangle<TTrianglePoint> {
 pub struct TriangleInstance<TPosition, TTrianglePoint> {
     name: String,
     contentName: String,
+    scale: f32,
     position: TPosition,
     point_1: TTrianglePoint,
     point_2: TTrianglePoint,
@@ -182,6 +229,7 @@ impl<TPosition, TTrianglePoint: GetVertexData + GetNumberOfVertices>
     pub fn new(
         name: String,
         contentName: String,
+        scale: f32,
         position: TPosition,
         point_1: TTrianglePoint,
         point_2: TTrianglePoint,
@@ -200,6 +248,7 @@ impl<TPosition, TTrianglePoint: GetVertexData + GetNumberOfVertices>
         Self {
             name,
             contentName,
+            scale,
             position,
             point_1,
             point_2,
@@ -530,15 +579,21 @@ mod tests {
 
         let triangle_name = "";
 
+        let scale = 0.5;
+
+        let position = MockVertexObject::new();
+
         let triangle_point_1 = create_mock_vertex_object(vec![], 0);
 
         let triangle_point_2 = create_mock_vertex_object(vec![], 0);
 
         let triangle_point_3 = create_mock_vertex_object(vec![], 0);
 
-        let triangle_instance = TriangleInstance::<MockVertexObject>::new(
+        let triangle_instance = TriangleInstance::<MockVertexObject, MockVertexObject>::new(
             triangle_instance_name.to_string(),
             triangle_name.to_string(),
+            scale,
+            position,
             triangle_point_1,
             triangle_point_2,
             triangle_point_3,
@@ -555,15 +610,21 @@ mod tests {
 
         let triangle_name = "SomeContent";
 
+        let scale = 0.5;
+
+        let position = MockVertexObject::new();
+
         let triangle_point_1 = create_mock_vertex_object(vec![], 0);
 
         let triangle_point_2 = create_mock_vertex_object(vec![], 0);
 
         let triangle_point_3 = create_mock_vertex_object(vec![], 0);
 
-        let triangle_instance = TriangleInstance::<MockVertexObject>::new(
+        let triangle_instance = TriangleInstance::<MockVertexObject, MockVertexObject>::new(
             triangle_instance_name.to_string(),
             triangle_name.to_string(),
+            scale,
+            position,
             triangle_point_1,
             triangle_point_2,
             triangle_point_3,
@@ -649,9 +710,15 @@ mod tests {
             triangle_point_3_b,
         ];
 
-        let triangle_instance = TriangleInstance::<MockVertexObject>::new(
+        let scale = 0.5;
+
+        let position = MockVertexObject::new();
+
+        let triangle_instance = TriangleInstance::<MockVertexObject, MockVertexObject>::new(
             triangle_instance_name.to_string(),
             triangle_name.to_string(),
+            scale,
+            position,
             triangle_point_1,
             triangle_point_2,
             triangle_point_3,
@@ -669,6 +736,10 @@ mod tests {
 
         let triangle_name = "";
 
+        let scale = 0.5;
+
+        let position = MockVertexObject::new();
+
         let triangle_point_1 = create_mock_vertex_object(vec![], 5);
 
         let triangle_point_2 = create_mock_vertex_object(vec![], 5);
@@ -677,9 +748,11 @@ mod tests {
 
         let expected_number_of_vertices = 15;
 
-        let triangle_instance = TriangleInstance::<MockVertexObject>::new(
+        let triangle_instance = TriangleInstance::<MockVertexObject, MockVertexObject>::new(
             triangle_instance_name.to_string(),
             triangle_name.to_string(),
+            scale,
+            position,
             triangle_point_1,
             triangle_point_2,
             triangle_point_3,
