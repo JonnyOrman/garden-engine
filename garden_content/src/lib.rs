@@ -342,7 +342,7 @@ mod tests {
     use mockall::mock;
 
     use crate::{
-        Content, GetNumberOfObjects, GetNumberOfVertices, GetVertexData, Rgb, Triangle,
+        Content, GetNumberOfObjects, GetNumberOfVertices, GetVertexData, GetX, GetY, Rgb, Triangle,
         TriangleInstance, TrianglePoint, TwoDPoint,
     };
 
@@ -440,6 +440,40 @@ mod tests {
         let result = triangle_point.get_number_of_vertices();
 
         assert_eq!(result, expected_number_of_vertices);
+    }
+
+    #[test]
+    fn when_a_triangle_point_gets_x_then_point_x_is_returned() {
+        let x = 1.23;
+
+        let mut two_d_point = create_mock_vertex_object(vec![], 2);
+        two_d_point.expect_get_x().times(1).returning(move || x);
+
+        let rgb = create_mock_vertex_object(vec![], 3);
+
+        let triangle_point =
+            TrianglePoint::<MockVertexObject, MockVertexObject>::new(two_d_point, rgb);
+
+        let result = triangle_point.get_x();
+
+        assert_eq!(result, x);
+    }
+
+    #[test]
+    fn when_a_triangle_point_gets_y_then_point_y_is_returned() {
+        let y = 1.23;
+
+        let mut two_d_point = create_mock_vertex_object(vec![], 2);
+        two_d_point.expect_get_y().times(1).returning(move || y);
+
+        let rgb = create_mock_vertex_object(vec![], 3);
+
+        let triangle_point =
+            TrianglePoint::<MockVertexObject, MockVertexObject>::new(two_d_point, rgb);
+
+        let result = triangle_point.get_y();
+
+        assert_eq!(result, y);
     }
 
     #[test]
@@ -1000,6 +1034,51 @@ mod tests {
         impl GetNumberOfVertices for VertexObject {
             fn get_number_of_vertices(&self) -> i32;
         }
+        impl GetX for VertexObject {
+            fn get_x(&self) -> f32;
+        }
+        impl GetY for VertexObject {
+            fn get_y(&self) -> f32;
+        }
+    }
+
+    #[test]
+    fn when_two_d_point_gets_x_then_x_is_returned() {
+        let x = 1.23;
+
+        let y = 0.0;
+
+        let two_d_point = TwoDPoint::new(x, y);
+
+        let result = two_d_point.get_x();
+
+        assert_eq!(result, x);
+    }
+
+    #[test]
+    fn when_two_d_point_gets_y_then_y_is_returned() {
+        let x = 0.0;
+
+        let y = 1.23;
+
+        let two_d_point = TwoDPoint::new(x, y);
+
+        let result = two_d_point.get_y();
+
+        assert_eq!(result, y);
+    }
+
+    #[test]
+    fn when_two_d_point_gets_vertex_data_then_the_vertex_data_is_returned() {
+        let x = 1.23;
+
+        let y = 4.56;
+
+        let two_d_point = TwoDPoint::new(x, y);
+
+        let result = two_d_point.get_vertex_data();
+
+        assert_eq!(result, [x, y]);
     }
 
     fn create_mock_vertex_object(
