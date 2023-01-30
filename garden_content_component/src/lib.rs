@@ -19,7 +19,7 @@ pub fn add_content<TGameInstanceBuilder: AddComponent>(
 fn compose_component() -> ContentComponent<
     Content<
         Triangle<TrianglePoint<TwoDPoint, Rgb>>,
-        TriangleInstance<TrianglePoint<TwoDPoint, Rgb>>,
+        TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
     >,
 > {
     let content_loader = compose_content_loader();
