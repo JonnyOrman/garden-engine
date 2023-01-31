@@ -1,14 +1,12 @@
 use std::fs;
 
 use garden_content::{
-    Content, GetRgb, GetX, GetY, Rgb, Triangle, TriangleInstance, TrianglePoint, TwoDPoint,
+    Content, GetB, GetG, GetR, GetRgb, GetX, GetY, Rgb, Triangle, TriangleInstance, TrianglePoint,
+    TwoDPoint,
 };
-use garden_json::ConvertJsonToValue;
+use garden_json::{ConvertJsonToValue, JsonToF32Converter};
+use garden_loading::Load;
 use serde_json::Value;
-
-pub trait LoadContent<TContent> {
-    fn load_content(self) -> TContent;
-}
 
 pub struct ContentLoader<TJsonToContentConverter> {
     json_to_content_converter: TJsonToContentConverter,
@@ -40,14 +38,14 @@ impl<
             >,
         >,
     >
-    LoadContent<
+    Load<
         Content<
             Triangle<TrianglePoint<TwoDPoint, Rgb>>,
             TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
         >,
     > for ContentLoader<TJsonToContentConverter>
 {
-    fn load_content(
+    fn load(
         self,
     ) -> Content<
         Triangle<TrianglePoint<TwoDPoint, Rgb>>,
@@ -238,7 +236,11 @@ impl<
                 point_1.get_x() * scale + position.get_x(),
                 point_1.get_y() * scale + position.get_y(),
             ),
-            point_1.get_rgb(),
+            Rgb::new(
+                point_1.get_rgb().get_r(),
+                point_1.get_rgb().get_g(),
+                point_1.get_rgb().get_b(),
+            ),
         );
 
         let point_2 = self
@@ -250,7 +252,11 @@ impl<
                 point_2.get_x() * scale + position.get_x(),
                 point_2.get_y() * scale + position.get_y(),
             ),
-            point_2.get_rgb(),
+            Rgb::new(
+                point_2.get_rgb().get_r(),
+                point_2.get_rgb().get_g(),
+                point_2.get_rgb().get_b(),
+            ),
         );
 
         let point_3 = self
@@ -262,7 +268,11 @@ impl<
                 point_3.get_x() * scale + position.get_x(),
                 point_3.get_y() * scale + position.get_y(),
             ),
-            point_3.get_rgb(),
+            Rgb::new(
+                point_3.get_rgb().get_r(),
+                point_3.get_rgb().get_g(),
+                point_3.get_rgb().get_b(),
+            ),
         );
 
         TriangleInstance::new(
@@ -373,20 +383,6 @@ impl JsonToStringConverter {
 impl ConvertJsonToValue<String> for JsonToStringConverter {
     fn convert_json_to_value(&self, json: &Value) -> String {
         json.as_str().unwrap().to_string()
-    }
-}
-
-pub struct JsonToF32Converter {}
-
-impl JsonToF32Converter {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-
-impl ConvertJsonToValue<f32> for JsonToF32Converter {
-    fn convert_json_to_value(&self, json: &Value) -> f32 {
-        json.as_f64().unwrap() as f32
     }
 }
 

@@ -448,6 +448,8 @@ dependencies = [
  "garden",
  "garden_content",
  "garden_content_loading",
+ "garden_loading",
+ "garden_scenes",
  "garden_winit",
 ]
 
@@ -457,6 +459,7 @@ version = "0.1.0"
 dependencies = [
  "garden_content",
  "garden_json",
+ "garden_loading",
  "serde_json",
 ]
 
@@ -492,6 +495,7 @@ dependencies = [
  "garden_content_component",
  "garden_games",
  "garden_glutin",
+ "garden_scenes_component",
  "garden_winit",
 ]
 
@@ -499,6 +503,35 @@ dependencies = [
 name = "garden_json"
 version = "0.1.0"
 dependencies = [
+ "serde_json",
+]
+
+[[package]]
+name = "garden_loading"
+version = "0.1.0"
+
+[[package]]
+name = "garden_scenes"
+version = "0.1.0"
+
+[[package]]
+name = "garden_scenes_component"
+version = "0.1.0"
+dependencies = [
+ "garden",
+ "garden_loading",
+ "garden_scenes",
+ "garden_scenes_loading",
+ "garden_winit",
+]
+
+[[package]]
+name = "garden_scenes_loading"
+version = "0.1.0"
+dependencies = [
+ "garden_json",
+ "garden_loading",
+ "garden_scenes",
  "serde_json",
 ]
 

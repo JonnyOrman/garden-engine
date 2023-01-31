@@ -1,5 +1,5 @@
 [package]
-name = "garden_content_component"
+name = "garden_scenes_component"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,8 +7,7 @@ edition = "2021"
 
 [dependencies]
 garden = { path = "../garden" }
-garden_winit = { path = "../garden_winit" }
-garden_content = { path = "../garden_content" }
-garden_content_loading = { path = "../garden_content_loading" }
 garden_loading = { path = "../garden_loading" }
 garden_scenes = { path = "../garden_scenes" }
+garden_scenes_loading = { path = "../garden_scenes_loading" }
+garden_winit = { path = "../garden_winit" }
