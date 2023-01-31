@@ -5,23 +5,18 @@ use garden::{
 use garden_loading::Load;
 use garden_scenes::TwoDScene;
 use garden_scenes_loading::compose_scene_loader;
-use garden_winit::AddComponent;
 
-pub fn add_scenes<TGameInstanceBuilder: AddComponent>(
-    game_instance_builder: &mut TGameInstanceBuilder,
-) {
-    let component = compose_component();
-
-    game_instance_builder.add(component);
-}
-
-fn compose_component() -> ScenesComponent<TwoDScene> {
+pub fn compose_component() -> ScenesComponent<TwoDScene> {
     let scene_loader = compose_scene_loader();
     let scene = scene_loader.load();
 
     let content_component = ScenesComponent::new(scene);
 
     content_component
+}
+
+pub trait GetScene<TScene> {
+    fn get_scene(&self) -> &TScene;
 }
 
 pub struct ScenesComponent<TScene> {
@@ -55,3 +50,9 @@ impl<TScene> OnCreateGlutinVbo for ScenesComponent<TScene> {
 }
 
 impl<TScene> RunFullComponent for ScenesComponent<TScene> {}
+
+impl<TScene> GetScene<TScene> for ScenesComponent<TScene> {
+    fn get_scene(&self) -> &TScene {
+        &self.scene
+    }
+}

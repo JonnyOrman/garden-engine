@@ -67,6 +67,18 @@ impl GetNumberOfVertices for TwoDPoint {
     }
 }
 
+pub trait GetR {
+    fn get_r(&self) -> f32;
+}
+
+pub trait GetG {
+    fn get_g(&self) -> f32;
+}
+
+pub trait GetB {
+    fn get_b(&self) -> f32;
+}
+
 pub struct Rgb {
     r: f32,
     g: f32,
@@ -78,6 +90,24 @@ impl Rgb {
 
     pub fn new(r: f32, g: f32, b: f32) -> Self {
         Self { r, g, b }
+    }
+}
+
+impl GetR for Rgb {
+    fn get_r(&self) -> f32 {
+        self.r
+    }
+}
+
+impl GetG for Rgb {
+    fn get_g(&self) -> f32 {
+        self.g
+    }
+}
+
+impl GetB for Rgb {
+    fn get_b(&self) -> f32 {
+        self.b
     }
 }
 
@@ -94,7 +124,7 @@ impl GetNumberOfVertices for Rgb {
 }
 
 pub trait GetRgb<TRgb> {
-    fn get_rgb(self) -> TRgb;
+    fn get_rgb(&self) -> &TRgb;
 }
 
 pub struct TrianglePoint<TTwoDPoint, TRgb> {
@@ -151,8 +181,8 @@ impl<TTwoDPoint: GetY, TRgb> GetY for TrianglePoint<TTwoDPoint, TRgb> {
 }
 
 impl<TTwoDPoint: GetY, TRgb> GetRgb<TRgb> for TrianglePoint<TTwoDPoint, TRgb> {
-    fn get_rgb(self) -> TRgb {
-        self.rgb
+    fn get_rgb(&self) -> &TRgb {
+        &self.rgb
     }
 }
 
@@ -191,6 +221,18 @@ impl<TTrianglePoint: GetVertexData + GetNumberOfVertices> Triangle<TTrianglePoin
             vertex_data,
         }
     }
+
+    pub fn get_point_1(&self) -> &TTrianglePoint {
+        &self.point_1
+    }
+
+    pub fn get_point_2(&self) -> &TTrianglePoint {
+        &self.point_2
+    }
+
+    pub fn get_point_3(&self) -> &TTrianglePoint {
+        &self.point_3
+    }
 }
 
 impl<TTrianglePoint> GetName for Triangle<TTrianglePoint> {
@@ -209,6 +251,14 @@ impl<TTrianglePoint> GetNumberOfVertices for Triangle<TTrianglePoint> {
     fn get_number_of_vertices(&self) -> i32 {
         self.number_of_vertices
     }
+}
+
+pub trait GetScale {
+    fn get_scale(&self) -> f32;
+}
+
+pub trait GetPosition<TPosition> {
+    fn get_position(&self) -> &TPosition;
 }
 
 pub struct TriangleInstance<TPosition, TTrianglePoint> {
@@ -258,14 +308,40 @@ impl<TPosition, TTrianglePoint: GetVertexData + GetNumberOfVertices>
         }
     }
 
-    fn get_content_name(&self) -> &str {
+    pub fn get_content_name(&self) -> &str {
         &self.contentName
+    }
+
+    pub fn get_point_1(&self) -> &TTrianglePoint {
+        &self.point_1
+    }
+
+    pub fn get_point_2(&self) -> &TTrianglePoint {
+        &self.point_2
+    }
+
+    pub fn get_point_3(&self) -> &TTrianglePoint {
+        &self.point_3
     }
 }
 
 impl<TPosition, TTrianglePoint> GetName for TriangleInstance<TPosition, TTrianglePoint> {
     fn get_name(&self) -> &str {
         &self.name
+    }
+}
+
+impl<TPosition, TTrianglePoint> GetScale for TriangleInstance<TPosition, TTrianglePoint> {
+    fn get_scale(&self) -> f32 {
+        self.scale
+    }
+}
+
+impl<TPosition, TTrianglePoint> GetPosition<TPosition>
+    for TriangleInstance<TPosition, TTrianglePoint>
+{
+    fn get_position(&self) -> &TPosition {
+        &self.position
     }
 }
 
@@ -284,8 +360,8 @@ impl<TPosition, TTrianglePoint> GetNumberOfVertices
 }
 
 pub struct Content<TTriangle, TTriangleInstance> {
-    triangles: Vec<TTriangle>,
-    triangle_instances: Vec<TTriangleInstance>,
+    triangles: Option<Vec<TTriangle>>,
+    triangle_instances: Option<Vec<TTriangleInstance>>,
     vertex_data: Vec<f32>,
     number_of_vertices: i32,
 }
@@ -304,11 +380,19 @@ impl<TTriangle, TTriangleInstance: GetVertexData + GetNumberOfVertices>
         }
 
         Self {
-            triangles,
-            triangle_instances,
+            triangles: Some(triangles),
+            triangle_instances: Some(triangle_instances),
             vertex_data,
             number_of_vertices,
         }
+    }
+
+    pub fn get_triangles(&self) -> &Option<Vec<TTriangle>> {
+        &self.triangles
+    }
+
+    pub fn get_triangle_instances(&self) -> &Option<Vec<TTriangleInstance>> {
+        &self.triangle_instances
     }
 }
 
@@ -326,7 +410,7 @@ impl<TTriangle, TTriangleInstance> GetNumberOfVertices for Content<TTriangle, TT
 
 impl<TTriangle, TTriangleInstance> GetNumberOfObjects for Content<TTriangle, TTriangleInstance> {
     fn get_number_of_objects(&self) -> i32 {
-        self.triangle_instances.len() as i32
+        self.triangle_instances.as_ref().unwrap().len() as i32
     }
 }
 

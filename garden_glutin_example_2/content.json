@@ -1,7 +1,7 @@
 {
     "scene": {
-        "width": 300.0,
-        "height": 300.0
+        "width": 10.0,
+        "height": 10.0
     },
     "content": {
         "triangles": [
@@ -49,8 +49,8 @@
             "contentName": "Triangle1",
             "scale": 0.5,
             "position": {
-                "x": -0.5,
-                "y": -0.5
+                "x": -5.0,
+                "y": -5.0
             },
             "point1": {
                 "twoDPoint": {
@@ -89,10 +89,10 @@
         {
             "name": "Triangle1-b",
             "contentName": "Triangle1",
-            "scale": 0.5,
+            "scale": 3.0,
             "position": {
-                "x": 0.5,
-                "y": 0.5
+                "x": 5.0,
+                "y": 5.0
             },
             "point1": {
                 "twoDPoint": {

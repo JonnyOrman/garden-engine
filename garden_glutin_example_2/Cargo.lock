@@ -449,6 +449,7 @@ dependencies = [
  "garden_content",
  "garden_content_loading",
  "garden_loading",
+ "garden_scenes",
  "garden_winit",
 ]
 

@@ -1,7 +1,8 @@
 use std::fs;
 
 use garden_content::{
-    Content, GetRgb, GetX, GetY, Rgb, Triangle, TriangleInstance, TrianglePoint, TwoDPoint,
+    Content, GetB, GetG, GetR, GetRgb, GetX, GetY, Rgb, Triangle, TriangleInstance, TrianglePoint,
+    TwoDPoint,
 };
 use garden_json::{ConvertJsonToValue, JsonToF32Converter};
 use garden_loading::Load;
@@ -235,7 +236,11 @@ impl<
                 point_1.get_x() * scale + position.get_x(),
                 point_1.get_y() * scale + position.get_y(),
             ),
-            point_1.get_rgb(),
+            Rgb::new(
+                point_1.get_rgb().get_r(),
+                point_1.get_rgb().get_g(),
+                point_1.get_rgb().get_b(),
+            ),
         );
 
         let point_2 = self
@@ -247,7 +252,11 @@ impl<
                 point_2.get_x() * scale + position.get_x(),
                 point_2.get_y() * scale + position.get_y(),
             ),
-            point_2.get_rgb(),
+            Rgb::new(
+                point_2.get_rgb().get_r(),
+                point_2.get_rgb().get_g(),
+                point_2.get_rgb().get_b(),
+            ),
         );
 
         let point_3 = self
@@ -259,7 +268,11 @@ impl<
                 point_3.get_x() * scale + position.get_x(),
                 point_3.get_y() * scale + position.get_y(),
             ),
-            point_3.get_rgb(),
+            Rgb::new(
+                point_3.get_rgb().get_r(),
+                point_3.get_rgb().get_g(),
+                point_3.get_rgb().get_b(),
+            ),
         );
 
         TriangleInstance::new(

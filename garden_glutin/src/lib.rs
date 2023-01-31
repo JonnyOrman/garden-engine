@@ -874,7 +874,6 @@ impl CreateGLutin for VboCreator {
         gl.BindBuffer(gl::ARRAY_BUFFER, vbo);
 
         for component in components.iter() {
-            println!("RENDER COMPONENT");
             component.on_create_glutin_vbo(gl);
         }
 

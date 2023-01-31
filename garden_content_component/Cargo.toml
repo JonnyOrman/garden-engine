@@ -11,3 +11,4 @@ garden_winit = { path = "../garden_winit" }
 garden_content = { path = "../garden_content" }
 garden_content_loading = { path = "../garden_content_loading" }
 garden_loading = { path = "../garden_loading" }
+garden_scenes = { path = "../garden_scenes" }
