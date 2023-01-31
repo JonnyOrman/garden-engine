@@ -3,12 +3,9 @@ use std::fs;
 use garden_content::{
     Content, GetRgb, GetX, GetY, Rgb, Triangle, TriangleInstance, TrianglePoint, TwoDPoint,
 };
-use garden_json::ConvertJsonToValue;
+use garden_json::{ConvertJsonToValue, JsonToF32Converter};
+use garden_loading::Load;
 use serde_json::Value;
-
-pub trait LoadContent<TContent> {
-    fn load_content(self) -> TContent;
-}
 
 pub struct ContentLoader<TJsonToContentConverter> {
     json_to_content_converter: TJsonToContentConverter,
@@ -40,14 +37,14 @@ impl<
             >,
         >,
     >
-    LoadContent<
+    Load<
         Content<
             Triangle<TrianglePoint<TwoDPoint, Rgb>>,
             TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
         >,
     > for ContentLoader<TJsonToContentConverter>
 {
-    fn load_content(
+    fn load(
         self,
     ) -> Content<
         Triangle<TrianglePoint<TwoDPoint, Rgb>>,
@@ -373,20 +370,6 @@ impl JsonToStringConverter {
 impl ConvertJsonToValue<String> for JsonToStringConverter {
     fn convert_json_to_value(&self, json: &Value) -> String {
         json.as_str().unwrap().to_string()
-    }
-}
-
-pub struct JsonToF32Converter {}
-
-impl JsonToF32Converter {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-
-impl ConvertJsonToValue<f32> for JsonToF32Converter {
-    fn convert_json_to_value(&self, json: &Value) -> f32 {
-        json.as_f64().unwrap() as f32
     }
 }
 

@@ -1,4 +1,8 @@
 {
+    "scene": {
+        "width": 300.0,
+        "height": 300.0
+    },
     "content": {
         "triangles": [
             {

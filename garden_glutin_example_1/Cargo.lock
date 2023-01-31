@@ -447,6 +447,7 @@ version = "0.1.0"
 dependencies = [
  "garden_content",
  "garden_json",
+ "garden_loading",
  "serde_json",
 ]
 
@@ -489,6 +490,10 @@ version = "0.1.0"
 dependencies = [
  "serde_json",
 ]
+
+[[package]]
+name = "garden_loading"
+version = "0.1.0"
 
 [[package]]
 name = "garden_winit"

@@ -5,7 +5,8 @@ use garden_content::{
     Content, GetNumberOfObjects, GetNumberOfVertices, GetVertexDataPtr, Rgb, Triangle,
     TriangleInstance, TrianglePoint, TwoDPoint,
 };
-use garden_content_loading::{compose_content_loader, LoadContent};
+use garden_content_loading::compose_content_loader;
+use garden_loading::Load;
 use garden_winit::AddComponent;
 
 pub fn add_content<TGameInstanceBuilder: AddComponent>(
@@ -23,7 +24,7 @@ fn compose_component() -> ContentComponent<
     >,
 > {
     let content_loader = compose_content_loader();
-    let content = content_loader.load_content();
+    let content = content_loader.load();
 
     let content_component = ContentComponent::new(content);
 

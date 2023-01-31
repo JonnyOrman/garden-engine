@@ -1,12 +1,12 @@
 [package]
-name = "garden_content_loading"
+name = "garden_scenes_loading"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-garden_content = { path = "../garden_content" }
-garden_loading = { path = "../garden_loading" }
 garden_json = { path = "../garden_json" }
+garden_loading = { path = "../garden_loading" }
+garden_scenes = { path = "../garden_scenes" }
 serde_json = "1.0.89"
