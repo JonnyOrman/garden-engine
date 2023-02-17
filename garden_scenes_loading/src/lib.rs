@@ -68,18 +68,17 @@ pub fn compose_scene_loader() -> SceneLoader<JsonToSceneConverter<JsonToF32Conve
 
 #[cfg(test)]
 mod tests {
-    use garden_content::{
-        Content, GetVertexData, Rgb, Triangle, TriangleInstance, TrianglePoint, TwoDPoint,
-    };
     use garden_json::ConvertJsonToValue;
-    use serde_json::json;
+    use garden_scenes::{GetHeight, GetWidth, TwoDScene};
+    use mockall::{mock, predicate};
+    use serde_json::{json, Value};
 
-    use crate::compose_json_to_content_converter;
+    use crate::{compose_json_to_scene_converter, JsonToSceneConverter};
 
     #[test]
-    fn when_a_json_to_scene_converter_converts_json_to_a_two_d_scene_then_the_two_d_scene_is_converted(
+    fn when_a_json_to_scene_converter_is_composed_and_converts_json_to_a_two_d_scene_then_the_two_d_scene_is_converted(
     ) {
-        let json_to_content_converter = compose_json_to_content_converter();
+        let json_to_scene_converter = compose_json_to_scene_converter();
 
         let json = json!({
             "width": 123.45,
@@ -87,6 +86,46 @@ mod tests {
         });
 
         let expected_result = TwoDScene::new(123.45, 678.90);
+
+        let result = json_to_scene_converter.convert_json_to_value(&json);
+
+        assert_eq!(expected_result.get_width(), result.get_width());
+        assert_eq!(expected_result.get_height(), result.get_height());
+    }
+
+    mock! {
+        JsonToF32Converter {}
+        impl ConvertJsonToValue<f32> for JsonToF32Converter {
+            fn convert_json_to_value(&self, json: &Value) -> f32;
+        }
+    }
+
+    #[test]
+    fn when_a_json_to_scene_converter_converts_json_to_a_two_d_scene_then_the_two_d_scene_is_converted(
+    ) {
+        let json = json!({
+            "width": 123.45,
+            "height": 678.90
+        });
+
+        let width = json["width"].clone();
+        let height = json["height"].clone();
+
+        let mut json_to_f32_converter = MockJsonToF32Converter::new();
+        json_to_f32_converter
+            .expect_convert_json_to_value()
+            .with(predicate::eq(width))
+            .times(1)
+            .returning(|x| 123.45);
+        json_to_f32_converter
+            .expect_convert_json_to_value()
+            .with(predicate::eq(height))
+            .times(1)
+            .returning(|x| 678.90);
+
+        let expected_result = TwoDScene::new(123.45, 678.90);
+
+        let json_to_scene_converter = JsonToSceneConverter::new(json_to_f32_converter);
 
         let result = json_to_scene_converter.convert_json_to_value(&json);
 

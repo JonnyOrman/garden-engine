@@ -532,6 +532,7 @@ dependencies = [
  "garden_json",
  "garden_loading",
  "garden_scenes",
+ "mockall",
  "serde_json",
 ]
 
