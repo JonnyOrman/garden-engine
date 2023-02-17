@@ -1,5 +1,4 @@
 use garden::{Create, GetName, Run};
-use mockall::automock;
 
 pub struct EndSystem<TEngineEnder> {
     component_enders: Vec<Box<dyn Run>>,
@@ -25,7 +24,6 @@ impl<TEngineEnder: EndEngine> End for EndSystem<TEngineEnder> {
     }
 }
 
-#[automock]
 pub trait StartEngine {
     fn start_engine(self);
 }
@@ -34,7 +32,6 @@ pub trait Start {
     fn start(self);
 }
 
-#[automock]
 pub trait EndEngine {
     fn end_engine(self);
 }
@@ -104,16 +101,36 @@ pub fn create_game_name_provider<'a>(name: &'a str) -> GameNameProvider<'a> {
 #[cfg(test)]
 mod tests {
     use crate::End;
-    use garden::MockRun;
-    use mockall::Sequence;
+    use mockall::{mock, Sequence};
 
     use super::*;
 
+    mock! {
+        Runner {}
+        impl Run for Runner {
+            fn run(&self);
+        }
+    }
+
+    mock! {
+        EngineEnder {}
+        impl EndEngine for EngineEnder {
+            fn end_engine(self);
+        }
+    }
+
+    mock! {
+        EngineStarter {}
+        impl StartEngine for EngineStarter {
+            fn start_engine(self);
+        }
+    }
+
     #[test]
     fn when_and_end_system_ends_a_game_then_it_ends_each_component_and_the_engine() {
-        let mut component_ender_1 = MockRun::new();
-        let mut component_ender_2 = MockRun::new();
-        let mut component_ender_3 = MockRun::new();
+        let mut component_ender_1 = MockRunner::new();
+        let mut component_ender_2 = MockRunner::new();
+        let mut component_ender_3 = MockRunner::new();
 
         let mut sequence = Sequence::new();
 
@@ -140,7 +157,7 @@ mod tests {
         component_enders.push(Box::new(component_ender_2));
         component_enders.push(Box::new(component_ender_3));
 
-        let mut engine_ender = MockEndEngine::new();
+        let mut engine_ender = MockEngineEnder::new();
 
         engine_ender.expect_end_engine().times(1).returning(|| ());
 
@@ -151,13 +168,9 @@ mod tests {
 
     #[test]
     fn when_a_start_system_runs_then_it_starts_the_engine_and_each_component() {
-        let mut component_starter_1 = MockRun::new();
-        let mut component_starter_2 = MockRun::new();
-        let mut component_starter_3 = MockRun::new();
-
         let mut sequence = Sequence::new();
 
-        let mut engine_starter = MockStartEngine::new();
+        let mut engine_starter = MockEngineStarter::new();
 
         engine_starter
             .expect_start_engine()
@@ -165,30 +178,7 @@ mod tests {
             .in_sequence(&mut sequence)
             .returning(|| ());
 
-        component_starter_1
-            .expect_run()
-            .times(1)
-            .in_sequence(&mut sequence)
-            .returning(|| ());
-
-        component_starter_2
-            .expect_run()
-            .times(1)
-            .in_sequence(&mut sequence)
-            .returning(|| ());
-
-        component_starter_3
-            .expect_run()
-            .times(1)
-            .in_sequence(&mut sequence)
-            .returning(|| ());
-
-        let mut component_starters = Vec::<Box<dyn Run>>::new();
-        component_starters.push(Box::new(component_starter_1));
-        component_starters.push(Box::new(component_starter_2));
-        component_starters.push(Box::new(component_starter_3));
-
-        let start_system = StartSystem::new(engine_starter, component_starters);
+        let start_system = StartSystem::<MockEngineStarter>::new(engine_starter);
 
         start_system.start();
     }

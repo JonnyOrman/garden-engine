@@ -10,4 +10,6 @@ garden = { path = "../garden" }
 garden_content = { path = "../garden_content" }
 garden_games = { path = "../garden_games" }
 winit = "0.27.5"
+
+[dev-dependencies]
 mockall = "0.11.3"

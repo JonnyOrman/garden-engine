@@ -1,11 +1,7 @@
-use mockall::*;
-
-#[automock]
 pub trait GetName {
     fn get_name(&self) -> &str;
 }
 
-#[automock]
 pub trait Initialise {
     fn initialise(&self);
 }
@@ -26,12 +22,10 @@ pub trait GetInitialiser<TInitialise> {
     fn get_initialiser(self) -> TInitialise;
 }
 
-#[automock]
 pub trait RunLoop {
     fn run_loop(&self);
 }
 
-#[automock]
 pub trait Run {
     fn run(&self);
 }

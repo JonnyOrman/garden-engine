@@ -7,4 +7,6 @@ edition = "2021"
 
 [dependencies]
 garden = { path = "../garden" }
+
+[dev-dependencies]
 mockall = "0.11.3"
