@@ -6,7 +6,7 @@ use garden_content::{
 use garden_json::{ConvertJsonToValue, JsonToF32Converter};
 use garden_loading::Load;
 use serde_json::Value;
-use std::fs;
+use std::{collections::HashMap, fs};
 
 pub struct ContentLoader<TJsonToContentConverter> {
     json_to_content_converter: TJsonToContentConverter,
@@ -127,6 +127,27 @@ impl<
     }
 }
 
+pub struct JsonToBoxedTriangleConverter<TJsonToTriangleConverter> {
+    json_to_triangle_converter: TJsonToTriangleConverter,
+}
+
+impl<TJsonToTriangleConverter> JsonToBoxedTriangleConverter<TJsonToTriangleConverter> {
+    fn new(json_to_triangle_converter: TJsonToTriangleConverter) -> Self {
+        Self {
+            json_to_triangle_converter,
+        }
+    }
+}
+
+impl<TJsonToTriangleConverter: ConvertJsonToValue<Triangle<TrianglePoint<TwoDPoint, Rgb>>>>
+    ConvertJsonToValue<Box<dyn GetName>>
+    for JsonToBoxedTriangleConverter<TJsonToTriangleConverter>
+{
+    fn convert_json_to_value(&self, json: &Value) -> Box<dyn GetName> {
+        Box::new(self.json_to_triangle_converter.convert_json_to_value(json))
+    }
+}
+
 pub struct JsonToRectangleConverter<
     TJsonToStringConverter,
     TJsonToF32Converter,
@@ -175,61 +196,56 @@ impl<
     }
 }
 
-pub struct JsonToObjectConverter<
-    TJsonToStringConverter,
-    TJsonToTriangleConverter,
-    TJsonToRectangleConverter,
-> {
-    json_to_string_converter: TJsonToStringConverter,
-    json_to_triangle_converter: TJsonToTriangleConverter,
+pub struct JsonToBoxedRectangleConverter<TJsonToRectangleConverter> {
     json_to_rectangle_converter: TJsonToRectangleConverter,
 }
 
-impl<TJsonToStringConverter, TJsonToTriangleConverter, TJsonToRectangleConverter>
-    JsonToObjectConverter<
-        TJsonToStringConverter,
-        TJsonToTriangleConverter,
-        TJsonToRectangleConverter,
-    >
-{
-    fn new(
-        json_to_string_converter: TJsonToStringConverter,
-        json_to_triangle_converter: TJsonToTriangleConverter,
-        json_to_rectangle_converter: TJsonToRectangleConverter,
-    ) -> Self {
+impl<TJsonToRectangleConverter> JsonToBoxedRectangleConverter<TJsonToRectangleConverter> {
+    fn new(json_to_rectangle_converter: TJsonToRectangleConverter) -> Self {
         Self {
-            json_to_string_converter,
-            json_to_triangle_converter,
             json_to_rectangle_converter,
         }
     }
 }
 
-impl<
-        TJsonToStringConverter: ConvertJsonToValue<String>,
-        TJsonToTriangleConverter: ConvertJsonToValue<Triangle<TrianglePoint<TwoDPoint, Rgb>>>,
-        TJsonToRectangleConverter: ConvertJsonToValue<Rectangle<Rgb>>,
-    > ConvertJsonToValue<Box<dyn GetName>>
-    for JsonToObjectConverter<
-        TJsonToStringConverter,
-        TJsonToTriangleConverter,
-        TJsonToRectangleConverter,
-    >
+impl<TJsonToRectangleConverter: ConvertJsonToValue<Rectangle<Rgb>>>
+    ConvertJsonToValue<Box<dyn GetName>>
+    for JsonToBoxedRectangleConverter<TJsonToRectangleConverter>
+{
+    fn convert_json_to_value(&self, json: &Value) -> Box<dyn GetName> {
+        Box::new(self.json_to_rectangle_converter.convert_json_to_value(json))
+    }
+}
+
+pub struct JsonToObjectConverter<TJsonToStringConverter> {
+    json_to_string_converter: TJsonToStringConverter,
+    converter_map: HashMap<String, Box<dyn ConvertJsonToValue<Box<dyn GetName>>>>,
+}
+
+impl<TJsonToStringConverter> JsonToObjectConverter<TJsonToStringConverter> {
+    fn new(
+        json_to_string_converter: TJsonToStringConverter,
+        converter_map: HashMap<String, Box<dyn ConvertJsonToValue<Box<dyn GetName>>>>,
+    ) -> Self {
+        Self {
+            json_to_string_converter,
+            converter_map,
+        }
+    }
+}
+
+impl<TJsonToStringConverter: ConvertJsonToValue<String>> ConvertJsonToValue<Box<dyn GetName>>
+    for JsonToObjectConverter<TJsonToStringConverter>
 {
     fn convert_json_to_value(&self, json: &Value) -> Box<dyn GetName> {
         let object_type = self
             .json_to_string_converter
             .convert_json_to_value(&json["type"]);
 
-        if object_type == "triangle" {
-            return Box::new(self.json_to_triangle_converter.convert_json_to_value(json));
+        match self.converter_map.get(&object_type) {
+            Some(converter) => converter.convert_json_to_value(json),
+            None => todo!("JSON converter for object type {object_type} not found."),
         }
-
-        if object_type == "rectangle" {
-            return Box::new(self.json_to_rectangle_converter.convert_json_to_value(json));
-        }
-
-        todo!()
     }
 }
 
@@ -361,6 +377,33 @@ impl<
     }
 }
 
+pub struct JsonToBoxedTriangleInstanceConverter<TJsonToTriangleInstanceConverter> {
+    json_to_triangle_instance_converter: TJsonToTriangleInstanceConverter,
+}
+
+impl<TJsonToTriangleInstanceConverter>
+    JsonToBoxedTriangleInstanceConverter<TJsonToTriangleInstanceConverter>
+{
+    fn new(json_to_triangle_instance_converter: TJsonToTriangleInstanceConverter) -> Self {
+        Self {
+            json_to_triangle_instance_converter,
+        }
+    }
+}
+
+impl<
+        TJsonToTriangleInstanceConverter: ConvertJsonToValue<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>>,
+    > ConvertJsonToValue<Box<dyn GetContentInstanceData>>
+    for JsonToBoxedTriangleInstanceConverter<TJsonToTriangleInstanceConverter>
+{
+    fn convert_json_to_value(&self, json: &Value) -> Box<dyn GetContentInstanceData> {
+        Box::new(
+            self.json_to_triangle_instance_converter
+                .convert_json_to_value(json),
+        )
+    }
+}
+
 pub struct JsonToRectangleInstanceConverter<
     TJsonToStringConverter,
     TJsonToF32Converter,
@@ -424,71 +467,65 @@ impl<
     }
 }
 
-pub struct JsonToObjectInstanceConverter<
-    TJsonToStringConverter,
-    TJsonToTriangleInstanceConverter,
-    TJsonToRectangleInstanceConverter,
-> {
-    json_to_string_converter: TJsonToStringConverter,
-    json_to_triangle_instance_converter: TJsonToTriangleInstanceConverter,
+pub struct JsonToBoxedRectangleInstanceConverter<TJsonToRectangleInstanceConverter> {
     json_to_rectangle_instance_converter: TJsonToRectangleInstanceConverter,
 }
 
-impl<
-        TJsonToStringConverter,
-        TJsonToTriangleInstanceConverter,
-        TJsonToRectangleInstanceConverter,
-    >
-    JsonToObjectInstanceConverter<
-        TJsonToStringConverter,
-        TJsonToTriangleInstanceConverter,
-        TJsonToRectangleInstanceConverter,
-    >
+impl<TJsonToRectangleInstanceConverter>
+    JsonToBoxedRectangleInstanceConverter<TJsonToRectangleInstanceConverter>
 {
-    fn new(
-        json_to_string_converter: TJsonToStringConverter,
-        json_to_triangle_instance_converter: TJsonToTriangleInstanceConverter,
-        json_to_rectangle_instance_converter: TJsonToRectangleInstanceConverter,
-    ) -> Self {
+    fn new(json_to_rectangle_instance_converter: TJsonToRectangleInstanceConverter) -> Self {
         Self {
-            json_to_string_converter,
-            json_to_triangle_instance_converter,
             json_to_rectangle_instance_converter,
         }
     }
 }
 
-impl<
-        TJsonToStringConverter: ConvertJsonToValue<String>,
-        TJsonToTriangleInstanceConverter: ConvertJsonToValue<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>>,
-        TJsonToRectangleInstanceConverter: ConvertJsonToValue<RectangleInstance<TwoDPoint>>,
-    > ConvertJsonToValue<Box<dyn GetContentInstanceData>>
-    for JsonToObjectInstanceConverter<
-        TJsonToStringConverter,
-        TJsonToTriangleInstanceConverter,
-        TJsonToRectangleInstanceConverter,
-    >
+impl<TJsonToRectangleInstanceConverter: ConvertJsonToValue<RectangleInstance<TwoDPoint>>>
+    ConvertJsonToValue<Box<dyn GetContentInstanceData>>
+    for JsonToBoxedRectangleInstanceConverter<TJsonToRectangleInstanceConverter>
+{
+    fn convert_json_to_value(&self, json: &Value) -> Box<dyn GetContentInstanceData> {
+        Box::new(
+            self.json_to_rectangle_instance_converter
+                .convert_json_to_value(json),
+        )
+    }
+}
+
+pub struct JsonToObjectInstanceConverter<TJsonToStringConverter> {
+    json_to_string_converter: TJsonToStringConverter,
+    converter_map: HashMap<String, Box<dyn ConvertJsonToValue<Box<dyn GetContentInstanceData>>>>,
+}
+
+impl<TJsonToStringConverter> JsonToObjectInstanceConverter<TJsonToStringConverter> {
+    fn new(
+        json_to_string_converter: TJsonToStringConverter,
+        converter_map: HashMap<
+            String,
+            Box<dyn ConvertJsonToValue<Box<dyn GetContentInstanceData>>>,
+        >,
+    ) -> Self {
+        Self {
+            json_to_string_converter,
+            converter_map,
+        }
+    }
+}
+
+impl<TJsonToStringConverter: ConvertJsonToValue<String>>
+    ConvertJsonToValue<Box<dyn GetContentInstanceData>>
+    for JsonToObjectInstanceConverter<TJsonToStringConverter>
 {
     fn convert_json_to_value(&self, json: &Value) -> Box<dyn GetContentInstanceData> {
         let object_type = self
             .json_to_string_converter
             .convert_json_to_value(&json["contentType"]);
 
-        if object_type == "triangle" {
-            return Box::new(
-                self.json_to_triangle_instance_converter
-                    .convert_json_to_value(json),
-            );
+        match self.converter_map.get(&object_type) {
+            Some(converter) => converter.convert_json_to_value(json),
+            None => todo!("JSON converter for object instance type {object_type} not found."),
         }
-
-        if object_type == "rectangle" {
-            return Box::new(
-                self.json_to_rectangle_instance_converter
-                    .convert_json_to_value(json),
-            );
-        }
-
-        todo!()
     }
 }
 
@@ -589,38 +626,8 @@ impl ConvertJsonToValue<String> for JsonToStringConverter {
 }
 
 pub fn compose_json_to_content_converter() -> JsonToContentConverter<
-    JsonToObjectConverter<
-        JsonToStringConverter,
-        JsonToTriangleConverter<
-            JsonToStringConverter,
-            JsonToTrianglePointConverter<
-                JsonToTwoDPointConverter<JsonToF32Converter>,
-                JsonToRgbConverter<JsonToF32Converter>,
-            >,
-        >,
-        JsonToRectangleConverter<
-            JsonToStringConverter,
-            JsonToF32Converter,
-            JsonToRgbConverter<JsonToF32Converter>,
-        >,
-    >,
-    JsonToObjectInstanceConverter<
-        JsonToStringConverter,
-        JsonToTriangleInstanceConverter<
-            JsonToStringConverter,
-            JsonToTwoDPointConverter<JsonToF32Converter>,
-            JsonToTrianglePointConverter<
-                JsonToTwoDPointConverter<JsonToF32Converter>,
-                JsonToRgbConverter<JsonToF32Converter>,
-            >,
-            JsonToF32Converter,
-        >,
-        JsonToRectangleInstanceConverter<
-            JsonToStringConverter,
-            JsonToF32Converter,
-            JsonToTwoDPointConverter<JsonToF32Converter>,
-        >,
-    >,
+    JsonToObjectConverter<JsonToStringConverter>,
+    JsonToObjectInstanceConverter<JsonToStringConverter>,
 > {
     let json_to_triangle_converter = JsonToTriangleConverter::new(
         JsonToStringConverter::new(),
@@ -629,6 +636,10 @@ pub fn compose_json_to_content_converter() -> JsonToContentConverter<
             JsonToRgbConverter::new(JsonToF32Converter::new()),
         ),
     );
+
+    let json_to_boxed_triangle_converter =
+        JsonToBoxedTriangleConverter::new(json_to_triangle_converter);
+
     let json_to_triangle_instance_converter = JsonToTriangleInstanceConverter::new(
         JsonToStringConverter::new(),
         JsonToTwoDPointConverter::new(JsonToF32Converter::new()),
@@ -639,27 +650,55 @@ pub fn compose_json_to_content_converter() -> JsonToContentConverter<
         JsonToF32Converter::new(),
     );
 
+    let json_to_boxed_triangle_instance_converter =
+        JsonToBoxedTriangleInstanceConverter::new(json_to_triangle_instance_converter);
+
     let json_to_rectangle_converter = JsonToRectangleConverter::new(
         JsonToStringConverter::new(),
         JsonToF32Converter::new(),
         JsonToRgbConverter::new(JsonToF32Converter::new()),
     );
+
+    let json_to_boxed_rectangle_converter =
+        JsonToBoxedRectangleConverter::new(json_to_rectangle_converter);
+
     let json_to_rectangle_instance_converter = JsonToRectangleInstanceConverter::new(
         JsonToStringConverter::new(),
         JsonToF32Converter::new(),
         JsonToTwoDPointConverter::new(JsonToF32Converter::new()),
     );
 
-    let json_to_object_converter = JsonToObjectConverter::new(
-        JsonToStringConverter::new(),
-        json_to_triangle_converter,
-        json_to_rectangle_converter,
+    let json_to_boxed_rectangle_instance_converter =
+        JsonToBoxedRectangleInstanceConverter::new(json_to_rectangle_instance_converter);
+
+    let mut object_converters =
+        HashMap::<String, Box<dyn ConvertJsonToValue<Box<dyn GetName>>>>::new();
+    object_converters.insert(
+        "triangle".to_string(),
+        Box::new(json_to_boxed_triangle_converter),
+    );
+    object_converters.insert(
+        "rectangle".to_string(),
+        Box::new(json_to_boxed_rectangle_converter),
+    );
+
+    let json_to_object_converter =
+        JsonToObjectConverter::new(JsonToStringConverter::new(), object_converters);
+
+    let mut object_instance_converters =
+        HashMap::<String, Box<dyn ConvertJsonToValue<Box<dyn GetContentInstanceData>>>>::new();
+    object_instance_converters.insert(
+        "triangle".to_string(),
+        Box::new(json_to_boxed_triangle_instance_converter),
+    );
+    object_instance_converters.insert(
+        "rectangle".to_string(),
+        Box::new(json_to_boxed_rectangle_instance_converter),
     );
 
     let json_to_object_instance_converter = JsonToObjectInstanceConverter::new(
         JsonToStringConverter::new(),
-        json_to_triangle_instance_converter,
-        json_to_rectangle_instance_converter,
+        object_instance_converters,
     );
 
     let json_to_content_converter =
@@ -670,83 +709,22 @@ pub fn compose_json_to_content_converter() -> JsonToContentConverter<
 
 pub fn compose_content_loader() -> ContentLoader<
     JsonToContentConverter<
-        JsonToObjectConverter<
-            JsonToStringConverter,
-            JsonToTriangleConverter<
-                JsonToStringConverter,
-                JsonToTrianglePointConverter<
-                    JsonToTwoDPointConverter<JsonToF32Converter>,
-                    JsonToRgbConverter<JsonToF32Converter>,
-                >,
-            >,
-            JsonToRectangleConverter<
-                JsonToStringConverter,
-                JsonToF32Converter,
-                JsonToRgbConverter<JsonToF32Converter>,
-            >,
-        >,
-        JsonToObjectInstanceConverter<
-            JsonToStringConverter,
-            JsonToTriangleInstanceConverter<
-                JsonToStringConverter,
-                JsonToTwoDPointConverter<JsonToF32Converter>,
-                JsonToTrianglePointConverter<
-                    JsonToTwoDPointConverter<JsonToF32Converter>,
-                    JsonToRgbConverter<JsonToF32Converter>,
-                >,
-                JsonToF32Converter,
-            >,
-            JsonToRectangleInstanceConverter<
-                JsonToStringConverter,
-                JsonToF32Converter,
-                JsonToTwoDPointConverter<JsonToF32Converter>,
-            >,
-        >,
+        JsonToObjectConverter<JsonToStringConverter>,
+        JsonToObjectInstanceConverter<JsonToStringConverter>,
     >,
 > {
     let json_to_content_converter = compose_json_to_content_converter();
 
     ContentLoader::<
         JsonToContentConverter<
-            JsonToObjectConverter<
-                JsonToStringConverter,
-                JsonToTriangleConverter<
-                    JsonToStringConverter,
-                    JsonToTrianglePointConverter<
-                        JsonToTwoDPointConverter<JsonToF32Converter>,
-                        JsonToRgbConverter<JsonToF32Converter>,
-                    >,
-                >,
-                JsonToRectangleConverter<
-                    JsonToStringConverter,
-                    JsonToF32Converter,
-                    JsonToRgbConverter<JsonToF32Converter>,
-                >,
-            >,
-            JsonToObjectInstanceConverter<
-                JsonToStringConverter,
-                JsonToTriangleInstanceConverter<
-                    JsonToStringConverter,
-                    JsonToTwoDPointConverter<JsonToF32Converter>,
-                    JsonToTrianglePointConverter<
-                        JsonToTwoDPointConverter<JsonToF32Converter>,
-                        JsonToRgbConverter<JsonToF32Converter>,
-                    >,
-                    JsonToF32Converter,
-                >,
-                JsonToRectangleInstanceConverter<
-                    JsonToStringConverter,
-                    JsonToF32Converter,
-                    JsonToTwoDPointConverter<JsonToF32Converter>,
-                >,
-            >,
+            JsonToObjectConverter<JsonToStringConverter>,
+            JsonToObjectInstanceConverter<JsonToStringConverter>,
         >,
     >::new(json_to_content_converter)
 }
 
 #[cfg(test)]
 mod tests {
-    use garden::GetName;
     use garden_content::{
         Content, GetVertexData, Rectangle, RectangleInstance, Rgb, Triangle, TriangleInstance,
         TrianglePoint, TwoDPoint,
