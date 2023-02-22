@@ -4,9 +4,10 @@
         "height": 10.0
     },
     "content": {
-        "triangles": [
+        "objects": [
             {
                 "name": "Triangle1",
+                "type": "triangle",
                 "point1": {
                     "twoDPoint": {
                         "x": -1.0,
@@ -39,6 +40,28 @@
                         "g": 0.0,
                         "b": 1.0
                     }
+                }
+            },
+            {
+                "name": "Rectangle1",
+                "type": "rectangle",
+                "width": 0.5,
+                "height": 1.0,
+                "rgb": {
+                    "r": 0.0,
+                    "g": 0.0,
+                    "b": 1.0
+                }
+            },
+            {
+                "name": "Rectangle2",
+                "type": "rectangle",
+                "width": 0.7,
+                "height": 0.3,
+                "rgb": {
+                    "r": 1.0,
+                    "g": 0.0,
+                    "b": 0.0
                 }
             }
         ]
@@ -126,6 +149,28 @@
                     "g": 0.0,
                     "b": 1.0
                 }
+            }
+        },
+        {
+            "name": "Rectangle1-a",
+            "contentName": "Rectangle1",
+            "scale": 5.0,
+            "width": 0.5,
+            "height": 1.0,
+            "position": {
+                "x": -5.0,
+                "y": 5.0
+            }
+        },
+        {
+            "name": "Rectangle2-a",
+            "contentName": "Rectangle2",
+            "scale": 2.0,
+            "width": 0.7,
+            "height": 0.3,
+            "position": {
+                "x": 5.0,
+                "y": -5.0
             }
         }
     ]

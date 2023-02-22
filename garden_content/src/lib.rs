@@ -8,6 +8,8 @@ pub trait GetNumberOfVertices {
     fn get_number_of_vertices(&self) -> i32;
 }
 
+pub trait GetContentInstanceData: GetVertexData + GetNumberOfVertices {}
+
 pub trait GetNumberOfObjects {
     fn get_number_of_objects(&self) -> i32;
 }
@@ -253,6 +255,30 @@ impl<TTrianglePoint> GetNumberOfVertices for Triangle<TTrianglePoint> {
     }
 }
 
+pub struct Rectangle<TRgb> {
+    name: String,
+    width: f32,
+    height: f32,
+    rgb: TRgb,
+}
+
+impl<TRgb> Rectangle<TRgb> {
+    pub fn new(name: String, width: f32, height: f32, rgb: TRgb) -> Self {
+        Self {
+            name,
+            width,
+            height,
+            rgb,
+        }
+    }
+}
+
+impl<TRgb> GetName for Rectangle<TRgb> {
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+}
+
 pub trait GetScale {
     fn get_scale(&self) -> f32;
 }
@@ -359,62 +385,132 @@ impl<TPosition, TTrianglePoint> GetNumberOfVertices
     }
 }
 
-pub struct Content<TTriangle, TTriangleInstance> {
-    triangles: Option<Vec<TTriangle>>,
-    triangle_instances: Option<Vec<TTriangleInstance>>,
-    vertex_data: Vec<f32>,
-    number_of_vertices: i32,
+impl<TPosition, TTrianglePoint> GetContentInstanceData
+    for TriangleInstance<TPosition, TTrianglePoint>
+{
 }
 
-impl<TTriangle, TTriangleInstance: GetVertexData + GetNumberOfVertices>
-    Content<TTriangle, TTriangleInstance>
-{
-    pub fn new(triangles: Vec<TTriangle>, triangle_instances: Vec<TTriangleInstance>) -> Self {
-        let mut number_of_vertices = 0;
+pub struct RectangleInstance<TPosition> {
+    name: String,
+    content_name: String,
+    scale: f32,
+    position: TPosition,
+    number_of_vertices: i32,
+    vertex_data: Vec<f32>,
+}
 
+impl<TPosition> RectangleInstance<TPosition> {
+    pub fn new(
+        name: String,
+        content_name: String,
+        scale: f32,
+        position: TPosition,
+        width: f32,
+        height: f32,
+    ) -> Self {
         let mut vertex_data = vec![];
 
-        for triangle_instance in triangle_instances.iter() {
-            number_of_vertices += triangle_instance.get_number_of_vertices();
-            vertex_data.append(&mut triangle_instance.get_vertex_data());
-        }
+        let x = width / 2.0;
+        let y = height / 2.0;
+
+        let point_1 = TrianglePoint::new(TwoDPoint::new(x, y), Rgb::new(1.0, 0.0, 0.0));
+        let point_2 = TrianglePoint::new(TwoDPoint::new(x * -1.0, y), Rgb::new(1.0, 0.0, 0.0));
+        let point_3 =
+            TrianglePoint::new(TwoDPoint::new(x * -1.0, y * -1.0), Rgb::new(1.0, 0.0, 0.0));
+        let point_4 = TrianglePoint::new(TwoDPoint::new(x, y * -1.0), Rgb::new(1.0, 0.0, 0.0));
+
+        vertex_data.append(&mut point_1.get_vertex_data().clone());
+        vertex_data.append(&mut point_2.get_vertex_data().clone());
+        vertex_data.append(&mut point_3.get_vertex_data().clone());
+        vertex_data.append(&mut point_4.get_vertex_data().clone());
+
+        let number_of_vertices = point_1.get_number_of_vertices()
+            + point_2.get_number_of_vertices()
+            + point_3.get_number_of_vertices()
+            + point_4.get_number_of_vertices();
 
         Self {
-            triangles: Some(triangles),
-            triangle_instances: Some(triangle_instances),
+            name,
+            content_name,
+            scale,
+            position,
             vertex_data,
             number_of_vertices,
         }
     }
-
-    pub fn get_triangles(&self) -> &Option<Vec<TTriangle>> {
-        &self.triangles
-    }
-
-    pub fn get_triangle_instances(&self) -> &Option<Vec<TTriangleInstance>> {
-        &self.triangle_instances
-    }
 }
 
-impl<TTriangle, TTriangleInstance> GetVertexData for Content<TTriangle, TTriangleInstance> {
+impl<TPosition> GetVertexData for RectangleInstance<TPosition> {
     fn get_vertex_data(&self) -> Vec<f32> {
         self.vertex_data.clone()
     }
 }
 
-impl<TTriangle, TTriangleInstance> GetNumberOfVertices for Content<TTriangle, TTriangleInstance> {
+impl<TPosition> GetNumberOfVertices for RectangleInstance<TPosition> {
     fn get_number_of_vertices(&self) -> i32 {
         self.number_of_vertices
     }
 }
 
-impl<TTriangle, TTriangleInstance> GetNumberOfObjects for Content<TTriangle, TTriangleInstance> {
-    fn get_number_of_objects(&self) -> i32 {
-        self.triangle_instances.as_ref().unwrap().len() as i32
+impl<TPosition> GetContentInstanceData for RectangleInstance<TPosition> {}
+
+pub struct Content {
+    objects: Option<Vec<Box<dyn GetName>>>,
+    object_instances: Option<Vec<Box<dyn GetContentInstanceData>>>,
+    vertex_data: Vec<f32>,
+    number_of_vertices: i32,
+}
+
+impl Content {
+    pub fn new(
+        objects: Vec<Box<dyn GetName>>,
+        object_instances: Vec<Box<dyn GetContentInstanceData>>,
+    ) -> Self {
+        let mut number_of_vertices = 0;
+
+        let mut vertex_data = vec![];
+
+        for object_instance in object_instances.iter() {
+            number_of_vertices += object_instance.get_number_of_vertices();
+            vertex_data.append(&mut object_instance.get_vertex_data());
+        }
+
+        Self {
+            objects: Some(objects),
+            object_instances: Some(object_instances),
+            vertex_data,
+            number_of_vertices,
+        }
+    }
+
+    pub fn get_objects(&self) -> &Option<Vec<Box<dyn GetName>>> {
+        &self.objects
+    }
+
+    pub fn get_object_instances(&self) -> &Option<Vec<Box<dyn GetContentInstanceData>>> {
+        &self.object_instances
     }
 }
 
-impl<TTriangle, TTriangleInstance> GetVertexDataPtr for Content<TTriangle, TTriangleInstance> {
+impl GetVertexData for Content {
+    fn get_vertex_data(&self) -> Vec<f32> {
+        self.vertex_data.clone()
+    }
+}
+
+impl GetNumberOfVertices for Content {
+    fn get_number_of_vertices(&self) -> i32 {
+        self.number_of_vertices
+    }
+}
+
+impl GetNumberOfObjects for Content {
+    fn get_number_of_objects(&self) -> i32 {
+        self.object_instances.as_ref().unwrap().len() as i32
+    }
+}
+
+impl GetVertexDataPtr for Content {
     fn get_vertex_data_ptr(&self) -> *const f32 {
         self.vertex_data.as_ptr()
     }
@@ -426,8 +522,8 @@ mod tests {
     use mockall::mock;
 
     use crate::{
-        Content, GetNumberOfObjects, GetNumberOfVertices, GetVertexData, GetX, GetY, Rgb, Triangle,
-        TriangleInstance, TrianglePoint, TwoDPoint,
+        Content, GetContentInstanceData, GetNumberOfObjects, GetNumberOfVertices, GetVertexData,
+        GetX, GetY, Rgb, Triangle, TriangleInstance, TrianglePoint, TwoDPoint,
     };
 
     #[test]
@@ -931,7 +1027,7 @@ mod tests {
         let triangle_3_point_3_g = 0.0;
         let triangle_3_point_3_b = 1.0;
 
-        let triangle_instance_1 = create_mock_vertex_object(
+        let triangle_instance_1 = Box::new(create_mock_vertex_object(
             vec![
                 triangle_1_point_1_x,
                 triangle_1_point_1_y,
@@ -950,9 +1046,9 @@ mod tests {
                 triangle_1_point_3_b,
             ],
             0,
-        );
+        ));
 
-        let triangle_instance_2 = create_mock_vertex_object(
+        let triangle_instance_2 = Box::new(create_mock_vertex_object(
             vec![
                 triangle_2_point_1_x,
                 triangle_2_point_1_y,
@@ -971,9 +1067,9 @@ mod tests {
                 triangle_2_point_3_b,
             ],
             0,
-        );
+        ));
 
-        let triangle_instance_3 = create_mock_vertex_object(
+        let triangle_instance_3 = Box::new(create_mock_vertex_object(
             vec![
                 triangle_3_point_1_x,
                 triangle_3_point_1_y,
@@ -992,15 +1088,14 @@ mod tests {
                 triangle_3_point_3_b,
             ],
             0,
-        );
+        ));
 
-        let triangles = vec![];
+        let objects = vec![];
 
-        let triangle_instances = vec![
-            triangle_instance_1,
-            triangle_instance_2,
-            triangle_instance_3,
-        ];
+        let mut object_instances = Vec::<Box<dyn GetContentInstanceData>>::new();
+        object_instances.push(triangle_instance_1);
+        object_instances.push(triangle_instance_2);
+        object_instances.push(triangle_instance_3);
 
         let expected_vertex_data = vec![
             triangle_1_point_1_x,
@@ -1050,8 +1145,7 @@ mod tests {
             triangle_3_point_3_b,
         ];
 
-        let content =
-            Content::<MockVertexObject, MockVertexObject>::new(triangles, triangle_instances);
+        let content = Content::new(objects, object_instances);
 
         let result = content.get_vertex_data();
 
@@ -1060,24 +1154,22 @@ mod tests {
 
     #[test]
     fn when_content_gets_its_number_of_vertices_then_the_number_of_vertices_is_returned() {
-        let triangle_instance_1 = create_mock_vertex_object(vec![], 15);
+        let object_instance_1 = Box::new(create_mock_vertex_object(vec![], 15));
 
-        let triangle_instance_2 = create_mock_vertex_object(vec![], 15);
+        let object_instance_2 = Box::new(create_mock_vertex_object(vec![], 15));
 
-        let triangle_instance_3 = create_mock_vertex_object(vec![], 15);
+        let object_instance_3 = Box::new(create_mock_vertex_object(vec![], 15));
 
-        let triangles = vec![];
+        let objects = vec![];
 
-        let triangle_instances = vec![
-            triangle_instance_1,
-            triangle_instance_2,
-            triangle_instance_3,
-        ];
+        let mut object_instances = Vec::<Box<dyn GetContentInstanceData>>::new();
+        object_instances.push(object_instance_1);
+        object_instances.push(object_instance_2);
+        object_instances.push(object_instance_3);
 
         let expected_number_of_vertices = 45;
 
-        let content =
-            Content::<MockVertexObject, MockVertexObject>::new(triangles, triangle_instances);
+        let content = Content::new(objects, object_instances);
 
         let result = content.get_number_of_vertices();
 
@@ -1086,24 +1178,22 @@ mod tests {
 
     #[test]
     fn when_content_gets_its_number_of_objects_then_the_number_of_objects_is_returned() {
-        let triangle_instance_1 = create_mock_vertex_object(vec![], 0);
+        let object_instance_1 = Box::new(create_mock_vertex_object(vec![], 0));
 
-        let triangle_instance_2 = create_mock_vertex_object(vec![], 0);
+        let object_instance_2 = Box::new(create_mock_vertex_object(vec![], 0));
 
-        let triangle_instance_3 = create_mock_vertex_object(vec![], 0);
+        let object_instance_3 = Box::new(create_mock_vertex_object(vec![], 0));
 
-        let triangles = vec![];
+        let objects = vec![];
 
-        let triangle_instances = vec![
-            triangle_instance_1,
-            triangle_instance_2,
-            triangle_instance_3,
-        ];
+        let mut object_instances = Vec::<Box<dyn GetContentInstanceData>>::new();
+        object_instances.push(object_instance_1);
+        object_instances.push(object_instance_2);
+        object_instances.push(object_instance_3);
 
         let expected_number_of_objects = 3;
 
-        let content =
-            Content::<MockVertexObject, MockVertexObject>::new(triangles, triangle_instances);
+        let content = Content::new(objects, object_instances);
 
         let result = content.get_number_of_objects();
 
@@ -1117,6 +1207,8 @@ mod tests {
         }
         impl GetNumberOfVertices for VertexObject {
             fn get_number_of_vertices(&self) -> i32;
+        }
+        impl GetContentInstanceData for VertexObject {
         }
         impl GetX for VertexObject {
             fn get_x(&self) -> f32;
