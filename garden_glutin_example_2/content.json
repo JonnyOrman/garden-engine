@@ -70,6 +70,7 @@
         {
             "name": "Triangle1-a",
             "contentName": "Triangle1",
+            "type": "triangle",
             "scale": 0.5,
             "position": {
                 "x": -5.0,
@@ -112,6 +113,7 @@
         {
             "name": "Triangle1-b",
             "contentName": "Triangle1",
+            "type": "triangle",
             "scale": 3.0,
             "position": {
                 "x": 5.0,
@@ -154,6 +156,7 @@
         {
             "name": "Rectangle1-a",
             "contentName": "Rectangle1",
+            "type": "rectangle",
             "scale": 5.0,
             "width": 0.5,
             "height": 1.0,
@@ -165,6 +168,7 @@
         {
             "name": "Rectangle2-a",
             "contentName": "Rectangle2",
+            "type": "rectangle",
             "scale": 2.0,
             "width": 0.7,
             "height": 0.3,

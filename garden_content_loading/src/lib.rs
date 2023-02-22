@@ -217,38 +217,6 @@ impl<TJsonToRectangleConverter: ConvertJsonToValue<Rectangle<Rgb>>>
     }
 }
 
-pub struct JsonToObjectConverter<TJsonToStringConverter> {
-    json_to_string_converter: TJsonToStringConverter,
-    converter_map: HashMap<String, Box<dyn ConvertJsonToValue<Box<dyn GetName>>>>,
-}
-
-impl<TJsonToStringConverter> JsonToObjectConverter<TJsonToStringConverter> {
-    fn new(
-        json_to_string_converter: TJsonToStringConverter,
-        converter_map: HashMap<String, Box<dyn ConvertJsonToValue<Box<dyn GetName>>>>,
-    ) -> Self {
-        Self {
-            json_to_string_converter,
-            converter_map,
-        }
-    }
-}
-
-impl<TJsonToStringConverter: ConvertJsonToValue<String>> ConvertJsonToValue<Box<dyn GetName>>
-    for JsonToObjectConverter<TJsonToStringConverter>
-{
-    fn convert_json_to_value(&self, json: &Value) -> Box<dyn GetName> {
-        let object_type = self
-            .json_to_string_converter
-            .convert_json_to_value(&json["type"]);
-
-        match self.converter_map.get(&object_type) {
-            Some(converter) => converter.convert_json_to_value(json),
-            None => todo!("JSON converter for object type {object_type} not found."),
-        }
-    }
-}
-
 pub struct JsonToTriangleInstanceConverter<
     TJsonToStringConverter,
     TJsonToTwoDPointConverter,
@@ -493,18 +461,15 @@ impl<TJsonToRectangleInstanceConverter: ConvertJsonToValue<RectangleInstance<Two
     }
 }
 
-pub struct JsonToObjectInstanceConverter<TJsonToStringConverter> {
+pub struct TypedJsonToValueConverter<TJsonToStringConverter, TBox> {
     json_to_string_converter: TJsonToStringConverter,
-    converter_map: HashMap<String, Box<dyn ConvertJsonToValue<Box<dyn GetContentInstanceData>>>>,
+    converter_map: HashMap<String, Box<dyn ConvertJsonToValue<TBox>>>,
 }
 
-impl<TJsonToStringConverter> JsonToObjectInstanceConverter<TJsonToStringConverter> {
+impl<TJsonToStringConverter, TBox> TypedJsonToValueConverter<TJsonToStringConverter, TBox> {
     fn new(
         json_to_string_converter: TJsonToStringConverter,
-        converter_map: HashMap<
-            String,
-            Box<dyn ConvertJsonToValue<Box<dyn GetContentInstanceData>>>,
-        >,
+        converter_map: HashMap<String, Box<dyn ConvertJsonToValue<TBox>>>,
     ) -> Self {
         Self {
             json_to_string_converter,
@@ -513,18 +478,17 @@ impl<TJsonToStringConverter> JsonToObjectInstanceConverter<TJsonToStringConverte
     }
 }
 
-impl<TJsonToStringConverter: ConvertJsonToValue<String>>
-    ConvertJsonToValue<Box<dyn GetContentInstanceData>>
-    for JsonToObjectInstanceConverter<TJsonToStringConverter>
+impl<TJsonToStringConverter: ConvertJsonToValue<String>, TBox> ConvertJsonToValue<TBox>
+    for TypedJsonToValueConverter<TJsonToStringConverter, TBox>
 {
-    fn convert_json_to_value(&self, json: &Value) -> Box<dyn GetContentInstanceData> {
-        let object_type = self
+    fn convert_json_to_value(&self, json: &Value) -> TBox {
+        let value_type = self
             .json_to_string_converter
-            .convert_json_to_value(&json["contentType"]);
+            .convert_json_to_value(&json["type"]);
 
-        match self.converter_map.get(&object_type) {
+        match self.converter_map.get(&value_type) {
             Some(converter) => converter.convert_json_to_value(json),
-            None => todo!("JSON converter for object instance type {object_type} not found."),
+            None => todo!("JSON converter for type {value_type} not found."),
         }
     }
 }
@@ -626,8 +590,8 @@ impl ConvertJsonToValue<String> for JsonToStringConverter {
 }
 
 pub fn compose_json_to_content_converter() -> JsonToContentConverter<
-    JsonToObjectConverter<JsonToStringConverter>,
-    JsonToObjectInstanceConverter<JsonToStringConverter>,
+    TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetName>>,
+    TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetContentInstanceData>>,
 > {
     let json_to_triangle_converter = JsonToTriangleConverter::new(
         JsonToStringConverter::new(),
@@ -683,7 +647,7 @@ pub fn compose_json_to_content_converter() -> JsonToContentConverter<
     );
 
     let json_to_object_converter =
-        JsonToObjectConverter::new(JsonToStringConverter::new(), object_converters);
+        TypedJsonToValueConverter::new(JsonToStringConverter::new(), object_converters);
 
     let mut object_instance_converters =
         HashMap::<String, Box<dyn ConvertJsonToValue<Box<dyn GetContentInstanceData>>>>::new();
@@ -696,10 +660,8 @@ pub fn compose_json_to_content_converter() -> JsonToContentConverter<
         Box::new(json_to_boxed_rectangle_instance_converter),
     );
 
-    let json_to_object_instance_converter = JsonToObjectInstanceConverter::new(
-        JsonToStringConverter::new(),
-        object_instance_converters,
-    );
+    let json_to_object_instance_converter =
+        TypedJsonToValueConverter::new(JsonToStringConverter::new(), object_instance_converters);
 
     let json_to_content_converter =
         JsonToContentConverter::new(json_to_object_converter, json_to_object_instance_converter);
@@ -709,16 +671,16 @@ pub fn compose_json_to_content_converter() -> JsonToContentConverter<
 
 pub fn compose_content_loader() -> ContentLoader<
     JsonToContentConverter<
-        JsonToObjectConverter<JsonToStringConverter>,
-        JsonToObjectInstanceConverter<JsonToStringConverter>,
+        TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetName>>,
+        TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetContentInstanceData>>,
     >,
 > {
     let json_to_content_converter = compose_json_to_content_converter();
 
     ContentLoader::<
         JsonToContentConverter<
-            JsonToObjectConverter<JsonToStringConverter>,
-            JsonToObjectInstanceConverter<JsonToStringConverter>,
+            TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetName>>,
+            TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetContentInstanceData>>,
         >,
     >::new(json_to_content_converter)
 }
@@ -806,7 +768,7 @@ mod tests {
                 {
                     "name": "Triangle1-a",
                     "contentName": "Triangle1",
-                    "contentType": "triangle",
+                    "type": "triangle",
                     "scale": 0.5,
                     "position": {
                         "x": -0.5,
@@ -849,7 +811,7 @@ mod tests {
                 {
                     "name": "Triangle1-b",
                     "contentName": "Triangle1",
-                    "contentType": "triangle",
+                    "type": "triangle",
                     "scale": 0.5,
                     "position": {
                         "x": 0.5,
@@ -892,7 +854,7 @@ mod tests {
                 {
                     "name": "Rectangle1-a",
                     "contentName": "Rectangle1",
-                    "contentType": "rectangle",
+                    "type": "rectangle",
                     "scale": 5.0,
                     "width": 0.5,
                     "height": 1.0,
@@ -904,7 +866,7 @@ mod tests {
                 {
                     "name": "Rectangle2-a",
                     "contentName": "Rectangle2",
-                    "contentType": "rectangle",
+                    "type": "rectangle",
                     "scale": 2.0,
                     "width": 0.7,
                     "height": 0.3,
