@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use garden::GetName;
 
 pub trait GetVertexData {
@@ -8,7 +10,11 @@ pub trait GetNumberOfVertices {
     fn get_number_of_vertices(&self) -> i32;
 }
 
-pub trait GetContentInstanceData: GetVertexData + GetNumberOfVertices {}
+pub trait Scale {
+    fn scale(&mut self, x: f32, y: f32);
+}
+
+pub trait GetContentInstanceData: GetVertexData + GetNumberOfVertices + Scale {}
 
 pub trait GetNumberOfObjects {
     fn get_number_of_objects(&self) -> i32;
@@ -385,10 +391,62 @@ impl<TPosition, TTrianglePoint> GetNumberOfVertices
     }
 }
 
-impl<TPosition, TTrianglePoint> GetContentInstanceData
-    for TriangleInstance<TPosition, TTrianglePoint>
-{
+impl Scale for TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>> {
+    fn scale(&mut self, x: f32, y: f32) {
+        let new_position = TwoDPoint::new(
+            self.get_position().get_x() / x,
+            self.get_position().get_y() / y,
+        );
+        let new_point_1 = TrianglePoint::<TwoDPoint, Rgb>::new(
+            TwoDPoint::new(
+                self.get_point_1().get_x() / x,
+                self.get_point_1().get_y() / y,
+            ),
+            Rgb::new(
+                self.get_point_1().get_rgb().get_r(),
+                self.get_point_1().get_rgb().get_g(),
+                self.get_point_1().get_rgb().get_b(),
+            ),
+        );
+        let new_point_2 = TrianglePoint::<TwoDPoint, Rgb>::new(
+            TwoDPoint::new(
+                self.get_point_2().get_x() / x,
+                self.get_point_2().get_y() / y,
+            ),
+            Rgb::new(
+                self.get_point_2().get_rgb().get_r(),
+                self.get_point_2().get_rgb().get_g(),
+                self.get_point_2().get_rgb().get_b(),
+            ),
+        );
+        let new_point_3 = TrianglePoint::<TwoDPoint, Rgb>::new(
+            TwoDPoint::new(
+                self.get_point_3().get_x() / x,
+                self.get_point_3().get_y() / y,
+            ),
+            Rgb::new(
+                self.get_point_3().get_rgb().get_r(),
+                self.get_point_3().get_rgb().get_g(),
+                self.get_point_3().get_rgb().get_b(),
+            ),
+        );
+
+        let mut new_vertex_data = vec![];
+
+        new_vertex_data.append(&mut new_point_1.get_vertex_data().clone());
+        new_vertex_data.append(&mut new_point_2.get_vertex_data().clone());
+        new_vertex_data.append(&mut new_point_3.get_vertex_data().clone());
+
+        self.position = new_position;
+        self.point_1 = new_point_1;
+        self.point_2 = new_point_2;
+        self.point_3 = new_point_3;
+
+        self.vertex_data = new_vertex_data;
+    }
 }
+
+impl GetContentInstanceData for TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>> {}
 
 pub struct RectangleInstance<TPosition> {
     name: String,
@@ -452,10 +510,16 @@ impl<TPosition> GetNumberOfVertices for RectangleInstance<TPosition> {
     }
 }
 
+impl<TPosition> Scale for RectangleInstance<TPosition> {
+    fn scale(&mut self, x: f32, y: f32) {
+        todo!()
+    }
+}
+
 impl<TPosition> GetContentInstanceData for RectangleInstance<TPosition> {}
 
 pub struct Content {
-    objects: Option<Vec<Box<dyn GetName>>>,
+    objects: Option<Vec<Rc<Box<dyn GetName>>>>,
     object_instances: Option<Vec<Box<dyn GetContentInstanceData>>>,
     vertex_data: Vec<f32>,
     number_of_vertices: i32,
@@ -463,7 +527,7 @@ pub struct Content {
 
 impl Content {
     pub fn new(
-        objects: Vec<Box<dyn GetName>>,
+        objects: Vec<Rc<Box<dyn GetName>>>,
         object_instances: Vec<Box<dyn GetContentInstanceData>>,
     ) -> Self {
         let mut number_of_vertices = 0;
@@ -483,12 +547,48 @@ impl Content {
         }
     }
 
-    pub fn get_objects(&self) -> &Option<Vec<Box<dyn GetName>>> {
+    pub fn get_objects(&self) -> &Option<Vec<Rc<Box<dyn GetName>>>> {
         &self.objects
     }
 
     pub fn get_object_instances(&self) -> &Option<Vec<Box<dyn GetContentInstanceData>>> {
         &self.object_instances
+    }
+
+    pub fn scale_object_instances(&mut self, x: f32, y: f32) {
+        println!(
+            "VERTEX DATA BEFORE: {}",
+            self.vertex_data
+                .clone()
+                .into_iter()
+                .map(|i| i.to_string() + ", ")
+                .collect::<String>()
+                .to_string()
+        );
+
+        println!("SCALING WITH X: {} AND Y: {}", x, y);
+
+        let mut new_object_instances = Vec::<Box<dyn GetContentInstanceData>>::new();
+
+        let c = self.object_instances.as_ref().unwrap().len();
+
+        let mut i = c;
+
+        let mut o = self.object_instances.take().unwrap();
+
+        let mut new_vertex_data = vec![];
+
+        while i > 0 {
+            let mut t = o.remove(i - 1);
+            t.scale(x, y);
+            new_vertex_data.append(&mut t.get_vertex_data());
+            new_object_instances.push(t);
+            i = i - 1;
+        }
+
+        self.object_instances = Some(new_object_instances);
+
+        self.vertex_data = new_vertex_data;
     }
 }
 

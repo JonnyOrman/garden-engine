@@ -6,7 +6,7 @@ use garden_content::{
 use garden_json::{ConvertJsonToValue, JsonToF32Converter};
 use garden_loading::Load;
 use serde_json::Value;
-use std::{collections::HashMap, fs};
+use std::{collections::HashMap, fs, rc::Rc};
 
 pub struct ContentLoader<TJsonToContentConverter> {
     json_to_content_converter: TJsonToContentConverter,
@@ -62,14 +62,14 @@ impl<
     for JsonToContentConverter<TJsonToObjectConverter, TJsonToObjectInstanceConverter>
 {
     fn convert_json_to_value(&self, json: &Value) -> Content {
-        let mut objects = Vec::<Box<dyn GetName>>::new();
+        let mut objects = Vec::<Rc<Box<dyn GetName>>>::new();
 
         if let Some(object_json_array) = json["content"]["objects"].as_array() {
             for object_json in object_json_array {
-                objects.push(
+                objects.push(Rc::new(
                     self.json_to_object_converter
                         .convert_json_to_value(object_json),
-                );
+                ));
             }
         }
 
