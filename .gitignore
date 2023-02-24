@@ -11,6 +11,7 @@ garden_content_loading/Cargo.lock
 garden_games/Cargo.lock
 garden_glutin/Cargo.lock
 garden_json/Cargo.lock
+garden_json_component/Cargo.lock
 garden_loading/Cargo.lock
 garden_scenes/Cargo.lock
 garden_scenes_component/Cargo.lock

@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, rc::Rc};
 
 use garden_json::{ConvertJsonToValue, JsonToF32Converter};
 use garden_loading::Load;
@@ -31,11 +31,11 @@ impl<TJsonToF32Converter: ConvertJsonToValue<TwoDScene>> Load<TwoDScene>
 }
 
 pub struct JsonToSceneConverter<TJsonToF32Converter> {
-    json_to_f32_converter: TJsonToF32Converter,
+    json_to_f32_converter: Rc<TJsonToF32Converter>,
 }
 
 impl<TJsonToF32Converter> JsonToSceneConverter<TJsonToF32Converter> {
-    fn new(json_to_f32_converter: TJsonToF32Converter) -> Self {
+    fn new(json_to_f32_converter: Rc<TJsonToF32Converter>) -> Self {
         Self {
             json_to_f32_converter,
         }
@@ -58,17 +58,23 @@ impl<TJsonToF32Converter: ConvertJsonToValue<f32>> ConvertJsonToValue<TwoDScene>
     }
 }
 
-pub fn compose_json_to_scene_converter() -> JsonToSceneConverter<JsonToF32Converter> {
-    JsonToSceneConverter::new(JsonToF32Converter::new())
+pub fn compose_json_to_scene_converter(
+    json_to_f32_converter: Rc<JsonToF32Converter>,
+) -> JsonToSceneConverter<JsonToF32Converter> {
+    JsonToSceneConverter::new(json_to_f32_converter)
 }
 
-pub fn compose_scene_loader() -> SceneLoader<JsonToSceneConverter<JsonToF32Converter>> {
-    SceneLoader::new(compose_json_to_scene_converter())
+pub fn compose_scene_loader(
+    json_to_f32_converter: Rc<JsonToF32Converter>,
+) -> SceneLoader<JsonToSceneConverter<JsonToF32Converter>> {
+    SceneLoader::new(compose_json_to_scene_converter(json_to_f32_converter))
 }
 
 #[cfg(test)]
 mod tests {
-    use garden_json::ConvertJsonToValue;
+    use std::rc::Rc;
+
+    use garden_json::{ConvertJsonToValue, JsonToF32Converter};
     use garden_scenes::{GetHeight, GetWidth, TwoDScene};
     use mockall::{mock, predicate};
     use serde_json::{json, Value};
@@ -78,7 +84,9 @@ mod tests {
     #[test]
     fn when_a_json_to_scene_converter_is_composed_and_converts_json_to_a_two_d_scene_then_the_two_d_scene_is_converted(
     ) {
-        let json_to_scene_converter = compose_json_to_scene_converter();
+        let json_to_f32_converter = Rc::new(JsonToF32Converter::new());
+
+        let json_to_scene_converter = compose_json_to_scene_converter(json_to_f32_converter);
 
         let json = json!({
             "width": 123.45,
@@ -123,9 +131,12 @@ mod tests {
             .times(1)
             .returning(|x| 678.90);
 
+        let json_to_f32_converter_rc = Rc::new(json_to_f32_converter);
+
         let expected_result = TwoDScene::new(123.45, 678.90);
 
-        let json_to_scene_converter = JsonToSceneConverter::new(json_to_f32_converter);
+        let json_to_scene_converter =
+            JsonToSceneConverter::new(Rc::clone(&json_to_f32_converter_rc));
 
         let result = json_to_scene_converter.convert_json_to_value(&json);
 

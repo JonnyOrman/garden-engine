@@ -404,6 +404,7 @@ dependencies = [
  "garden",
  "garden_content",
  "garden_content_loading",
+ "garden_json_component",
  "garden_loading",
  "garden_scenes",
  "garden_winit",
@@ -451,6 +452,7 @@ dependencies = [
  "garden_content_component",
  "garden_games",
  "garden_glutin",
+ "garden_json_component",
  "garden_scenes_component",
  "garden_winit",
 ]
@@ -460,6 +462,13 @@ name = "garden_json"
 version = "0.1.0"
 dependencies = [
  "serde_json",
+]
+
+[[package]]
+name = "garden_json_component"
+version = "0.1.0"
+dependencies = [
+ "garden_json",
 ]
 
 [[package]]
@@ -475,6 +484,7 @@ name = "garden_scenes_component"
 version = "0.1.0"
 dependencies = [
  "garden",
+ "garden_json_component",
  "garden_loading",
  "garden_scenes",
  "garden_scenes_loading",

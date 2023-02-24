@@ -3,6 +3,7 @@ use garden::{
 };
 use garden_content::{Content, GetNumberOfObjects, GetNumberOfVertices, GetVertexDataPtr};
 use garden_content_loading::compose_content_loader;
+use garden_json_component::JsonComponent;
 use garden_loading::Load;
 use garden_scenes::{GetHeight, GetWidth};
 use garden_winit::AddComponent;
@@ -10,14 +11,21 @@ use garden_winit::AddComponent;
 pub fn add_content<TGameInstanceBuilder: AddComponent, TScene: GetWidth + GetHeight>(
     game_instance_builder: &mut TGameInstanceBuilder,
     scene: &TScene,
+    json_component: &JsonComponent,
 ) {
-    let component = compose_component(scene);
+    let component = compose_component(scene, json_component);
 
     game_instance_builder.add(component);
 }
 
-fn compose_component<TScene: GetWidth + GetHeight>(scene: &TScene) -> ContentComponent<Content> {
-    let content_loader = compose_content_loader();
+fn compose_component<TScene: GetWidth + GetHeight>(
+    scene: &TScene,
+    json_component: &JsonComponent,
+) -> ContentComponent<Content> {
+    let content_loader = compose_content_loader(
+        json_component.get_json_to_f32_converter(),
+        json_component.get_json_to_string_converter(),
+    );
     let mut content = content_loader.load();
 
     content.scale_object_instances(scene.get_width(), scene.get_height());
