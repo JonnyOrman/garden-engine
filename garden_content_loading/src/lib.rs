@@ -737,14 +737,17 @@ mod tests {
         Content, GetVertexData, Rectangle, RectangleInstance, Rgb, Triangle, TriangleInstance,
         TrianglePoint, TwoDPoint,
     };
-    use garden_json::ConvertJsonToValue;
+    use garden_json::{ConvertJsonToValue, JsonToF32Converter, JsonToStringConverter};
     use serde_json::json;
 
     use crate::compose_json_to_content_converter;
 
     #[test]
     fn when_a_json_to_content_converter_converts_json_to_content_then_the_content_is_converted() {
-        let json_to_content_converter = compose_json_to_content_converter();
+        let json_to_content_converter = compose_json_to_content_converter(
+            Rc::new(JsonToF32Converter::new()),
+            Rc::new(JsonToStringConverter::new()),
+        );
 
         let json = json!({
             "content": {
