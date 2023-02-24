@@ -340,3 +340,28 @@ impl<TPosition, TRgb> GetContentInstanceData
     >
 {
 }
+
+#[cfg(test)]
+mod tests {
+    use garden::GetName;
+    use mockall::mock;
+
+    use crate::rectangles::Rectangle;
+
+    #[test]
+    fn when_a_rectangle_gets_its_name_then_the_name_is_returned() {
+        let name = "SomeRectangle";
+
+        let rgb = MockRectangleRgb::new();
+
+        let rectangle = Rectangle::<MockRectangleRgb>::new(name.to_string(), 0.0, 0.0, rgb);
+
+        let result = rectangle.get_name();
+
+        assert_eq!(name, result);
+    }
+
+    mock! {
+        RectangleRgb {}
+    }
+}
