@@ -1,7 +1,9 @@
 use garden::GetName;
 use garden_content::{
-    Content, Get2DCoordiantes, GetB, GetContentInstanceData, GetG, GetR, GetRgb, GetX, GetY,
-    Rectangle, RectangleInstance, Rgb, Triangle, TriangleInstance, TrianglePoint, TwoDPoint,
+    rectangles::{Rectangle, RectangleInstance},
+    triangles::{Triangle, TriangleInstance},
+    Content, Get2DCoordiantes, GetB, GetContentInstanceData, GetG, GetR, GetRgb, GetX, GetY, Rgb,
+    TrianglePoint, TwoDPoint,
 };
 use garden_json::{ConvertJsonToValue, JsonToF32Converter, JsonToStringConverter};
 use garden_loading::Load;
@@ -734,8 +736,9 @@ mod tests {
     use std::rc::Rc;
 
     use garden_content::{
-        Content, GetVertexData, Rectangle, RectangleInstance, Rgb, Triangle, TriangleInstance,
-        TrianglePoint, TwoDPoint,
+        rectangles::{Rectangle, RectangleInstance},
+        triangles::{Triangle, TriangleInstance},
+        Content, GetVertexData, Rgb, TrianglePoint, TwoDPoint,
     };
     use garden_json::{ConvertJsonToValue, JsonToF32Converter, JsonToStringConverter};
     use serde_json::json;
