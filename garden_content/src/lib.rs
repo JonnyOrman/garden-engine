@@ -457,7 +457,7 @@ impl GetNumberOfObjects for TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint,
 
 impl GetContentInstanceData for TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>> {}
 
-pub struct RectangleInstance<TPosition, TPoint, TTriangle> {
+pub struct RectangleInstance<TPosition, TPoint, TTriangle, TRgb> {
     name: String,
     content_name: String,
     scale: f32,
@@ -470,13 +470,15 @@ pub struct RectangleInstance<TPosition, TPoint, TTriangle> {
     point_4: TPoint,
     triangle_instance_1: TTriangle,
     triangle_instance_2: TTriangle,
+    rgb: TRgb,
 }
 
-impl<TPosition: Get2DCoordiantes>
+impl<TPosition: Get2DCoordiantes, TRgb: GetR + GetG + GetB>
     RectangleInstance<
         TPosition,
         TrianglePoint<TwoDPoint, Rgb>,
         TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+        TRgb,
     >
 {
     pub fn new(
@@ -486,6 +488,7 @@ impl<TPosition: Get2DCoordiantes>
         position: TPosition,
         width: f32,
         height: f32,
+        rgb: TRgb,
     ) -> Self {
         let mut vertex_data = vec![];
 
@@ -494,19 +497,19 @@ impl<TPosition: Get2DCoordiantes>
 
         let point_1 = TrianglePoint::new(
             TwoDPoint::new(position.get_x() + x, position.get_y() + y),
-            Rgb::new(1.0, 0.0, 0.0),
+            Rgb::new(rgb.get_r(), rgb.get_g(), rgb.get_b()),
         );
         let point_2 = TrianglePoint::new(
             TwoDPoint::new(position.get_x() - x, position.get_y() + y),
-            Rgb::new(1.0, 0.0, 0.0),
+            Rgb::new(rgb.get_r(), rgb.get_g(), rgb.get_b()),
         );
         let point_3 = TrianglePoint::new(
             TwoDPoint::new(position.get_x() - x, position.get_y() - y),
-            Rgb::new(1.0, 0.0, 0.0),
+            Rgb::new(rgb.get_r(), rgb.get_g(), rgb.get_b()),
         );
         let point_4 = TrianglePoint::new(
             TwoDPoint::new(position.get_x() + x, position.get_y() - y),
-            Rgb::new(1.0, 0.0, 0.0),
+            Rgb::new(rgb.get_r(), rgb.get_g(), rgb.get_b()),
         );
 
         let triangle_instance_1 = TriangleInstance::new(
@@ -590,15 +593,17 @@ impl<TPosition: Get2DCoordiantes>
             point_4,
             triangle_instance_1,
             triangle_instance_2,
+            rgb,
         }
     }
 }
 
-impl<TPosition, TPoint> GetVertexData
+impl<TPosition, TPoint, TRgb> GetVertexData
     for RectangleInstance<
         TPosition,
         TPoint,
         TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+        TRgb,
     >
 {
     fn get_vertex_data(&self) -> Vec<f32> {
@@ -606,11 +611,12 @@ impl<TPosition, TPoint> GetVertexData
     }
 }
 
-impl<TPosition, TPoint> GetNumberOfVertices
+impl<TPosition, TPoint, TRgb> GetNumberOfVertices
     for RectangleInstance<
         TPosition,
         TPoint,
         TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+        TRgb,
     >
 {
     fn get_number_of_vertices(&self) -> i32 {
@@ -618,11 +624,12 @@ impl<TPosition, TPoint> GetNumberOfVertices
     }
 }
 
-impl<TPosition> Scale
+impl<TPosition, TRgb> Scale
     for RectangleInstance<
         TPosition,
         TrianglePoint<TwoDPoint, Rgb>,
         TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+        TRgb,
     >
 {
     fn scale(&mut self, x: f32, y: f32) {
@@ -738,11 +745,12 @@ impl<TPosition> Scale
     }
 }
 
-impl<TPosition> GetNumberOfObjects
+impl<TPosition, TRgb> GetNumberOfObjects
     for RectangleInstance<
         TPosition,
         TrianglePoint<TwoDPoint, Rgb>,
         TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+        TRgb,
     >
 {
     fn get_number_of_objects(&self) -> i32 {
@@ -750,11 +758,12 @@ impl<TPosition> GetNumberOfObjects
     }
 }
 
-impl<TPosition> GetContentInstanceData
+impl<TPosition, TRgb> GetContentInstanceData
     for RectangleInstance<
         TPosition,
         TrianglePoint<TwoDPoint, Rgb>,
         TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+        TRgb,
     >
 {
 }

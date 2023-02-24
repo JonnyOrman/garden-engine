@@ -376,28 +376,38 @@ pub struct JsonToRectangleInstanceConverter<
     TJsonToStringConverter,
     TJsonToF32Converter,
     TJsonToPositionConverter,
+    TJsonToRgbConverter,
 > {
     json_to_string_converter: TJsonToStringConverter,
     json_to_f32_converter: TJsonToF32Converter,
     json_to_position_converter: TJsonToPositionConverter,
+    json_to_rgb_converter: TJsonToRgbConverter,
 }
 
-impl<TJsonToStringConverter, TJsonToF32Converter, TJsonToPositionConverter>
+impl<
+        TJsonToStringConverter,
+        TJsonToF32Converter,
+        TJsonToPositionConverter,
+        TJsonToRgbConverter,
+    >
     JsonToRectangleInstanceConverter<
         TJsonToStringConverter,
         TJsonToF32Converter,
         TJsonToPositionConverter,
+        TJsonToRgbConverter,
     >
 {
     fn new(
         json_to_string_converter: TJsonToStringConverter,
         json_to_f32_converter: TJsonToF32Converter,
         json_to_position_converter: TJsonToPositionConverter,
+        json_to_rgb_converter: TJsonToRgbConverter,
     ) -> Self {
         Self {
             json_to_string_converter,
             json_to_f32_converter,
             json_to_position_converter,
+            json_to_rgb_converter,
         }
     }
 }
@@ -407,18 +417,21 @@ impl<
         TJsonToF32Converter: ConvertJsonToValue<f32>,
         TJsonToPositionConverter: ConvertJsonToValue<TPosition>,
         TPosition: Get2DCoordiantes,
+        TJsonToRgbConverter: ConvertJsonToValue<Rgb>,
     >
     ConvertJsonToValue<
         RectangleInstance<
             TPosition,
             TrianglePoint<TwoDPoint, Rgb>,
             TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+            Rgb,
         >,
     >
     for JsonToRectangleInstanceConverter<
         TJsonToStringConverter,
         TJsonToF32Converter,
         TJsonToPositionConverter,
+        TJsonToRgbConverter,
     >
 {
     fn convert_json_to_value(
@@ -428,6 +441,7 @@ impl<
         TPosition,
         TrianglePoint<TwoDPoint, Rgb>,
         TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+        Rgb,
     > {
         let scale = self
             .json_to_f32_converter
@@ -437,6 +451,7 @@ impl<
             TPosition,
             TrianglePoint<TwoDPoint, Rgb>,
             TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+            Rgb,
         >::new(
             self.json_to_string_converter
                 .convert_json_to_value(&json["name"]),
@@ -449,6 +464,8 @@ impl<
                 .convert_json_to_value(&json["width"]),
             self.json_to_f32_converter
                 .convert_json_to_value(&json["height"]),
+            self.json_to_rgb_converter
+                .convert_json_to_value(&json["rgb"]),
         )
     }
 }
@@ -473,6 +490,7 @@ impl<
                 TwoDPoint,
                 TrianglePoint<TwoDPoint, Rgb>,
                 TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+                Rgb,
             >,
         >,
     > ConvertJsonToValue<Box<dyn GetContentInstanceData>>
@@ -655,6 +673,7 @@ pub fn compose_json_to_content_converter() -> JsonToContentConverter<
         JsonToStringConverter::new(),
         JsonToF32Converter::new(),
         JsonToTwoDPointConverter::new(JsonToF32Converter::new()),
+        JsonToRgbConverter::new(JsonToF32Converter::new()),
     );
 
     let json_to_boxed_rectangle_instance_converter =
@@ -888,6 +907,11 @@ mod tests {
                     "position": {
                         "x": -5.0,
                         "y": 5.0
+                    },
+                    "rgb": {
+                        "r": 0.0,
+                        "g": 0.0,
+                        "b": 1.0
                     }
                 },
                 {
@@ -900,6 +924,11 @@ mod tests {
                     "position": {
                         "x": 5.0,
                         "y": -5.0
+                    },
+                    "rgb": {
+                        "r": 1.0,
+                        "g": 0.0,
+                        "b": 0.0
                     }
                 }
             ]
@@ -983,6 +1012,7 @@ mod tests {
                     TwoDPoint::new(-5.0, 5.0),
                     2.5,
                     5.0,
+                    Rgb::new(0.0, 0.0, 1.0),
                 )),
                 Box::new(RectangleInstance::new(
                     "Rectangle2-a".to_string(),
@@ -991,6 +1021,7 @@ mod tests {
                     TwoDPoint::new(5.0, -5.0),
                     3.0,
                     2.0,
+                    Rgb::new(1.0, 0.0, 0.0),
                 )),
             ],
         );
