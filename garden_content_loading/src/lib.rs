@@ -712,6 +712,8 @@ pub fn compose_content_loader() -> ContentLoader<
 
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+
     use garden_content::{
         Content, GetVertexData, Rectangle, RectangleInstance, Rgb, Triangle, TriangleInstance,
         TrianglePoint, TwoDPoint,
@@ -768,8 +770,8 @@ mod tests {
                     {
                         "name": "Rectangle1",
                         "type": "rectangle",
-                        "width": 0.5,
-                        "height": 1.0,
+                        "width": 2.0,
+                        "height": 5.0,
                         "rgb": {
                             "r": 0.0,
                             "g": 0.0,
@@ -779,8 +781,8 @@ mod tests {
                     {
                         "name": "Rectangle2",
                         "type": "rectangle",
-                        "width": 0.7,
-                        "height": 0.3,
+                        "width": 3.0,
+                        "height": 2.0,
                         "rgb": {
                             "r": 1.0,
                             "g": 0.0,
@@ -796,8 +798,8 @@ mod tests {
                     "type": "triangle",
                     "scale": 0.5,
                     "position": {
-                        "x": -0.5,
-                        "y": -0.5
+                        "x": -5.0,
+                        "y": -5.0
                     },
                     "point1": {
                         "twoDPoint": {
@@ -837,10 +839,10 @@ mod tests {
                     "name": "Triangle1-b",
                     "contentName": "Triangle1",
                     "type": "triangle",
-                    "scale": 0.5,
+                    "scale": 3.0,
                     "position": {
-                        "x": 0.5,
-                        "y": 0.5
+                        "x": 5.0,
+                        "y": 5.0
                     },
                     "point1": {
                         "twoDPoint": {
@@ -880,9 +882,9 @@ mod tests {
                     "name": "Rectangle1-a",
                     "contentName": "Rectangle1",
                     "type": "rectangle",
-                    "scale": 5.0,
-                    "width": 0.5,
-                    "height": 1.0,
+                    "scale": 1.0,
+                    "width": 2.5,
+                    "height": 5.0,
                     "position": {
                         "x": -5.0,
                         "y": 5.0
@@ -892,9 +894,9 @@ mod tests {
                     "name": "Rectangle2-a",
                     "contentName": "Rectangle2",
                     "type": "rectangle",
-                    "scale": 2.0,
-                    "width": 0.7,
-                    "height": 0.3,
+                    "scale": 1.0,
+                    "width": 3.0,
+                    "height": 2.0,
                     "position": {
                         "x": 5.0,
                         "y": -5.0
@@ -905,7 +907,7 @@ mod tests {
 
         let expected_result = Content::new(
             vec![
-                Box::new(Triangle::<TrianglePoint<TwoDPoint, Rgb>>::new(
+                Rc::new(Box::new(Triangle::<TrianglePoint<TwoDPoint, Rgb>>::new(
                     "Triangle1".to_string(),
                     TrianglePoint::<TwoDPoint, Rgb>::new(
                         TwoDPoint::new(-1.0, -1.0),
@@ -919,19 +921,19 @@ mod tests {
                         TwoDPoint::new(1.0, 0.0),
                         Rgb::new(0.0, 0.0, 1.0),
                     ),
-                )),
-                Box::new(Rectangle::new(
+                ))),
+                Rc::new(Box::new(Rectangle::new(
                     "Rectangle1".to_string(),
-                    0.5,
-                    1.0,
+                    2.0,
+                    5.0,
                     Rgb::new(0.0, 0.0, 0.1),
-                )),
-                Box::new(Rectangle::new(
+                ))),
+                Rc::new(Box::new(Rectangle::new(
                     "Rectangle2".to_string(),
-                    0.7,
-                    0.3,
+                    3.0,
+                    2.0,
                     Rgb::new(1.0, 0.0, 0.0),
-                )),
+                ))),
             ],
             vec![
                 Box::new(
@@ -939,17 +941,17 @@ mod tests {
                         "Triangle1-a".to_string(),
                         "Triangle1".to_string(),
                         0.5,
-                        TwoDPoint::new(-0.5, -0.5),
+                        TwoDPoint::new(-5.0, -5.0),
                         TrianglePoint::<TwoDPoint, Rgb>::new(
-                            TwoDPoint::new(-1.0, -1.0),
+                            TwoDPoint::new(-5.5, -5.5),
                             Rgb::new(1.0, 0.0, 0.0),
                         ),
                         TrianglePoint::<TwoDPoint, Rgb>::new(
-                            TwoDPoint::new(-0.5, 0.0),
+                            TwoDPoint::new(-5.0, -4.5),
                             Rgb::new(0.0, 1.0, 0.0),
                         ),
                         TrianglePoint::<TwoDPoint, Rgb>::new(
-                            TwoDPoint::new(0.0, -1.0),
+                            TwoDPoint::new(-4.5, -5.5),
                             Rgb::new(0.0, 0.0, 1.0),
                         ),
                     ),
@@ -961,15 +963,15 @@ mod tests {
                         0.5,
                         TwoDPoint::new(0.5, 0.5),
                         TrianglePoint::<TwoDPoint, Rgb>::new(
-                            TwoDPoint::new(0.0, 0.0),
+                            TwoDPoint::new(2.0, 2.0),
                             Rgb::new(1.0, 0.0, 0.0),
                         ),
                         TrianglePoint::<TwoDPoint, Rgb>::new(
-                            TwoDPoint::new(0.5, 1.0),
+                            TwoDPoint::new(5.0, 8.0),
                             Rgb::new(0.0, 1.0, 0.0),
                         ),
                         TrianglePoint::<TwoDPoint, Rgb>::new(
-                            TwoDPoint::new(1.0, 0.0),
+                            TwoDPoint::new(8.0, 2.0),
                             Rgb::new(0.0, 0.0, 1.0),
                         ),
                     ),
@@ -977,18 +979,18 @@ mod tests {
                 Box::new(RectangleInstance::new(
                     "Rectangle1-a".to_string(),
                     "Rectangle1".to_string(),
-                    5.0,
-                    TwoDPoint::new(-5.0, 5.0),
-                    0.5,
                     1.0,
+                    TwoDPoint::new(-5.0, 5.0),
+                    2.5,
+                    5.0,
                 )),
                 Box::new(RectangleInstance::new(
                     "Rectangle2-a".to_string(),
                     "Rectangle2".to_string(),
-                    2.0,
+                    1.0,
                     TwoDPoint::new(5.0, -5.0),
-                    0.7,
-                    0.3,
+                    3.0,
+                    2.0,
                 )),
             ],
         );
