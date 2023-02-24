@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, rc::Rc};
 
 use garden_json::{ConvertJsonToValue, JsonToF32Converter};
 use garden_loading::Load;
@@ -31,11 +31,11 @@ impl<TJsonToF32Converter: ConvertJsonToValue<TwoDScene>> Load<TwoDScene>
 }
 
 pub struct JsonToSceneConverter<TJsonToF32Converter> {
-    json_to_f32_converter: TJsonToF32Converter,
+    json_to_f32_converter: Rc<TJsonToF32Converter>,
 }
 
 impl<TJsonToF32Converter> JsonToSceneConverter<TJsonToF32Converter> {
-    fn new(json_to_f32_converter: TJsonToF32Converter) -> Self {
+    fn new(json_to_f32_converter: Rc<TJsonToF32Converter>) -> Self {
         Self {
             json_to_f32_converter,
         }
@@ -58,12 +58,16 @@ impl<TJsonToF32Converter: ConvertJsonToValue<f32>> ConvertJsonToValue<TwoDScene>
     }
 }
 
-pub fn compose_json_to_scene_converter() -> JsonToSceneConverter<JsonToF32Converter> {
-    JsonToSceneConverter::new(JsonToF32Converter::new())
+pub fn compose_json_to_scene_converter(
+    json_to_f32_converter: Rc<JsonToF32Converter>,
+) -> JsonToSceneConverter<JsonToF32Converter> {
+    JsonToSceneConverter::new(json_to_f32_converter)
 }
 
-pub fn compose_scene_loader() -> SceneLoader<JsonToSceneConverter<JsonToF32Converter>> {
-    SceneLoader::new(compose_json_to_scene_converter())
+pub fn compose_scene_loader(
+    json_to_f32_converter: Rc<JsonToF32Converter>,
+) -> SceneLoader<JsonToSceneConverter<JsonToF32Converter>> {
+    SceneLoader::new(compose_json_to_scene_converter(json_to_f32_converter))
 }
 
 #[cfg(test)]

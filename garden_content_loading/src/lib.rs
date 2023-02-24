@@ -632,13 +632,13 @@ impl ConvertJsonToValue<String> for JsonToStringConverter {
     }
 }
 
-pub fn compose_json_to_content_converter() -> JsonToContentConverter<
+pub fn compose_json_to_content_converter(
+    json_to_f32_converter: Rc<JsonToF32Converter>,
+) -> JsonToContentConverter<
     TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetName>>,
     TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetContentInstanceData>>,
 > {
     let json_to_string_converter = Rc::new(JsonToStringConverter::new());
-
-    let json_to_f32_converter = Rc::new(JsonToF32Converter::new());
 
     let json_to_two_d_point_converter = Rc::new(JsonToTwoDPointConverter::new(Rc::clone(
         &json_to_f32_converter,
@@ -724,13 +724,15 @@ pub fn compose_json_to_content_converter() -> JsonToContentConverter<
     json_to_content_converter
 }
 
-pub fn compose_content_loader() -> ContentLoader<
+pub fn compose_content_loader(
+    json_to_f32_converter: Rc<JsonToF32Converter>,
+) -> ContentLoader<
     JsonToContentConverter<
         TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetName>>,
         TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetContentInstanceData>>,
     >,
 > {
-    let json_to_content_converter = compose_json_to_content_converter();
+    let json_to_content_converter = compose_json_to_content_converter(json_to_f32_converter);
 
     ContentLoader::<
         JsonToContentConverter<
