@@ -1,18 +1,14 @@
-use std::rc::Rc;
-
 use garden::{
     gl, Initialise, OnCreateGlutinVbo, OnDraw, RunEndComponent, RunFullComponent, RunLoop,
 };
 
-use garden_json::JsonToF32Converter;
+use garden_json_component::JsonComponent;
 use garden_loading::Load;
 use garden_scenes::TwoDScene;
 use garden_scenes_loading::compose_scene_loader;
 
-pub fn compose_component(
-    json_to_f32_converter: Rc<JsonToF32Converter>,
-) -> ScenesComponent<TwoDScene> {
-    let scene_loader = compose_scene_loader(json_to_f32_converter);
+pub fn compose_component(json_component: &JsonComponent) -> ScenesComponent<TwoDScene> {
+    let scene_loader = compose_scene_loader(json_component.get_json_to_f32_converter());
     let scene = scene_loader.load();
 
     let content_component = ScenesComponent::new(scene);

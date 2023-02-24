@@ -1,11 +1,9 @@
-use std::rc::Rc;
-
 use garden::{
     gl, Initialise, OnCreateGlutinVbo, OnDraw, RunEndComponent, RunFullComponent, RunLoop,
 };
 use garden_content::{Content, GetNumberOfObjects, GetNumberOfVertices, GetVertexDataPtr};
 use garden_content_loading::compose_content_loader;
-use garden_json::JsonToF32Converter;
+use garden_json_component::JsonComponent;
 use garden_loading::Load;
 use garden_scenes::{GetHeight, GetWidth};
 use garden_winit::AddComponent;
@@ -13,18 +11,18 @@ use garden_winit::AddComponent;
 pub fn add_content<TGameInstanceBuilder: AddComponent, TScene: GetWidth + GetHeight>(
     game_instance_builder: &mut TGameInstanceBuilder,
     scene: &TScene,
-    json_to_f32_converter: Rc<JsonToF32Converter>,
+    json_component: &JsonComponent,
 ) {
-    let component = compose_component(scene, json_to_f32_converter);
+    let component = compose_component(scene, json_component);
 
     game_instance_builder.add(component);
 }
 
 fn compose_component<TScene: GetWidth + GetHeight>(
     scene: &TScene,
-    json_to_f32_converter: Rc<JsonToF32Converter>,
+    json_component: &JsonComponent,
 ) -> ContentComponent<Content> {
-    let content_loader = compose_content_loader(json_to_f32_converter);
+    let content_loader = compose_content_loader(json_component.get_json_to_f32_converter());
     let mut content = content_loader.load();
 
     content.scale_object_instances(scene.get_width(), scene.get_height());
