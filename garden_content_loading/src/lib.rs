@@ -1,7 +1,7 @@
 use garden::GetName;
 use garden_content::{
-    Content, GetB, GetContentInstanceData, GetG, GetR, GetRgb, GetX, GetY, Rectangle,
-    RectangleInstance, Rgb, Triangle, TriangleInstance, TrianglePoint, TwoDPoint,
+    Content, Get2DCoordiantes, GetB, GetContentInstanceData, GetG, GetR, GetRgb, GetX, GetY,
+    Rectangle, RectangleInstance, Rgb, Triangle, TriangleInstance, TrianglePoint, TwoDPoint,
 };
 use garden_json::{ConvertJsonToValue, JsonToF32Converter};
 use garden_loading::Load;
@@ -406,20 +406,38 @@ impl<
         TJsonToStringConverter: ConvertJsonToValue<String>,
         TJsonToF32Converter: ConvertJsonToValue<f32>,
         TJsonToPositionConverter: ConvertJsonToValue<TPosition>,
-        TPosition,
-    > ConvertJsonToValue<RectangleInstance<TPosition>>
+        TPosition: Get2DCoordiantes,
+    >
+    ConvertJsonToValue<
+        RectangleInstance<
+            TPosition,
+            TrianglePoint<TwoDPoint, Rgb>,
+            TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+        >,
+    >
     for JsonToRectangleInstanceConverter<
         TJsonToStringConverter,
         TJsonToF32Converter,
         TJsonToPositionConverter,
     >
 {
-    fn convert_json_to_value(&self, json: &Value) -> RectangleInstance<TPosition> {
+    fn convert_json_to_value(
+        &self,
+        json: &Value,
+    ) -> RectangleInstance<
+        TPosition,
+        TrianglePoint<TwoDPoint, Rgb>,
+        TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+    > {
         let scale = self
             .json_to_f32_converter
             .convert_json_to_value(&json["scale"]);
 
-        RectangleInstance::<TPosition>::new(
+        RectangleInstance::<
+            TPosition,
+            TrianglePoint<TwoDPoint, Rgb>,
+            TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+        >::new(
             self.json_to_string_converter
                 .convert_json_to_value(&json["name"]),
             self.json_to_string_converter
@@ -449,8 +467,15 @@ impl<TJsonToRectangleInstanceConverter>
     }
 }
 
-impl<TJsonToRectangleInstanceConverter: ConvertJsonToValue<RectangleInstance<TwoDPoint>>>
-    ConvertJsonToValue<Box<dyn GetContentInstanceData>>
+impl<
+        TJsonToRectangleInstanceConverter: ConvertJsonToValue<
+            RectangleInstance<
+                TwoDPoint,
+                TrianglePoint<TwoDPoint, Rgb>,
+                TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+            >,
+        >,
+    > ConvertJsonToValue<Box<dyn GetContentInstanceData>>
     for JsonToBoxedRectangleInstanceConverter<TJsonToRectangleInstanceConverter>
 {
     fn convert_json_to_value(&self, json: &Value) -> Box<dyn GetContentInstanceData> {
