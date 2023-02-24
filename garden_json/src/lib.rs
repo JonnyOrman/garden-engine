@@ -18,6 +18,20 @@ impl ConvertJsonToValue<f32> for JsonToF32Converter {
     }
 }
 
+pub struct JsonToStringConverter {}
+
+impl JsonToStringConverter {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl ConvertJsonToValue<String> for JsonToStringConverter {
+    fn convert_json_to_value(&self, json: &Value) -> String {
+        json.as_str().unwrap().to_string()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use rstest::rstest;

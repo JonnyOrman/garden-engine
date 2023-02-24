@@ -22,7 +22,10 @@ fn compose_component<TScene: GetWidth + GetHeight>(
     scene: &TScene,
     json_component: &JsonComponent,
 ) -> ContentComponent<Content> {
-    let content_loader = compose_content_loader(json_component.get_json_to_f32_converter());
+    let content_loader = compose_content_loader(
+        json_component.get_json_to_f32_converter(),
+        json_component.get_json_to_string_converter(),
+    );
     let mut content = content_loader.load();
 
     content.scale_object_instances(scene.get_width(), scene.get_height());

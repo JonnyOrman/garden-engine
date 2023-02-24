@@ -3,7 +3,7 @@ use garden_content::{
     Content, Get2DCoordiantes, GetB, GetContentInstanceData, GetG, GetR, GetRgb, GetX, GetY,
     Rectangle, RectangleInstance, Rgb, Triangle, TriangleInstance, TrianglePoint, TwoDPoint,
 };
-use garden_json::{ConvertJsonToValue, JsonToF32Converter};
+use garden_json::{ConvertJsonToValue, JsonToF32Converter, JsonToStringConverter};
 use garden_loading::Load;
 use serde_json::Value;
 use std::{collections::HashMap, fs, rc::Rc};
@@ -618,28 +618,13 @@ impl<TJsonToF32Converter: ConvertJsonToValue<f32>> ConvertJsonToValue<Rgb>
     }
 }
 
-pub struct JsonToStringConverter {}
-
-impl JsonToStringConverter {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-
-impl ConvertJsonToValue<String> for JsonToStringConverter {
-    fn convert_json_to_value(&self, json: &Value) -> String {
-        json.as_str().unwrap().to_string()
-    }
-}
-
 pub fn compose_json_to_content_converter(
     json_to_f32_converter: Rc<JsonToF32Converter>,
+    json_to_string_converter: Rc<JsonToStringConverter>,
 ) -> JsonToContentConverter<
     TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetName>>,
     TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetContentInstanceData>>,
 > {
-    let json_to_string_converter = Rc::new(JsonToStringConverter::new());
-
     let json_to_two_d_point_converter = Rc::new(JsonToTwoDPointConverter::new(Rc::clone(
         &json_to_f32_converter,
     )));
@@ -726,13 +711,15 @@ pub fn compose_json_to_content_converter(
 
 pub fn compose_content_loader(
     json_to_f32_converter: Rc<JsonToF32Converter>,
+    json_to_string_converter: Rc<JsonToStringConverter>,
 ) -> ContentLoader<
     JsonToContentConverter<
         TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetName>>,
         TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetContentInstanceData>>,
     >,
 > {
-    let json_to_content_converter = compose_json_to_content_converter(json_to_f32_converter);
+    let json_to_content_converter =
+        compose_json_to_content_converter(json_to_f32_converter, json_to_string_converter);
 
     ContentLoader::<
         JsonToContentConverter<
