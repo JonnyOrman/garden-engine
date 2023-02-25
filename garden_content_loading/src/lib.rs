@@ -1,6 +1,6 @@
 use garden::GetName;
 use garden_content::{
-    rectangles::{Rectangle, RectangleInstance},
+    rectangles::{CreateRectangle, Rectangle, RectangleCreator, RectangleInstance},
     triangles::{
         CreateTriangle, CreateTriangleInstance, Triangle, TriangleCreator, TriangleInstance,
         TriangleInstanceCreator,
@@ -177,24 +177,33 @@ pub struct JsonToRectangleConverter<
     TJsonToStringConverter,
     TJsonToF32Converter,
     TJsonToRgbConverter,
+    TRectangleCreator,
 > {
     json_to_string_converter: Rc<TJsonToStringConverter>,
     json_to_f32_converter: Rc<TJsonToF32Converter>,
     json_to_rgb_converter: Rc<TJsonToRgbConverter>,
+    rectangle_creator: TRectangleCreator,
 }
 
-impl<TJsonToStringConverter, TJsonToF32Converter, TJsonToRgbConverter>
-    JsonToRectangleConverter<TJsonToStringConverter, TJsonToF32Converter, TJsonToRgbConverter>
+impl<TJsonToStringConverter, TJsonToF32Converter, TJsonToRgbConverter, TRectangleCreator>
+    JsonToRectangleConverter<
+        TJsonToStringConverter,
+        TJsonToF32Converter,
+        TJsonToRgbConverter,
+        TRectangleCreator,
+    >
 {
     fn new(
         json_to_string_converter: Rc<TJsonToStringConverter>,
         json_to_f32_converter: Rc<TJsonToF32Converter>,
         json_to_rgb_converter: Rc<TJsonToRgbConverter>,
+        rectangle_creator: TRectangleCreator,
     ) -> Self {
         Self {
             json_to_string_converter,
             json_to_f32_converter,
             json_to_rgb_converter,
+            rectangle_creator,
         }
     }
 }
@@ -204,20 +213,34 @@ impl<
         TJsonToF32Converter: ConvertJsonToValue<f32>,
         TJsonToRgbConverter: ConvertJsonToValue<TRgb>,
         TRgb,
+        TRectangleCreator: CreateRectangle<TRgb>,
     > ConvertJsonToValue<Rectangle<TRgb>>
-    for JsonToRectangleConverter<TJsonToStringConverter, TJsonToF32Converter, TJsonToRgbConverter>
+    for JsonToRectangleConverter<
+        TJsonToStringConverter,
+        TJsonToF32Converter,
+        TJsonToRgbConverter,
+        TRectangleCreator,
+    >
 {
     fn convert_json_to_value(&self, json: &Value) -> Rectangle<TRgb> {
-        Rectangle::<TRgb>::new(
-            self.json_to_string_converter
-                .convert_json_to_value(&json["name"]),
-            self.json_to_f32_converter
-                .convert_json_to_value(&json["width"]),
-            self.json_to_f32_converter
-                .convert_json_to_value(&json["height"]),
-            self.json_to_rgb_converter
-                .convert_json_to_value(&json["rgb"]),
-        )
+        let name = self
+            .json_to_string_converter
+            .convert_json_to_value(&json["name"]);
+
+        let width = self
+            .json_to_f32_converter
+            .convert_json_to_value(&json["width"]);
+
+        let height = self
+            .json_to_f32_converter
+            .convert_json_to_value(&json["height"]);
+
+        let rgb = self
+            .json_to_rgb_converter
+            .convert_json_to_value(&json["rgb"]);
+
+        self.rectangle_creator
+            .create_rectangle(name, width, height, rgb)
     }
 }
 
@@ -702,10 +725,13 @@ pub fn compose_json_to_content_converter(
     let json_to_boxed_triangle_instance_converter =
         JsonToBoxedTriangleInstanceConverter::new(json_to_triangle_instance_converter);
 
+    let rectangle_creator = RectangleCreator::new();
+
     let json_to_rectangle_converter = JsonToRectangleConverter::new(
         Rc::clone(&json_to_string_converter),
         Rc::clone(&json_to_f32_converter),
         Rc::clone(&json_to_rgb_converter),
+        rectangle_creator,
     );
 
     let json_to_boxed_rectangle_converter =

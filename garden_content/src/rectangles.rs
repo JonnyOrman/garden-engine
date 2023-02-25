@@ -30,6 +30,31 @@ impl<TRgb> GetName for Rectangle<TRgb> {
     }
 }
 
+pub trait CreateRectangle<TRgb> {
+    fn create_rectangle(&self, name: String, width: f32, height: f32, rgb: TRgb)
+        -> Rectangle<TRgb>;
+}
+
+pub struct RectangleCreator {}
+
+impl RectangleCreator {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl<TRgb> CreateRectangle<TRgb> for RectangleCreator {
+    fn create_rectangle(
+        &self,
+        name: String,
+        width: f32,
+        height: f32,
+        rgb: TRgb,
+    ) -> Rectangle<TRgb> {
+        Rectangle::new(name, width, height, rgb)
+    }
+}
+
 pub struct RectangleInstance<TPosition, TPoint, TTriangle, TRgb> {
     name: String,
     content_name: String,
@@ -436,6 +461,8 @@ mod tests {
 
     use crate::rectangles::Rectangle;
 
+    use super::{CreateRectangle, RectangleCreator};
+
     #[test]
     fn when_a_rectangle_gets_its_name_then_the_name_is_returned() {
         let name = "SomeRectangle";
@@ -447,6 +474,23 @@ mod tests {
         let result = rectangle.get_name();
 
         assert_eq!(name, result);
+    }
+
+    #[test]
+    fn when_a_rectangle_creator_creates_a_rectangle_then_the_rectangle_is_created() {
+        let rectangle_creator = RectangleCreator::new();
+
+        let name = "RectangleName";
+
+        let width = 1.23;
+
+        let height = 4.56;
+
+        let rgb = MockRectangleRgb::new();
+
+        let rectangle = rectangle_creator.create_rectangle(name.to_string(), width, height, rgb);
+
+        assert_eq!(name, rectangle.get_name());
     }
 
     mock! {
