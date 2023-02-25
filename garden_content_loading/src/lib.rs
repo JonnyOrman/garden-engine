@@ -1,7 +1,7 @@
 use garden::GetName;
 use garden_content::{
     rectangles::{Rectangle, RectangleInstance},
-    triangles::{Triangle, TriangleInstance},
+    triangles::{CreateTriangle, Triangle, TriangleCreator, TriangleInstance},
     Content, Get2DCoordiantes, GetB, GetContentInstanceData, GetG, GetR, GetRgb, GetX, GetY, Rgb,
     TrianglePoint, TwoDPoint,
 };
@@ -90,21 +90,28 @@ impl<
     }
 }
 
-pub struct JsonToTriangleConverter<TJsonToStringConverter, TJsonToTrianglePointConverter> {
+pub struct JsonToTriangleConverter<
+    TJsonToStringConverter,
+    TJsonToTrianglePointConverter,
+    TTriangleCreator,
+> {
     json_to_string_converter: Rc<TJsonToStringConverter>,
     json_to_triangle_point_converter: Rc<TJsonToTrianglePointConverter>,
+    triangle_creator: TTriangleCreator,
 }
 
-impl<TJsonToStringConverter, TJsonToTrianglePointConverter>
-    JsonToTriangleConverter<TJsonToStringConverter, TJsonToTrianglePointConverter>
+impl<TJsonToStringConverter, TJsonToTrianglePointConverter, TTriangleCreator>
+    JsonToTriangleConverter<TJsonToStringConverter, TJsonToTrianglePointConverter, TTriangleCreator>
 {
     pub fn new(
         json_to_string_converter: Rc<TJsonToStringConverter>,
         json_to_triangle_point_converter: Rc<TJsonToTrianglePointConverter>,
+        triangle_creator: TTriangleCreator,
     ) -> Self {
         Self {
             json_to_string_converter,
             json_to_triangle_point_converter,
+            triangle_creator,
         }
     }
 }
@@ -112,20 +119,33 @@ impl<TJsonToStringConverter, TJsonToTrianglePointConverter>
 impl<
         TJsonToStringConverter: ConvertJsonToValue<String>,
         TJsonToTrianglePointConverter: ConvertJsonToValue<TrianglePoint<TwoDPoint, Rgb>>,
+        TTriangleCreator: CreateTriangle<TrianglePoint<TwoDPoint, Rgb>>,
     > ConvertJsonToValue<Triangle<TrianglePoint<TwoDPoint, Rgb>>>
-    for JsonToTriangleConverter<TJsonToStringConverter, TJsonToTrianglePointConverter>
+    for JsonToTriangleConverter<
+        TJsonToStringConverter,
+        TJsonToTrianglePointConverter,
+        TTriangleCreator,
+    >
 {
     fn convert_json_to_value(&self, json: &Value) -> Triangle<TrianglePoint<TwoDPoint, Rgb>> {
-        Triangle::new(
-            self.json_to_string_converter
-                .convert_json_to_value(&json["name"]),
-            self.json_to_triangle_point_converter
-                .convert_json_to_value(&json["point1"]),
-            self.json_to_triangle_point_converter
-                .convert_json_to_value(&json["point2"]),
-            self.json_to_triangle_point_converter
-                .convert_json_to_value(&json["point3"]),
-        )
+        let name = self
+            .json_to_string_converter
+            .convert_json_to_value(&json["name"]);
+
+        let point_1 = self
+            .json_to_triangle_point_converter
+            .convert_json_to_value(&json["point1"]);
+
+        let point_2 = self
+            .json_to_triangle_point_converter
+            .convert_json_to_value(&json["point2"]);
+
+        let point_3 = self
+            .json_to_triangle_point_converter
+            .convert_json_to_value(&json["point3"]);
+
+        self.triangle_creator
+            .create_triangle(name, point_1, point_2, point_3)
     }
 }
 
@@ -638,9 +658,12 @@ pub fn compose_json_to_content_converter(
         Rc::clone(&json_to_rgb_converter),
     ));
 
+    let triangle_creator = TriangleCreator::new();
+
     let json_to_triangle_converter = JsonToTriangleConverter::new(
         Rc::clone(&json_to_string_converter),
         Rc::clone(&json_to_triangle_point_converter),
+        triangle_creator,
     );
 
     let json_to_boxed_triangle_converter =
@@ -956,6 +979,8 @@ mod tests {
                         TwoDPoint::new(1.0, 0.0),
                         Rgb::new(0.0, 0.0, 1.0),
                     ),
+                    vec![],
+                    15,
                 ))),
                 Rc::new(Box::new(Rectangle::new(
                     "Rectangle1".to_string(),

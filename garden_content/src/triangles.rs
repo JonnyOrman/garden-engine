@@ -20,17 +20,9 @@ impl<TTrianglePoint: GetVertexData + GetNumberOfVertices> Triangle<TTrianglePoin
         point_1: TTrianglePoint,
         point_2: TTrianglePoint,
         point_3: TTrianglePoint,
+        vertex_data: Vec<f32>,
+        number_of_vertices: i32,
     ) -> Self {
-        let mut vertex_data = vec![];
-
-        vertex_data.append(&mut point_1.get_vertex_data().clone());
-        vertex_data.append(&mut point_2.get_vertex_data().clone());
-        vertex_data.append(&mut point_3.get_vertex_data().clone());
-
-        let number_of_vertices = point_1.get_number_of_vertices()
-            + point_2.get_number_of_vertices()
-            + point_3.get_number_of_vertices();
-
         Self {
             name,
             point_1,
@@ -69,6 +61,55 @@ impl<TTrianglePoint> GetVertexData for Triangle<TTrianglePoint> {
 impl<TTrianglePoint> GetNumberOfVertices for Triangle<TTrianglePoint> {
     fn get_number_of_vertices(&self) -> i32 {
         self.number_of_vertices
+    }
+}
+
+pub trait CreateTriangle<TTrianglePoint> {
+    fn create_triangle(
+        &self,
+        name: String,
+        point_1: TTrianglePoint,
+        point_2: TTrianglePoint,
+        point_3: TTrianglePoint,
+    ) -> Triangle<TTrianglePoint>;
+}
+
+pub struct TriangleCreator {}
+
+impl TriangleCreator {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl<TTrianglePoint: GetVertexData + GetNumberOfVertices> CreateTriangle<TTrianglePoint>
+    for TriangleCreator
+{
+    fn create_triangle(
+        &self,
+        name: String,
+        point_1: TTrianglePoint,
+        point_2: TTrianglePoint,
+        point_3: TTrianglePoint,
+    ) -> Triangle<TTrianglePoint> {
+        let mut vertex_data = vec![];
+
+        vertex_data.append(&mut point_1.get_vertex_data().clone());
+        vertex_data.append(&mut point_2.get_vertex_data().clone());
+        vertex_data.append(&mut point_3.get_vertex_data().clone());
+
+        let number_of_vertices = point_1.get_number_of_vertices()
+            + point_2.get_number_of_vertices()
+            + point_3.get_number_of_vertices();
+
+        Triangle::<TTrianglePoint>::new(
+            name,
+            point_1,
+            point_2,
+            point_3,
+            vertex_data,
+            number_of_vertices,
+        )
     }
 }
 
@@ -245,135 +286,144 @@ mod tests {
 
     use crate::triangles::{Triangle, TriangleInstance};
 
+    use super::{CreateTriangle, TriangleCreator};
+
     #[test]
     fn when_a_triangle_gets_its_name_then_the_name_is_returned() {
-        let triangle_name = "SomeTriangle";
+        let name = "SomeTriangle";
 
-        let triangle_point_1 = create_mock_vertex_object(vec![], 0);
+        let point_1 = MockVertexObject::new();
 
-        let triangle_point_2 = create_mock_vertex_object(vec![], 0);
+        let point_2 = MockVertexObject::new();
 
-        let triangle_point_3 = create_mock_vertex_object(vec![], 0);
+        let point_3 = MockVertexObject::new();
+
+        let vertex_data = vec![];
+
+        let number_of_vertices = 0;
 
         let triangle = Triangle::<MockVertexObject>::new(
-            triangle_name.to_string(),
-            triangle_point_1,
-            triangle_point_2,
-            triangle_point_3,
+            name.to_string(),
+            point_1,
+            point_2,
+            point_3,
+            vertex_data,
+            number_of_vertices,
         );
 
         let result = triangle.get_name();
 
-        assert_eq!(result, triangle_name);
+        assert_eq!(name, result);
     }
 
     #[test]
     fn when_a_triangle_gets_its_vertex_data_then_the_vertex_data_is_returned() {
-        let triangle_name = "SomeTriangle";
+        let triangle_name = "";
 
-        let triangle_point_1_x = 0.0;
-        let triangle_point_1_y = 0.5;
-        let triangle_point_1_r = 1.0;
-        let triangle_point_1_g = 0.0;
-        let triangle_point_1_b = 0.0;
+        let point_1 = MockVertexObject::new();
 
-        let triangle_point_2_x = 0.5;
-        let triangle_point_2_y = 1.0;
-        let triangle_point_2_r = 0.0;
-        let triangle_point_2_g = 1.0;
-        let triangle_point_2_b = 0.0;
+        let point_2 = MockVertexObject::new();
 
-        let triangle_point_3_x = 1.0;
-        let triangle_point_3_y = 0.0;
-        let triangle_point_3_r = 0.0;
-        let triangle_point_3_g = 0.0;
-        let triangle_point_3_b = 1.0;
+        let point_3 = MockVertexObject::new();
 
-        let triangle_point_1 = create_mock_vertex_object(
-            vec![
-                triangle_point_1_x,
-                triangle_point_1_y,
-                triangle_point_1_r,
-                triangle_point_1_g,
-                triangle_point_1_b,
-            ],
-            0,
-        );
-
-        let triangle_point_2 = create_mock_vertex_object(
-            vec![
-                triangle_point_2_x,
-                triangle_point_2_y,
-                triangle_point_2_r,
-                triangle_point_2_g,
-                triangle_point_2_b,
-            ],
-            0,
-        );
-
-        let triangle_point_3 = create_mock_vertex_object(
-            vec![
-                triangle_point_3_x,
-                triangle_point_3_y,
-                triangle_point_3_r,
-                triangle_point_3_g,
-                triangle_point_3_b,
-            ],
-            0,
-        );
-
-        let expected_vertex_data = vec![
-            triangle_point_1_x,
-            triangle_point_1_y,
-            triangle_point_1_r,
-            triangle_point_1_g,
-            triangle_point_1_b,
-            triangle_point_2_x,
-            triangle_point_2_y,
-            triangle_point_2_r,
-            triangle_point_2_g,
-            triangle_point_2_b,
-            triangle_point_3_x,
-            triangle_point_3_y,
-            triangle_point_3_r,
-            triangle_point_3_g,
-            triangle_point_3_b,
+        let vertex_data = vec![
+            0.0, 0.5, 1.0, 0.0, 0.0, 0.5, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0,
         ];
 
-        let triangle = Triangle::<MockVertexObject>::new(
+        let number_of_vertices = 0;
+
+        let triangle = Triangle::new(
             triangle_name.to_string(),
-            triangle_point_1,
-            triangle_point_2,
-            triangle_point_3,
+            point_1,
+            point_2,
+            point_3,
+            vertex_data.clone(),
+            number_of_vertices,
         );
 
         let result = triangle.get_vertex_data();
 
-        assert_eq!(result, expected_vertex_data);
+        assert_eq!(vertex_data, result);
     }
 
     #[test]
     fn when_a_triangle_gets_its_number_of_vertices_then_the_number_of_vertices_is_returned() {
-        let triangle_name = "SomeTriangle";
+        let triangle_name = "";
 
-        let triangle_point_1 = create_mock_vertex_object(vec![], 5);
+        let point_1 = MockVertexObject::new();
 
-        let triangle_point_2 = create_mock_vertex_object(vec![], 5);
+        let point_2 = MockVertexObject::new();
 
-        let triangle_point_3 = create_mock_vertex_object(vec![], 5);
+        let point_3 = MockVertexObject::new();
 
-        let expected_number_of_vertices = 15;
+        let vertex_data = vec![];
+
+        let number_of_vertices = 15;
 
         let triangle = Triangle::<MockVertexObject>::new(
             triangle_name.to_string(),
-            triangle_point_1,
-            triangle_point_2,
-            triangle_point_3,
+            point_1,
+            point_2,
+            point_3,
+            vertex_data,
+            15,
         );
 
         let result = triangle.get_number_of_vertices();
 
-        assert_eq!(result, expected_number_of_vertices);
+        assert_eq!(number_of_vertices, result);
+    }
+
+    #[test]
+    fn when_a_triangle_creator_creates_a_triangle_then_the_triangle_is_created() {
+        let name = "TriangleName";
+
+        let point_1_x = 0.0;
+        let point_1_y = 0.5;
+        let point_1_r = 1.0;
+        let point_1_g = 0.0;
+        let point_1_b = 0.0;
+
+        let point_2_x = 0.5;
+        let point_2_y = 1.0;
+        let point_2_r = 0.0;
+        let point_2_g = 1.0;
+        let point_2_b = 0.0;
+
+        let point_3_x = 1.0;
+        let point_3_y = 0.0;
+        let point_3_r = 0.0;
+        let point_3_g = 0.0;
+        let point_3_b = 1.0;
+
+        let point_1 = create_mock_vertex_object(
+            vec![point_1_x, point_1_y, point_1_r, point_1_g, point_1_b],
+            5,
+        );
+
+        let point_2 = create_mock_vertex_object(
+            vec![point_2_x, point_2_y, point_2_r, point_2_g, point_2_b],
+            5,
+        );
+
+        let point_3 = create_mock_vertex_object(
+            vec![point_3_x, point_3_y, point_3_r, point_3_g, point_3_b],
+            5,
+        );
+
+        let expected_vertex_data = vec![
+            point_1_x, point_1_y, point_1_r, point_1_g, point_1_b, point_2_x, point_2_y, point_2_r,
+            point_2_g, point_2_b, point_3_x, point_3_y, point_3_r, point_3_g, point_3_b,
+        ];
+
+        let triangle_creator = TriangleCreator::new();
+
+        let triangle =
+            triangle_creator.create_triangle(name.to_string(), point_1, point_2, point_3);
+
+        assert_eq!(name, triangle.get_name());
+        assert_eq!(expected_vertex_data, triangle.get_vertex_data());
+        assert_eq!(15, triangle.get_number_of_vertices());
     }
 
     #[test]
