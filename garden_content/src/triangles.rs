@@ -334,7 +334,7 @@ mod tests {
 
     use crate::triangles::{Triangle, TriangleInstance};
 
-    use super::{CreateTriangle, TriangleCreator};
+    use super::{CreateTriangle, CreateTriangleInstance, TriangleCreator, TriangleInstanceCreator};
 
     #[test]
     fn when_a_triangle_gets_its_name_then_the_name_is_returned() {
@@ -554,57 +554,6 @@ mod tests {
 
         let content_name = "";
 
-        // let triangle_point_1_x = 0.0;
-        // let triangle_point_1_y = 0.5;
-        // let triangle_point_1_r = 1.0;
-        // let triangle_point_1_g = 0.0;
-        // let triangle_point_1_b = 0.0;
-
-        // let triangle_point_2_x = 0.5;
-        // let triangle_point_2_y = 1.0;
-        // let triangle_point_2_r = 0.0;
-        // let triangle_point_2_g = 1.0;
-        // let triangle_point_2_b = 0.0;
-
-        // let triangle_point_3_x = 1.0;
-        // let triangle_point_3_y = 0.0;
-        // let triangle_point_3_r = 0.0;
-        // let triangle_point_3_g = 0.0;
-        // let triangle_point_3_b = 1.0;
-
-        // let triangle_point_1 = create_mock_vertex_object(
-        //     vec![
-        //         triangle_point_1_x,
-        //         triangle_point_1_y,
-        //         triangle_point_1_r,
-        //         triangle_point_1_g,
-        //         triangle_point_1_b,
-        //     ],
-        //     0,
-        // );
-
-        // let triangle_point_2 = create_mock_vertex_object(
-        //     vec![
-        //         triangle_point_2_x,
-        //         triangle_point_2_y,
-        //         triangle_point_2_r,
-        //         triangle_point_2_g,
-        //         triangle_point_2_b,
-        //     ],
-        //     0,
-        // );
-
-        // let triangle_point_3 = create_mock_vertex_object(
-        //     vec![
-        //         triangle_point_3_x,
-        //         triangle_point_3_y,
-        //         triangle_point_3_r,
-        //         triangle_point_3_g,
-        //         triangle_point_3_b,
-        //     ],
-        //     0,
-        // );
-
         let scale = 0.0;
 
         let position = MockVertexObject::new();
@@ -676,6 +625,72 @@ mod tests {
         let result = triangle_instance.get_number_of_vertices();
 
         assert_eq!(number_of_vertices, result);
+    }
+
+    #[test]
+    fn when_a_triangle_instance_creator_creates_a_triangle_instance_then_the_triangle_instance_is_created(
+    ) {
+        let name = "SomeTriangle";
+
+        let content_name = "";
+
+        let scale = 0.0;
+
+        let position = MockVertexObject::new();
+
+        let point_1_x = 0.0;
+        let point_1_y = 0.5;
+        let point_1_r = 1.0;
+        let point_1_g = 0.0;
+        let point_1_b = 0.0;
+
+        let point_2_x = 0.5;
+        let point_2_y = 1.0;
+        let point_2_r = 0.0;
+        let point_2_g = 1.0;
+        let point_2_b = 0.0;
+
+        let point_3_x = 1.0;
+        let point_3_y = 0.0;
+        let point_3_r = 0.0;
+        let point_3_g = 0.0;
+        let point_3_b = 1.0;
+
+        let point_1 = create_mock_vertex_object(
+            vec![point_1_x, point_1_y, point_1_r, point_1_g, point_1_b],
+            5,
+        );
+
+        let point_2 = create_mock_vertex_object(
+            vec![point_2_x, point_2_y, point_2_r, point_2_g, point_2_b],
+            5,
+        );
+
+        let point_3 = create_mock_vertex_object(
+            vec![point_3_x, point_3_y, point_3_r, point_3_g, point_3_b],
+            5,
+        );
+
+        let expected_vertex_data = vec![
+            0.0, 0.5, 1.0, 0.0, 0.0, 0.5, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0,
+        ];
+
+        let triangle_instance_creator = TriangleInstanceCreator::new();
+
+        let triangle_instance = triangle_instance_creator.create_triangle_instance(
+            name.to_string(),
+            content_name.to_string(),
+            scale,
+            position,
+            point_1,
+            point_2,
+            point_3,
+        );
+
+        assert_eq!(name, triangle_instance.get_name());
+        assert_eq!(content_name, triangle_instance.get_content_name());
+        assert_eq!(expected_vertex_data, triangle_instance.get_vertex_data());
+        assert_eq!(15, triangle_instance.get_number_of_vertices());
     }
 
     mock! {
