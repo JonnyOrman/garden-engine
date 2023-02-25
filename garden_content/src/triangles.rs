@@ -266,6 +266,7 @@ impl GetContentInstanceData for TriangleInstance<TwoDPoint, TrianglePoint<TwoDPo
 
 pub trait CreateTriangleInstance<TPosition, TTrianglePoint> {
     fn create_triangle_instance(
+        &self,
         name: String,
         content_name: String,
         scale: f32,
@@ -273,23 +274,22 @@ pub trait CreateTriangleInstance<TPosition, TTrianglePoint> {
         point_1: TTrianglePoint,
         point_2: TTrianglePoint,
         point_3: TTrianglePoint,
-        number_of_vertices: i32,
-        vertex_data: Vec<f32>,
     ) -> TriangleInstance<TPosition, TTrianglePoint>;
 }
 
 pub struct TriangleInstanceCreator {}
 
 impl TriangleInstanceCreator {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {}
     }
 }
 
-impl<TPosition, TTrianglePoint> CreateTriangleInstance<TPosition, TTrianglePoint>
-    for TriangleInstanceCreator
+impl<TPosition, TTrianglePoint: GetVertexData + GetNumberOfVertices>
+    CreateTriangleInstance<TPosition, TTrianglePoint> for TriangleInstanceCreator
 {
     fn create_triangle_instance(
+        &self,
         name: String,
         content_name: String,
         scale: f32,
@@ -297,9 +297,17 @@ impl<TPosition, TTrianglePoint> CreateTriangleInstance<TPosition, TTrianglePoint
         point_1: TTrianglePoint,
         point_2: TTrianglePoint,
         point_3: TTrianglePoint,
-        number_of_vertices: i32,
-        vertex_data: Vec<f32>,
     ) -> TriangleInstance<TPosition, TTrianglePoint> {
+        let mut vertex_data = vec![];
+
+        vertex_data.append(&mut point_1.get_vertex_data().clone());
+        vertex_data.append(&mut point_2.get_vertex_data().clone());
+        vertex_data.append(&mut point_3.get_vertex_data().clone());
+
+        let number_of_vertices = point_1.get_number_of_vertices()
+            + point_2.get_number_of_vertices()
+            + point_3.get_number_of_vertices();
+
         TriangleInstance::new(
             name,
             content_name,
@@ -468,192 +476,206 @@ mod tests {
 
     #[test]
     fn when_a_triangle_instance_gets_its_name_then_the_name_is_returned() {
-        let triangle_instance_name = "SomeTriangle";
+        let name = "Name";
 
-        let triangle_name = "";
+        let content_name = "";
 
-        let scale = 0.5;
+        let scale = 0.0;
 
         let position = MockVertexObject::new();
 
-        let triangle_point_1 = create_mock_vertex_object(vec![], 0);
+        let point_1 = MockVertexObject::new();
 
-        let triangle_point_2 = create_mock_vertex_object(vec![], 0);
+        let point_2 = MockVertexObject::new();
 
-        let triangle_point_3 = create_mock_vertex_object(vec![], 0);
+        let point_3 = MockVertexObject::new();
+
+        let number_of_vertices = 0;
+
+        let vertex_data = vec![];
 
         let triangle_instance = TriangleInstance::<MockVertexObject, MockVertexObject>::new(
-            triangle_instance_name.to_string(),
-            triangle_name.to_string(),
+            name.to_string(),
+            content_name.to_string(),
             scale,
             position,
-            triangle_point_1,
-            triangle_point_2,
-            triangle_point_3,
+            point_1,
+            point_2,
+            point_3,
+            number_of_vertices,
+            vertex_data,
         );
 
         let result = triangle_instance.get_name();
 
-        assert_eq!(result, triangle_instance_name);
+        assert_eq!(name, result);
     }
 
     #[test]
     fn when_a_triangle_instance_gets_its_content_name_then_the_name_is_returned() {
-        let triangle_instance_name = "";
+        let name = "";
 
-        let triangle_name = "SomeContent";
+        let content_name = "SomeContent";
 
-        let scale = 0.5;
+        let scale = 0.0;
 
         let position = MockVertexObject::new();
 
-        let triangle_point_1 = create_mock_vertex_object(vec![], 0);
+        let point_1 = MockVertexObject::new();
 
-        let triangle_point_2 = create_mock_vertex_object(vec![], 0);
+        let point_2 = MockVertexObject::new();
 
-        let triangle_point_3 = create_mock_vertex_object(vec![], 0);
+        let point_3 = MockVertexObject::new();
+
+        let number_of_vertices = 0;
+
+        let vertex_data = vec![];
 
         let triangle_instance = TriangleInstance::<MockVertexObject, MockVertexObject>::new(
-            triangle_instance_name.to_string(),
-            triangle_name.to_string(),
+            name.to_string(),
+            content_name.to_string(),
             scale,
             position,
-            triangle_point_1,
-            triangle_point_2,
-            triangle_point_3,
+            point_1,
+            point_2,
+            point_3,
+            number_of_vertices,
+            vertex_data,
         );
 
         let result = triangle_instance.get_content_name();
 
-        assert_eq!(result, triangle_name);
+        assert_eq!(content_name, result);
     }
 
     #[test]
     fn when_a_triangle_instance_gets_its_vertex_data_then_the_vertex_data_is_returned() {
-        let triangle_instance_name = "SomeTriangle";
+        let name = "SomeTriangle";
 
-        let triangle_name = "";
+        let content_name = "";
 
-        let triangle_point_1_x = 0.0;
-        let triangle_point_1_y = 0.5;
-        let triangle_point_1_r = 1.0;
-        let triangle_point_1_g = 0.0;
-        let triangle_point_1_b = 0.0;
+        // let triangle_point_1_x = 0.0;
+        // let triangle_point_1_y = 0.5;
+        // let triangle_point_1_r = 1.0;
+        // let triangle_point_1_g = 0.0;
+        // let triangle_point_1_b = 0.0;
 
-        let triangle_point_2_x = 0.5;
-        let triangle_point_2_y = 1.0;
-        let triangle_point_2_r = 0.0;
-        let triangle_point_2_g = 1.0;
-        let triangle_point_2_b = 0.0;
+        // let triangle_point_2_x = 0.5;
+        // let triangle_point_2_y = 1.0;
+        // let triangle_point_2_r = 0.0;
+        // let triangle_point_2_g = 1.0;
+        // let triangle_point_2_b = 0.0;
 
-        let triangle_point_3_x = 1.0;
-        let triangle_point_3_y = 0.0;
-        let triangle_point_3_r = 0.0;
-        let triangle_point_3_g = 0.0;
-        let triangle_point_3_b = 1.0;
+        // let triangle_point_3_x = 1.0;
+        // let triangle_point_3_y = 0.0;
+        // let triangle_point_3_r = 0.0;
+        // let triangle_point_3_g = 0.0;
+        // let triangle_point_3_b = 1.0;
 
-        let triangle_point_1 = create_mock_vertex_object(
-            vec![
-                triangle_point_1_x,
-                triangle_point_1_y,
-                triangle_point_1_r,
-                triangle_point_1_g,
-                triangle_point_1_b,
-            ],
-            0,
-        );
+        // let triangle_point_1 = create_mock_vertex_object(
+        //     vec![
+        //         triangle_point_1_x,
+        //         triangle_point_1_y,
+        //         triangle_point_1_r,
+        //         triangle_point_1_g,
+        //         triangle_point_1_b,
+        //     ],
+        //     0,
+        // );
 
-        let triangle_point_2 = create_mock_vertex_object(
-            vec![
-                triangle_point_2_x,
-                triangle_point_2_y,
-                triangle_point_2_r,
-                triangle_point_2_g,
-                triangle_point_2_b,
-            ],
-            0,
-        );
+        // let triangle_point_2 = create_mock_vertex_object(
+        //     vec![
+        //         triangle_point_2_x,
+        //         triangle_point_2_y,
+        //         triangle_point_2_r,
+        //         triangle_point_2_g,
+        //         triangle_point_2_b,
+        //     ],
+        //     0,
+        // );
 
-        let triangle_point_3 = create_mock_vertex_object(
-            vec![
-                triangle_point_3_x,
-                triangle_point_3_y,
-                triangle_point_3_r,
-                triangle_point_3_g,
-                triangle_point_3_b,
-            ],
-            0,
-        );
+        // let triangle_point_3 = create_mock_vertex_object(
+        //     vec![
+        //         triangle_point_3_x,
+        //         triangle_point_3_y,
+        //         triangle_point_3_r,
+        //         triangle_point_3_g,
+        //         triangle_point_3_b,
+        //     ],
+        //     0,
+        // );
 
-        let expected_vertex_data = vec![
-            triangle_point_1_x,
-            triangle_point_1_y,
-            triangle_point_1_r,
-            triangle_point_1_g,
-            triangle_point_1_b,
-            triangle_point_2_x,
-            triangle_point_2_y,
-            triangle_point_2_r,
-            triangle_point_2_g,
-            triangle_point_2_b,
-            triangle_point_3_x,
-            triangle_point_3_y,
-            triangle_point_3_r,
-            triangle_point_3_g,
-            triangle_point_3_b,
+        let scale = 0.0;
+
+        let position = MockVertexObject::new();
+
+        let point_1 = MockVertexObject::new();
+
+        let point_2 = MockVertexObject::new();
+
+        let point_3 = MockVertexObject::new();
+
+        let number_of_vertices = 0;
+
+        let vertex_data = vec![
+            0.0, 0.5, 1.0, 0.0, 0.0, 0.5, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0,
         ];
-
-        let scale = 0.5;
 
         let position = MockVertexObject::new();
 
         let triangle_instance = TriangleInstance::<MockVertexObject, MockVertexObject>::new(
-            triangle_instance_name.to_string(),
-            triangle_name.to_string(),
+            name.to_string(),
+            content_name.to_string(),
             scale,
             position,
-            triangle_point_1,
-            triangle_point_2,
-            triangle_point_3,
+            point_1,
+            point_2,
+            point_3,
+            number_of_vertices,
+            vertex_data.clone(),
         );
 
         let result = triangle_instance.get_vertex_data();
 
-        assert_eq!(result, expected_vertex_data);
+        assert_eq!(vertex_data, result);
     }
 
     #[test]
     fn when_a_triangle_instance_gets_its_number_of_vertices_then_the_number_of_vertices_is_returned(
     ) {
-        let triangle_instance_name = "";
+        let name = "";
 
-        let triangle_name = "";
+        let content_name = "";
 
-        let scale = 0.5;
+        let scale = 0.0;
 
         let position = MockVertexObject::new();
 
-        let triangle_point_1 = create_mock_vertex_object(vec![], 5);
+        let point_1 = MockVertexObject::new();
 
-        let triangle_point_2 = create_mock_vertex_object(vec![], 5);
+        let point_2 = MockVertexObject::new();
 
-        let triangle_point_3 = create_mock_vertex_object(vec![], 5);
+        let point_3 = MockVertexObject::new();
 
-        let expected_number_of_vertices = 15;
+        let number_of_vertices = 15;
+
+        let vertex_data = vec![];
 
         let triangle_instance = TriangleInstance::<MockVertexObject, MockVertexObject>::new(
-            triangle_instance_name.to_string(),
-            triangle_name.to_string(),
+            name.to_string(),
+            content_name.to_string(),
             scale,
             position,
-            triangle_point_1,
-            triangle_point_2,
-            triangle_point_3,
+            point_1,
+            point_2,
+            point_3,
+            number_of_vertices,
+            vertex_data,
         );
 
         let result = triangle_instance.get_number_of_vertices();
 
-        assert_eq!(result, expected_number_of_vertices);
+        assert_eq!(number_of_vertices, result);
     }
 
     mock! {

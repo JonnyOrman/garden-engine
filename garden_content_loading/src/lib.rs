@@ -1,7 +1,10 @@
 use garden::GetName;
 use garden_content::{
     rectangles::{Rectangle, RectangleInstance},
-    triangles::{CreateTriangle, Triangle, TriangleCreator, TriangleInstance},
+    triangles::{
+        CreateTriangle, CreateTriangleInstance, Triangle, TriangleCreator, TriangleInstance,
+        TriangleInstanceCreator,
+    },
     Content, Get2DCoordiantes, GetB, GetContentInstanceData, GetG, GetNumberOfVertices, GetR,
     GetRgb, GetVertexData, GetX, GetY, Rgb, TrianglePoint, TwoDPoint,
 };
@@ -244,11 +247,13 @@ pub struct JsonToTriangleInstanceConverter<
     TJsonToTwoDPointConverter,
     TJsonToTrianglePointConverter,
     TJsonToF32Converter,
+    TTriangleInstanceCreator,
 > {
     json_to_string_converter: Rc<TJsonToStringConverter>,
     json_to_two_d_point_converter: Rc<TJsonToTwoDPointConverter>,
     json_to_triangle_point_converter: Rc<TJsonToTrianglePointConverter>,
     json_to_f32_converter: Rc<TJsonToF32Converter>,
+    triangle_instance_creator: TTriangleInstanceCreator,
 }
 
 impl<
@@ -256,12 +261,14 @@ impl<
         TJsonToTwoDPointConverter,
         TJsonToTrianglePointConverter,
         TJsonToF32Converter,
+        TTriangleInstanceCreator,
     >
     JsonToTriangleInstanceConverter<
         TJsonToStringConverter,
         TJsonToTwoDPointConverter,
         TJsonToTrianglePointConverter,
         TJsonToF32Converter,
+        TTriangleInstanceCreator,
     >
 {
     fn new(
@@ -269,12 +276,14 @@ impl<
         json_to_two_d_point_converter: Rc<TJsonToTwoDPointConverter>,
         json_to_triangle_point_converter: Rc<TJsonToTrianglePointConverter>,
         json_to_f32_converter: Rc<TJsonToF32Converter>,
+        triangle_instance_creator: TTriangleInstanceCreator,
     ) -> Self {
         Self {
             json_to_string_converter,
             json_to_two_d_point_converter,
             json_to_triangle_point_converter,
             json_to_f32_converter,
+            triangle_instance_creator,
         }
     }
 }
@@ -284,12 +293,14 @@ impl<
         TJsonToTwoDPointConverter: ConvertJsonToValue<TwoDPoint>,
         TJsonToTrianglePointConverter: ConvertJsonToValue<TrianglePoint<TwoDPoint, Rgb>>,
         TJsonToF32Converter: ConvertJsonToValue<f32>,
+        TTriangleInstanceCreator: CreateTriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
     > ConvertJsonToValue<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>>
     for JsonToTriangleInstanceConverter<
         TJsonToStringConverter,
         TJsonToTwoDPointConverter,
         TJsonToTrianglePointConverter,
         TJsonToF32Converter,
+        TTriangleInstanceCreator,
     >
 {
     fn convert_json_to_value(
@@ -352,29 +363,26 @@ impl<
             ),
         );
 
-        let mut triangle_instance_vertex_data = vec![];
+        let name = self
+            .json_to_string_converter
+            .convert_json_to_value(&json["name"]);
 
-        triangle_instance_vertex_data.append(&mut point_1_translated.get_vertex_data().clone());
-        triangle_instance_vertex_data.append(&mut point_2_translated.get_vertex_data().clone());
-        triangle_instance_vertex_data.append(&mut point_3_translated.get_vertex_data().clone());
+        let content_name = self
+            .json_to_string_converter
+            .convert_json_to_value(&json["contentName"]);
 
-        let triangle_instance_number_of_vertices = point_1_translated.get_number_of_vertices()
-            + point_2_translated.get_number_of_vertices()
-            + point_3_translated.get_number_of_vertices();
+        let position = self
+            .json_to_two_d_point_converter
+            .convert_json_to_value(&json["position"]);
 
-        TriangleInstance::new(
-            self.json_to_string_converter
-                .convert_json_to_value(&json["name"]),
-            self.json_to_string_converter
-                .convert_json_to_value(&json["contentName"]),
+        self.triangle_instance_creator.create_triangle_instance(
+            name,
+            content_name,
             scale,
-            self.json_to_two_d_point_converter
-                .convert_json_to_value(&json["position"]),
+            position,
             point_1_translated,
             point_2_translated,
             point_3_translated,
-            triangle_instance_number_of_vertices,
-            triangle_instance_vertex_data,
         )
     }
 }
@@ -681,11 +689,14 @@ pub fn compose_json_to_content_converter(
     let json_to_boxed_triangle_converter =
         JsonToBoxedTriangleConverter::new(json_to_triangle_converter);
 
+    let triangle_instance_creator = TriangleInstanceCreator::new();
+
     let json_to_triangle_instance_converter = JsonToTriangleInstanceConverter::new(
         Rc::clone(&json_to_string_converter),
         Rc::clone(&json_to_two_d_point_converter),
         Rc::clone(&json_to_triangle_point_converter),
         Rc::clone(&json_to_f32_converter),
+        triangle_instance_creator,
     );
 
     let json_to_boxed_triangle_instance_converter =
