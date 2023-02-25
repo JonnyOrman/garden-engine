@@ -2,8 +2,8 @@ use garden::GetName;
 use garden_content::{
     rectangles::{Rectangle, RectangleInstance},
     triangles::{CreateTriangle, Triangle, TriangleCreator, TriangleInstance},
-    Content, Get2DCoordiantes, GetB, GetContentInstanceData, GetG, GetR, GetRgb, GetX, GetY, Rgb,
-    TrianglePoint, TwoDPoint,
+    Content, Get2DCoordiantes, GetB, GetContentInstanceData, GetG, GetNumberOfVertices, GetR,
+    GetRgb, GetVertexData, GetX, GetY, Rgb, TrianglePoint, TwoDPoint,
 };
 use garden_json::{ConvertJsonToValue, JsonToF32Converter, JsonToStringConverter};
 use garden_loading::Load;
@@ -352,6 +352,16 @@ impl<
             ),
         );
 
+        let mut triangle_instance_vertex_data = vec![];
+
+        triangle_instance_vertex_data.append(&mut point_1_translated.get_vertex_data().clone());
+        triangle_instance_vertex_data.append(&mut point_2_translated.get_vertex_data().clone());
+        triangle_instance_vertex_data.append(&mut point_3_translated.get_vertex_data().clone());
+
+        let triangle_instance_number_of_vertices = point_1_translated.get_number_of_vertices()
+            + point_2_translated.get_number_of_vertices()
+            + point_3_translated.get_number_of_vertices();
+
         TriangleInstance::new(
             self.json_to_string_converter
                 .convert_json_to_value(&json["name"]),
@@ -363,6 +373,8 @@ impl<
             point_1_translated,
             point_2_translated,
             point_3_translated,
+            triangle_instance_number_of_vertices,
+            triangle_instance_vertex_data,
         )
     }
 }

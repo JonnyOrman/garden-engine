@@ -85,66 +85,110 @@ impl<TPosition: Get2DCoordiantes, TRgb: GetR + GetG + GetB>
             Rgb::new(rgb.get_r(), rgb.get_g(), rgb.get_b()),
         );
 
+        let triangle_instance_1_point_1 = TrianglePoint::new(
+            TwoDPoint::new(point_1.get_x(), point_1.get_y()),
+            Rgb::new(
+                point_1.get_rgb().get_r(),
+                point_1.get_rgb().get_g(),
+                point_1.get_rgb().get_b(),
+            ),
+        );
+
+        let triangle_instance_1_point_2 = TrianglePoint::new(
+            TwoDPoint::new(point_2.get_x(), point_2.get_y()),
+            Rgb::new(
+                point_2.get_rgb().get_r(),
+                point_2.get_rgb().get_g(),
+                point_2.get_rgb().get_b(),
+            ),
+        );
+
+        let triangle_instance_1_point_3 = TrianglePoint::new(
+            TwoDPoint::new(point_3.get_x(), point_3.get_y()),
+            Rgb::new(
+                point_3.get_rgb().get_r(),
+                point_3.get_rgb().get_g(),
+                point_3.get_rgb().get_b(),
+            ),
+        );
+
+        let mut triangle_instance_1_vertex_data = vec![];
+
+        triangle_instance_1_vertex_data
+            .append(&mut triangle_instance_1_point_1.get_vertex_data().clone());
+        triangle_instance_1_vertex_data
+            .append(&mut triangle_instance_1_point_2.get_vertex_data().clone());
+        triangle_instance_1_vertex_data
+            .append(&mut triangle_instance_1_point_3.get_vertex_data().clone());
+
+        let triangle_instance_1_number_of_vertices = triangle_instance_1_point_1
+            .get_number_of_vertices()
+            + triangle_instance_1_point_2.get_number_of_vertices()
+            + triangle_instance_1_point_3.get_number_of_vertices();
+
         let triangle_instance_1 = TriangleInstance::new(
             name.clone() + "-triangle-1",
             "".to_string(),
             scale,
             TwoDPoint::new(0.0, 0.0),
-            TrianglePoint::new(
-                TwoDPoint::new(point_1.get_x(), point_1.get_y()),
-                Rgb::new(
-                    point_1.get_rgb().get_r(),
-                    point_1.get_rgb().get_g(),
-                    point_1.get_rgb().get_b(),
-                ),
-            ),
-            TrianglePoint::new(
-                TwoDPoint::new(point_2.get_x(), point_2.get_y()),
-                Rgb::new(
-                    point_2.get_rgb().get_r(),
-                    point_2.get_rgb().get_g(),
-                    point_2.get_rgb().get_b(),
-                ),
-            ),
-            TrianglePoint::new(
-                TwoDPoint::new(point_3.get_x(), point_3.get_y()),
-                Rgb::new(
-                    point_3.get_rgb().get_r(),
-                    point_3.get_rgb().get_g(),
-                    point_3.get_rgb().get_b(),
-                ),
+            triangle_instance_1_point_1,
+            triangle_instance_1_point_2,
+            triangle_instance_1_point_3,
+            triangle_instance_1_number_of_vertices,
+            triangle_instance_1_vertex_data,
+        );
+
+        let triangle_instance_2_point_1 = TrianglePoint::new(
+            TwoDPoint::new(point_1.get_x(), point_1.get_y()),
+            Rgb::new(
+                point_1.get_rgb().get_r(),
+                point_1.get_rgb().get_g(),
+                point_1.get_rgb().get_b(),
             ),
         );
+
+        let triangle_instance_2_point_2 = TrianglePoint::new(
+            TwoDPoint::new(point_3.get_x(), point_3.get_y()),
+            Rgb::new(
+                point_3.get_rgb().get_r(),
+                point_3.get_rgb().get_g(),
+                point_3.get_rgb().get_b(),
+            ),
+        );
+
+        let triangle_instance_2_point_3 = TrianglePoint::new(
+            TwoDPoint::new(point_4.get_x(), point_4.get_y()),
+            Rgb::new(
+                point_4.get_rgb().get_r(),
+                point_4.get_rgb().get_g(),
+                point_4.get_rgb().get_b(),
+            ),
+        );
+
+        let mut triangle_instance_2_vertex_data = vec![];
+
+        triangle_instance_2_vertex_data
+            .append(&mut triangle_instance_2_point_1.get_vertex_data().clone());
+        triangle_instance_2_vertex_data
+            .append(&mut triangle_instance_2_point_2.get_vertex_data().clone());
+        triangle_instance_2_vertex_data
+            .append(&mut triangle_instance_2_point_3.get_vertex_data().clone());
+
+        let triangle_instance_2_number_of_vertices = triangle_instance_2_point_1
+            .get_number_of_vertices()
+            + triangle_instance_2_point_2.get_number_of_vertices()
+            + triangle_instance_2_point_3.get_number_of_vertices();
 
         let triangle_instance_2 = TriangleInstance::new(
             name.clone() + "-triangle-2",
             "".to_string(),
             scale,
             TwoDPoint::new(0.0, 0.0),
-            TrianglePoint::new(
-                TwoDPoint::new(point_1.get_x(), point_1.get_y()),
-                Rgb::new(
-                    point_1.get_rgb().get_r(),
-                    point_1.get_rgb().get_g(),
-                    point_1.get_rgb().get_b(),
-                ),
-            ),
-            TrianglePoint::new(
-                TwoDPoint::new(point_3.get_x(), point_3.get_y()),
-                Rgb::new(
-                    point_3.get_rgb().get_r(),
-                    point_3.get_rgb().get_g(),
-                    point_3.get_rgb().get_b(),
-                ),
-            ),
-            TrianglePoint::new(
-                TwoDPoint::new(point_4.get_x(), point_4.get_y()),
-                Rgb::new(
-                    point_4.get_rgb().get_r(),
-                    point_4.get_rgb().get_g(),
-                    point_4.get_rgb().get_b(),
-                ),
-            ),
+            triangle_instance_2_point_1,
+            triangle_instance_2_point_2,
+            triangle_instance_2_point_3,
+            triangle_instance_2_number_of_vertices,
+            triangle_instance_2_vertex_data,
         );
 
         vertex_data.append(&mut triangle_instance_1.get_vertex_data().clone());
@@ -241,66 +285,110 @@ impl<TPosition, TRgb> Scale
             ),
         );
 
+        let new_triangle_instance_1_point_1 = TrianglePoint::new(
+            TwoDPoint::new(new_point_1.get_x(), new_point_1.get_y()),
+            Rgb::new(
+                new_point_1.get_rgb().get_r(),
+                new_point_1.get_rgb().get_g(),
+                new_point_1.get_rgb().get_b(),
+            ),
+        );
+
+        let new_triangle_instance_1_point_2 = TrianglePoint::new(
+            TwoDPoint::new(new_point_2.get_x(), new_point_2.get_y()),
+            Rgb::new(
+                new_point_2.get_rgb().get_r(),
+                new_point_2.get_rgb().get_g(),
+                new_point_2.get_rgb().get_b(),
+            ),
+        );
+
+        let new_triangle_instance_1_point_3 = TrianglePoint::new(
+            TwoDPoint::new(new_point_3.get_x(), new_point_3.get_y()),
+            Rgb::new(
+                new_point_3.get_rgb().get_r(),
+                new_point_3.get_rgb().get_g(),
+                new_point_3.get_rgb().get_b(),
+            ),
+        );
+
+        let mut new_triangle_instance_1_vertex_data = vec![];
+
+        new_triangle_instance_1_vertex_data
+            .append(&mut new_triangle_instance_1_point_1.get_vertex_data().clone());
+        new_triangle_instance_1_vertex_data
+            .append(&mut new_triangle_instance_1_point_2.get_vertex_data().clone());
+        new_triangle_instance_1_vertex_data
+            .append(&mut new_triangle_instance_1_point_3.get_vertex_data().clone());
+
+        let new_triangle_instance_1_number_of_vertices = new_triangle_instance_1_point_1
+            .get_number_of_vertices()
+            + new_triangle_instance_1_point_2.get_number_of_vertices()
+            + new_triangle_instance_1_point_3.get_number_of_vertices();
+
         let new_triangle_instance_1 = TriangleInstance::new(
             self.name.clone() + "-triangle-1",
             "".to_string(),
             self.scale,
             TwoDPoint::new(0.0, 0.0),
-            TrianglePoint::new(
-                TwoDPoint::new(new_point_1.get_x(), new_point_1.get_y()),
-                Rgb::new(
-                    new_point_1.get_rgb().get_r(),
-                    new_point_1.get_rgb().get_g(),
-                    new_point_1.get_rgb().get_b(),
-                ),
-            ),
-            TrianglePoint::new(
-                TwoDPoint::new(new_point_2.get_x(), new_point_2.get_y()),
-                Rgb::new(
-                    new_point_2.get_rgb().get_r(),
-                    new_point_2.get_rgb().get_g(),
-                    new_point_2.get_rgb().get_b(),
-                ),
-            ),
-            TrianglePoint::new(
-                TwoDPoint::new(new_point_3.get_x(), new_point_3.get_y()),
-                Rgb::new(
-                    new_point_3.get_rgb().get_r(),
-                    new_point_3.get_rgb().get_g(),
-                    new_point_3.get_rgb().get_b(),
-                ),
+            new_triangle_instance_1_point_1,
+            new_triangle_instance_1_point_2,
+            new_triangle_instance_1_point_3,
+            new_triangle_instance_1_number_of_vertices,
+            new_triangle_instance_1_vertex_data,
+        );
+
+        let new_triangle_instance_2_point_1 = TrianglePoint::new(
+            TwoDPoint::new(new_point_1.get_x(), new_point_1.get_y()),
+            Rgb::new(
+                new_point_1.get_rgb().get_r(),
+                new_point_1.get_rgb().get_g(),
+                new_point_1.get_rgb().get_b(),
             ),
         );
+
+        let new_triangle_instance_2_point_2 = TrianglePoint::new(
+            TwoDPoint::new(new_point_3.get_x(), new_point_3.get_y()),
+            Rgb::new(
+                new_point_3.get_rgb().get_r(),
+                new_point_3.get_rgb().get_g(),
+                new_point_3.get_rgb().get_b(),
+            ),
+        );
+
+        let new_triangle_instance_2_point_3 = TrianglePoint::new(
+            TwoDPoint::new(new_point_4.get_x(), new_point_4.get_y()),
+            Rgb::new(
+                new_point_4.get_rgb().get_r(),
+                new_point_4.get_rgb().get_g(),
+                new_point_4.get_rgb().get_b(),
+            ),
+        );
+
+        let mut new_triangle_instance_2_vertex_data = vec![];
+
+        new_triangle_instance_2_vertex_data
+            .append(&mut new_triangle_instance_2_point_1.get_vertex_data().clone());
+        new_triangle_instance_2_vertex_data
+            .append(&mut new_triangle_instance_2_point_2.get_vertex_data().clone());
+        new_triangle_instance_2_vertex_data
+            .append(&mut new_triangle_instance_2_point_3.get_vertex_data().clone());
+
+        let new_triangle_instance_2_number_of_vertices = new_triangle_instance_2_point_1
+            .get_number_of_vertices()
+            + new_triangle_instance_2_point_2.get_number_of_vertices()
+            + new_triangle_instance_2_point_3.get_number_of_vertices();
 
         let new_triangle_instance_2 = TriangleInstance::new(
             self.name.clone() + "-triangle-2",
             "".to_string(),
             self.scale,
             TwoDPoint::new(0.0, 0.0),
-            TrianglePoint::new(
-                TwoDPoint::new(new_point_1.get_x(), new_point_1.get_y()),
-                Rgb::new(
-                    new_point_1.get_rgb().get_r(),
-                    new_point_1.get_rgb().get_g(),
-                    new_point_1.get_rgb().get_b(),
-                ),
-            ),
-            TrianglePoint::new(
-                TwoDPoint::new(new_point_3.get_x(), new_point_3.get_y()),
-                Rgb::new(
-                    new_point_3.get_rgb().get_r(),
-                    new_point_3.get_rgb().get_g(),
-                    new_point_3.get_rgb().get_b(),
-                ),
-            ),
-            TrianglePoint::new(
-                TwoDPoint::new(new_point_4.get_x(), new_point_4.get_y()),
-                Rgb::new(
-                    new_point_4.get_rgb().get_r(),
-                    new_point_4.get_rgb().get_g(),
-                    new_point_4.get_rgb().get_b(),
-                ),
-            ),
+            new_triangle_instance_2_point_1,
+            new_triangle_instance_2_point_2,
+            new_triangle_instance_2_point_3,
+            new_triangle_instance_2_number_of_vertices,
+            new_triangle_instance_2_vertex_data,
         );
 
         new_vertex_data.append(&mut new_triangle_instance_1.get_vertex_data().clone());

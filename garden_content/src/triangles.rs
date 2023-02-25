@@ -125,9 +125,7 @@ pub struct TriangleInstance<TPosition, TTrianglePoint> {
     vertex_data: Vec<f32>,
 }
 
-impl<TPosition, TTrianglePoint: GetVertexData + GetNumberOfVertices>
-    TriangleInstance<TPosition, TTrianglePoint>
-{
+impl<TPosition, TTrianglePoint> TriangleInstance<TPosition, TTrianglePoint> {
     pub fn new(
         name: String,
         contentName: String,
@@ -136,17 +134,9 @@ impl<TPosition, TTrianglePoint: GetVertexData + GetNumberOfVertices>
         point_1: TTrianglePoint,
         point_2: TTrianglePoint,
         point_3: TTrianglePoint,
+        number_of_vertices: i32,
+        vertex_data: Vec<f32>,
     ) -> Self {
-        let mut vertex_data = vec![];
-
-        vertex_data.append(&mut point_1.get_vertex_data().clone());
-        vertex_data.append(&mut point_2.get_vertex_data().clone());
-        vertex_data.append(&mut point_3.get_vertex_data().clone());
-
-        let number_of_vertices = point_1.get_number_of_vertices()
-            + point_2.get_number_of_vertices()
-            + point_3.get_number_of_vertices();
-
         Self {
             name,
             contentName,
@@ -273,6 +263,56 @@ impl GetNumberOfObjects for TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint,
 }
 
 impl GetContentInstanceData for TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>> {}
+
+pub trait CreateTriangleInstance<TPosition, TTrianglePoint> {
+    fn create_triangle_instance(
+        name: String,
+        content_name: String,
+        scale: f32,
+        position: TPosition,
+        point_1: TTrianglePoint,
+        point_2: TTrianglePoint,
+        point_3: TTrianglePoint,
+        number_of_vertices: i32,
+        vertex_data: Vec<f32>,
+    ) -> TriangleInstance<TPosition, TTrianglePoint>;
+}
+
+pub struct TriangleInstanceCreator {}
+
+impl TriangleInstanceCreator {
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+impl<TPosition, TTrianglePoint> CreateTriangleInstance<TPosition, TTrianglePoint>
+    for TriangleInstanceCreator
+{
+    fn create_triangle_instance(
+        name: String,
+        content_name: String,
+        scale: f32,
+        position: TPosition,
+        point_1: TTrianglePoint,
+        point_2: TTrianglePoint,
+        point_3: TTrianglePoint,
+        number_of_vertices: i32,
+        vertex_data: Vec<f32>,
+    ) -> TriangleInstance<TPosition, TTrianglePoint> {
+        TriangleInstance::new(
+            name,
+            content_name,
+            scale,
+            position,
+            point_1,
+            point_2,
+            point_3,
+            number_of_vertices,
+            vertex_data,
+        )
+    }
+}
 
 #[cfg(test)]
 mod tests {
