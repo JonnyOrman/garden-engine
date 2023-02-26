@@ -210,7 +210,7 @@ pub trait GetPosition<TPosition> {
 
 pub struct Content {
     objects: Option<Vec<Rc<Box<dyn GetName>>>>,
-    object_instances: Option<Vec<Box<dyn GetContentInstanceData>>>,
+    object_instance_runners: Option<Vec<Box<dyn RunObjectInstance>>>,
     vertex_data: Vec<f32>,
     number_of_vertices: i32,
     number_of_objects: i32,
@@ -219,7 +219,7 @@ pub struct Content {
 impl Content {
     pub fn new(
         objects: Vec<Rc<Box<dyn GetName>>>,
-        object_instances: Vec<Box<dyn GetContentInstanceData>>,
+        object_instance_runners: Vec<Box<dyn RunObjectInstance>>,
     ) -> Self {
         let mut number_of_vertices = 0;
 
@@ -227,7 +227,7 @@ impl Content {
 
         let mut number_of_objects = 0;
 
-        for object_instance in object_instances.iter() {
+        for object_instance in object_instance_runners.iter() {
             number_of_vertices += object_instance.get_number_of_vertices();
             vertex_data.append(&mut object_instance.get_vertex_data());
             number_of_objects += object_instance.get_number_of_objects();
@@ -235,7 +235,7 @@ impl Content {
 
         Self {
             objects: Some(objects),
-            object_instances: Some(object_instances),
+            object_instance_runners: Some(object_instance_runners),
             vertex_data,
             number_of_vertices,
             number_of_objects,
@@ -246,28 +246,24 @@ impl Content {
         &self.objects
     }
 
-    pub fn get_object_instances(&self) -> &Option<Vec<Box<dyn GetContentInstanceData>>> {
-        &self.object_instances
-    }
-
     pub fn scale_object_instances(&mut self, x: f32, y: f32) {
-        let mut new_object_instances = Vec::<Box<dyn GetContentInstanceData>>::new();
+        let mut new_object_instance_runners = Vec::<Box<dyn RunObjectInstance>>::new();
 
         let mut new_vertex_data = vec![];
 
-        let mut i = self.object_instances.as_ref().unwrap().len();
+        let mut i = self.object_instance_runners.as_ref().unwrap().len();
 
-        let mut object_instances = self.object_instances.take().unwrap();
+        let mut object_instance_runners = self.object_instance_runners.take().unwrap();
 
         while i > 0 {
-            let mut t = object_instances.remove(i - 1);
+            let mut t = object_instance_runners.remove(i - 1);
             t.scale(x, y);
             new_vertex_data.append(&mut t.get_vertex_data());
-            new_object_instances.push(t);
+            new_object_instance_runners.push(t);
             i = i - 1;
         }
 
-        self.object_instances = Some(new_object_instances);
+        self.object_instance_runners = Some(new_object_instance_runners);
 
         self.vertex_data = new_vertex_data;
     }
@@ -296,6 +292,8 @@ impl GetVertexDataPtr for Content {
         self.vertex_data.as_ptr()
     }
 }
+
+pub trait RunObjectInstance: GetContentInstanceData {}
 
 #[cfg(test)]
 mod tests {

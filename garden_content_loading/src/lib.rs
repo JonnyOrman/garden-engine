@@ -2,13 +2,13 @@ use garden::GetName;
 use garden_content::{
     rectangles::{
         CreateRectangle, CreateRectangleInstance, Rectangle, RectangleCreator, RectangleInstance,
-        RectangleInstanceCreator,
+        RectangleInstanceCreator, RectangleInstanceRunner,
     },
     triangles::{
         CreateTriangle, CreateTriangleInstance, Triangle, TriangleCreator, TriangleInstance,
-        TriangleInstanceCreator,
+        TriangleInstanceCreator, TriangleInstanceRunner,
     },
-    Content, GetB, GetContentInstanceData, GetG, GetR, GetRgb, GetX, GetY, Rgb, TrianglePoint,
+    Content, GetB, GetG, GetR, GetRgb, GetX, GetY, Rgb, RunObjectInstance, TrianglePoint,
     TwoDPoint,
 };
 use garden_json::{ConvertJsonToValue, JsonToF32Converter, JsonToStringConverter};
@@ -40,24 +40,24 @@ impl<'a, TJsonToContentConverter: ConvertJsonToValue<Content>> Load<Content>
     }
 }
 
-pub struct JsonToContentConverter<TJsonToObjectConverter, TJsonToObjectInstanceConverter> {
+pub struct JsonToContentConverter<TJsonToObjectConverter, TJsonToObjectInstanceRunnerConverter> {
     json_to_object_converter: TJsonToObjectConverter,
-    json_to_object_instance_converter: TJsonToObjectInstanceConverter,
+    json_to_object_instance_runner_converter: TJsonToObjectInstanceRunnerConverter,
 }
 
 impl<
         'a,
         TJsonToObjectConverter: ConvertJsonToValue<Box<dyn GetName>>,
-        TJsonToObjectInstanceConverter: ConvertJsonToValue<Box<dyn GetContentInstanceData>>,
-    > JsonToContentConverter<TJsonToObjectConverter, TJsonToObjectInstanceConverter>
+        TJsonToObjectInstanceRunnerConverter: ConvertJsonToValue<Box<dyn RunObjectInstance>>,
+    > JsonToContentConverter<TJsonToObjectConverter, TJsonToObjectInstanceRunnerConverter>
 {
     pub fn new(
         json_to_object_converter: TJsonToObjectConverter,
-        json_to_object_instance_converter: TJsonToObjectInstanceConverter,
+        json_to_object_instance_runner_converter: TJsonToObjectInstanceRunnerConverter,
     ) -> Self {
         Self {
             json_to_object_converter,
-            json_to_object_instance_converter,
+            json_to_object_instance_runner_converter,
         }
     }
 }
@@ -65,9 +65,9 @@ impl<
 impl<
         'a,
         TJsonToObjectConverter: ConvertJsonToValue<Box<dyn GetName>>,
-        TJsonToObjectInstanceConverter: ConvertJsonToValue<Box<dyn GetContentInstanceData>>,
+        TJsonToObjectInstanceRunnerConverter: ConvertJsonToValue<Box<dyn RunObjectInstance>>,
     > ConvertJsonToValue<Content>
-    for JsonToContentConverter<TJsonToObjectConverter, TJsonToObjectInstanceConverter>
+    for JsonToContentConverter<TJsonToObjectConverter, TJsonToObjectInstanceRunnerConverter>
 {
     fn convert_json_to_value(&self, json: &Value) -> Content {
         let mut objects = Vec::<Rc<Box<dyn GetName>>>::new();
@@ -81,18 +81,18 @@ impl<
             }
         }
 
-        let mut object_instances = Vec::<Box<dyn GetContentInstanceData>>::new();
+        let mut object_instance_runners = Vec::<Box<dyn RunObjectInstance>>::new();
 
         if let Some(object_instance_json_array) = json["objects"].as_array() {
             for object_instance_json in object_instance_json_array {
-                object_instances.push(
-                    self.json_to_object_instance_converter
+                object_instance_runners.push(
+                    self.json_to_object_instance_runner_converter
                         .convert_json_to_value(object_instance_json),
                 );
             }
         }
 
-        Content::new(objects, object_instances)
+        Content::new(objects, object_instance_runners)
     }
 }
 
@@ -413,12 +413,12 @@ impl<
     }
 }
 
-pub struct JsonToBoxedTriangleInstanceConverter<TJsonToTriangleInstanceConverter> {
+pub struct JsonToTriangleInstanceRunnerConverter<TJsonToTriangleInstanceConverter> {
     json_to_triangle_instance_converter: TJsonToTriangleInstanceConverter,
 }
 
 impl<TJsonToTriangleInstanceConverter>
-    JsonToBoxedTriangleInstanceConverter<TJsonToTriangleInstanceConverter>
+    JsonToTriangleInstanceRunnerConverter<TJsonToTriangleInstanceConverter>
 {
     fn new(json_to_triangle_instance_converter: TJsonToTriangleInstanceConverter) -> Self {
         Self {
@@ -429,12 +429,48 @@ impl<TJsonToTriangleInstanceConverter>
 
 impl<
         TJsonToTriangleInstanceConverter: ConvertJsonToValue<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>>,
-    > ConvertJsonToValue<Box<dyn GetContentInstanceData>>
-    for JsonToBoxedTriangleInstanceConverter<TJsonToTriangleInstanceConverter>
+    >
+    ConvertJsonToValue<
+        TriangleInstanceRunner<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>>,
+    > for JsonToTriangleInstanceRunnerConverter<TJsonToTriangleInstanceConverter>
 {
-    fn convert_json_to_value(&self, json: &Value) -> Box<dyn GetContentInstanceData> {
-        Box::new(
+    fn convert_json_to_value(
+        &self,
+        json: &Value,
+    ) -> TriangleInstanceRunner<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>> {
+        TriangleInstanceRunner::new(
             self.json_to_triangle_instance_converter
+                .convert_json_to_value(json),
+        )
+    }
+}
+
+pub struct JsonToBoxedTriangleInstanceRunnerConverter<TJsonToTriangleInstanceRunnerConverter> {
+    json_to_triangle_instance_runner_converter: TJsonToTriangleInstanceRunnerConverter,
+}
+
+impl<TJsonToTriangleInstanceRunnerConverter>
+    JsonToBoxedTriangleInstanceRunnerConverter<TJsonToTriangleInstanceRunnerConverter>
+{
+    fn new(
+        json_to_triangle_instance_runner_converter: TJsonToTriangleInstanceRunnerConverter,
+    ) -> Self {
+        Self {
+            json_to_triangle_instance_runner_converter,
+        }
+    }
+}
+
+impl<
+        TJsonToTriangleInstanceRunnerConverter: ConvertJsonToValue<
+            TriangleInstanceRunner<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>>,
+        >,
+    > ConvertJsonToValue<Box<dyn RunObjectInstance>>
+    for JsonToBoxedTriangleInstanceRunnerConverter<TJsonToTriangleInstanceRunnerConverter>
+{
+    fn convert_json_to_value(&self, json: &Value) -> Box<dyn RunObjectInstance> {
+        Box::new(
+            self.json_to_triangle_instance_runner_converter
                 .convert_json_to_value(json),
         )
     }
@@ -563,12 +599,12 @@ impl<
     }
 }
 
-pub struct JsonToBoxedRectangleInstanceConverter<TJsonToRectangleInstanceConverter> {
+pub struct JsonToRectangleInstanceRunnerConverter<TJsonToRectangleInstanceConverter> {
     json_to_rectangle_instance_converter: TJsonToRectangleInstanceConverter,
 }
 
 impl<TJsonToRectangleInstanceConverter>
-    JsonToBoxedRectangleInstanceConverter<TJsonToRectangleInstanceConverter>
+    JsonToRectangleInstanceRunnerConverter<TJsonToRectangleInstanceConverter>
 {
     fn new(json_to_rectangle_instance_converter: TJsonToRectangleInstanceConverter) -> Self {
         Self {
@@ -586,12 +622,69 @@ impl<
                 Rgb,
             >,
         >,
-    > ConvertJsonToValue<Box<dyn GetContentInstanceData>>
-    for JsonToBoxedRectangleInstanceConverter<TJsonToRectangleInstanceConverter>
+    >
+    ConvertJsonToValue<
+        RectangleInstanceRunner<
+            RectangleInstance<
+                TwoDPoint,
+                TrianglePoint<TwoDPoint, Rgb>,
+                TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+                Rgb,
+            >,
+        >,
+    > for JsonToRectangleInstanceRunnerConverter<TJsonToRectangleInstanceConverter>
 {
-    fn convert_json_to_value(&self, json: &Value) -> Box<dyn GetContentInstanceData> {
-        Box::new(
+    fn convert_json_to_value(
+        &self,
+        json: &Value,
+    ) -> RectangleInstanceRunner<
+        RectangleInstance<
+            TwoDPoint,
+            TrianglePoint<TwoDPoint, Rgb>,
+            TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+            Rgb,
+        >,
+    > {
+        RectangleInstanceRunner::new(
             self.json_to_rectangle_instance_converter
+                .convert_json_to_value(json),
+        )
+    }
+}
+
+pub struct JsonToBoxedRectangleInstanceRunnerConverter<TJsonToRectangleInstanceRunnerConverter> {
+    json_to_rectangle_instance_runner_converter: TJsonToRectangleInstanceRunnerConverter,
+}
+
+impl<TJsonToRectangleInstanceRunnerConverter>
+    JsonToBoxedRectangleInstanceRunnerConverter<TJsonToRectangleInstanceRunnerConverter>
+{
+    fn new(
+        json_to_rectangle_instance_runner_converter: TJsonToRectangleInstanceRunnerConverter,
+    ) -> Self {
+        Self {
+            json_to_rectangle_instance_runner_converter,
+        }
+    }
+}
+
+impl<
+        TJsonToRectangleInstanceRunnerConverter: ConvertJsonToValue<
+            RectangleInstanceRunner<
+                RectangleInstance<
+                    TwoDPoint,
+                    TrianglePoint<TwoDPoint, Rgb>,
+                    TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+                    Rgb,
+                >,
+            >,
+        >,
+    > ConvertJsonToValue<Box<dyn RunObjectInstance>>
+    for JsonToBoxedRectangleInstanceRunnerConverter<TJsonToRectangleInstanceRunnerConverter>
+{
+    fn convert_json_to_value(&self, json: &Value) -> Box<dyn RunObjectInstance> {
+        Box::new(
+            self.json_to_rectangle_instance_runner_converter
                 .convert_json_to_value(json),
         )
     }
@@ -716,7 +809,7 @@ pub fn compose_json_to_content_converter(
     json_to_string_converter: Rc<JsonToStringConverter>,
 ) -> JsonToContentConverter<
     TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetName>>,
-    TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetContentInstanceData>>,
+    TypedJsonToValueConverter<JsonToStringConverter, Box<dyn RunObjectInstance>>,
 > {
     let json_to_two_d_point_converter = Rc::new(JsonToTwoDPointConverter::new(Rc::clone(
         &json_to_f32_converter,
@@ -750,8 +843,11 @@ pub fn compose_json_to_content_converter(
         triangle_instance_creator,
     );
 
-    let json_to_boxed_triangle_instance_converter =
-        JsonToBoxedTriangleInstanceConverter::new(json_to_triangle_instance_converter);
+    let json_to_triangle_instance_runner_converter =
+        JsonToTriangleInstanceRunnerConverter::new(json_to_triangle_instance_converter);
+
+    let json_to_boxed_triangle_instance_runner_converter =
+        JsonToBoxedTriangleInstanceRunnerConverter::new(json_to_triangle_instance_runner_converter);
 
     let rectangle_creator = RectangleCreator::new();
 
@@ -778,8 +874,13 @@ pub fn compose_json_to_content_converter(
         rectangle_instance_creator,
     );
 
-    let json_to_boxed_rectangle_instance_converter =
-        JsonToBoxedRectangleInstanceConverter::new(json_to_rectangle_instance_converter);
+    let json_to_rectangle_instance_runner_converter =
+        JsonToRectangleInstanceRunnerConverter::new(json_to_rectangle_instance_converter);
+
+    let json_to_boxed_rectangle_instance_runner_converter =
+        JsonToBoxedRectangleInstanceRunnerConverter::new(
+            json_to_rectangle_instance_runner_converter,
+        );
 
     let mut object_converters =
         HashMap::<String, Box<dyn ConvertJsonToValue<Box<dyn GetName>>>>::new();
@@ -795,24 +896,26 @@ pub fn compose_json_to_content_converter(
     let json_to_object_converter =
         TypedJsonToValueConverter::new(Rc::clone(&json_to_string_converter), object_converters);
 
-    let mut object_instance_converters =
-        HashMap::<String, Box<dyn ConvertJsonToValue<Box<dyn GetContentInstanceData>>>>::new();
-    object_instance_converters.insert(
+    let mut object_instance_runner_converters =
+        HashMap::<String, Box<dyn ConvertJsonToValue<Box<dyn RunObjectInstance>>>>::new();
+    object_instance_runner_converters.insert(
         "triangle".to_string(),
-        Box::new(json_to_boxed_triangle_instance_converter),
+        Box::new(json_to_boxed_triangle_instance_runner_converter),
     );
-    object_instance_converters.insert(
+    object_instance_runner_converters.insert(
         "rectangle".to_string(),
-        Box::new(json_to_boxed_rectangle_instance_converter),
+        Box::new(json_to_boxed_rectangle_instance_runner_converter),
     );
 
-    let json_to_object_instance_converter = TypedJsonToValueConverter::new(
+    let json_to_object_instance_runner_converter = TypedJsonToValueConverter::new(
         Rc::clone(&json_to_string_converter),
-        object_instance_converters,
+        object_instance_runner_converters,
     );
 
-    let json_to_content_converter =
-        JsonToContentConverter::new(json_to_object_converter, json_to_object_instance_converter);
+    let json_to_content_converter = JsonToContentConverter::new(
+        json_to_object_converter,
+        json_to_object_instance_runner_converter,
+    );
 
     json_to_content_converter
 }
@@ -823,7 +926,7 @@ pub fn compose_content_loader(
 ) -> ContentLoader<
     JsonToContentConverter<
         TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetName>>,
-        TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetContentInstanceData>>,
+        TypedJsonToValueConverter<JsonToStringConverter, Box<dyn RunObjectInstance>>,
     >,
 > {
     let json_to_content_converter =
@@ -832,7 +935,7 @@ pub fn compose_content_loader(
     ContentLoader::<
         JsonToContentConverter<
             TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetName>>,
-            TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetContentInstanceData>>,
+            TypedJsonToValueConverter<JsonToStringConverter, Box<dyn RunObjectInstance>>,
         >,
     >::new(json_to_content_converter)
 }

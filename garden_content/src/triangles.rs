@@ -2,7 +2,8 @@ use garden::GetName;
 
 use crate::{
     GetB, GetContentInstanceData, GetG, GetNumberOfObjects, GetNumberOfVertices, GetPosition, GetR,
-    GetRgb, GetScale, GetVertexData, GetX, GetY, Rgb, Scale, TrianglePoint, TwoDPoint,
+    GetRgb, GetScale, GetVertexData, GetX, GetY, Rgb, RunObjectInstance, Scale, TrianglePoint,
+    TwoDPoint,
 };
 
 pub struct Triangle<TTrianglePoint> {
@@ -320,6 +321,54 @@ impl<TPosition, TTrianglePoint: GetVertexData + GetNumberOfVertices>
             vertex_data,
         )
     }
+}
+
+pub struct TriangleInstanceRunner<TTriangleInstance> {
+    triangle_instance: TTriangleInstance,
+}
+
+impl<TTriangleInstance> TriangleInstanceRunner<TTriangleInstance> {
+    pub fn new(triangle_instance: TTriangleInstance) -> Self {
+        Self { triangle_instance }
+    }
+}
+
+impl<TTriangleInstance: GetVertexData> GetVertexData for TriangleInstanceRunner<TTriangleInstance> {
+    fn get_vertex_data(&self) -> Vec<f32> {
+        self.triangle_instance.get_vertex_data()
+    }
+}
+
+impl<TTriangleInstance: GetNumberOfVertices> GetNumberOfVertices
+    for TriangleInstanceRunner<TTriangleInstance>
+{
+    fn get_number_of_vertices(&self) -> i32 {
+        self.triangle_instance.get_number_of_vertices()
+    }
+}
+
+impl<TTriangleInstance: Scale> Scale for TriangleInstanceRunner<TTriangleInstance> {
+    fn scale(&mut self, x: f32, y: f32) {
+        self.triangle_instance.scale(x, y)
+    }
+}
+
+impl<TTriangleInstance: GetNumberOfObjects> GetNumberOfObjects
+    for TriangleInstanceRunner<TTriangleInstance>
+{
+    fn get_number_of_objects(&self) -> i32 {
+        self.triangle_instance.get_number_of_objects()
+    }
+}
+
+impl<TTriangleInstance: GetContentInstanceData> GetContentInstanceData
+    for TriangleInstanceRunner<TTriangleInstance>
+{
+}
+
+impl<TTriangleInstance: GetContentInstanceData> RunObjectInstance
+    for TriangleInstanceRunner<TTriangleInstance>
+{
 }
 
 #[cfg(test)]
