@@ -1,9 +1,9 @@
 use garden::GetName;
 
 use crate::{
-    triangles::TriangleInstance, Get2DCoordiantes, GetB, GetContentInstanceData, GetG,
-    GetNumberOfObjects, GetNumberOfVertices, GetR, GetRgb, GetVertexData, GetX, GetY, Rgb, Scale,
-    TrianglePoint, TwoDPoint,
+    triangles::{CreateTriangleInstance, TriangleInstance},
+    Get2DCoordiantes, GetB, GetContentInstanceData, GetG, GetNumberOfObjects, GetNumberOfVertices,
+    GetR, GetRgb, GetVertexData, GetX, GetY, Rgb, Scale, TrianglePoint, TwoDPoint,
 };
 
 pub struct Rectangle<TRgb> {
@@ -344,21 +344,29 @@ pub trait CreateRectangleInstance<TPosition, TPoint, TTriangle, TRgb> {
     ) -> RectangleInstance<TPosition, TPoint, TTriangle, TRgb>;
 }
 
-pub struct RectangleInstanceCreator {}
+pub struct RectangleInstanceCreator<TTriangleInstanceCreator> {
+    triangle_instance_creator: TTriangleInstanceCreator,
+}
 
-impl RectangleInstanceCreator {
-    pub fn new() -> Self {
-        Self {}
+impl<TTriangleInstanceCreator> RectangleInstanceCreator<TTriangleInstanceCreator> {
+    pub fn new(triangle_instance_creator: TTriangleInstanceCreator) -> Self {
+        Self {
+            triangle_instance_creator,
+        }
     }
 }
 
-impl<TRgb: GetR + GetG + GetB, TPosition: Get2DCoordiantes>
+impl<
+        TRgb: GetR + GetG + GetB,
+        TPosition: Get2DCoordiantes,
+        TTriangleInstanceCreator: CreateTriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+    >
     CreateRectangleInstance<
         TPosition,
         TrianglePoint<TwoDPoint, Rgb>,
         TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
         TRgb,
-    > for RectangleInstanceCreator
+    > for RectangleInstanceCreator<TTriangleInstanceCreator>
 {
     fn create_rectangle_instance(
         &self,
@@ -424,21 +432,7 @@ impl<TRgb: GetR + GetG + GetB, TPosition: Get2DCoordiantes>
             ),
         );
 
-        let mut triangle_instance_1_vertex_data = vec![];
-
-        triangle_instance_1_vertex_data
-            .append(&mut triangle_instance_1_point_1.get_vertex_data().clone());
-        triangle_instance_1_vertex_data
-            .append(&mut triangle_instance_1_point_2.get_vertex_data().clone());
-        triangle_instance_1_vertex_data
-            .append(&mut triangle_instance_1_point_3.get_vertex_data().clone());
-
-        let triangle_instance_1_number_of_vertices = triangle_instance_1_point_1
-            .get_number_of_vertices()
-            + triangle_instance_1_point_2.get_number_of_vertices()
-            + triangle_instance_1_point_3.get_number_of_vertices();
-
-        let triangle_instance_1 = TriangleInstance::new(
+        let triangle_instance_1 = self.triangle_instance_creator.create_triangle_instance(
             name.clone() + "-triangle-1",
             "".to_string(),
             scale,
@@ -446,8 +440,6 @@ impl<TRgb: GetR + GetG + GetB, TPosition: Get2DCoordiantes>
             triangle_instance_1_point_1,
             triangle_instance_1_point_2,
             triangle_instance_1_point_3,
-            triangle_instance_1_number_of_vertices,
-            triangle_instance_1_vertex_data,
         );
 
         let triangle_instance_2_point_1 = TrianglePoint::new(
@@ -477,21 +469,7 @@ impl<TRgb: GetR + GetG + GetB, TPosition: Get2DCoordiantes>
             ),
         );
 
-        let mut triangle_instance_2_vertex_data = vec![];
-
-        triangle_instance_2_vertex_data
-            .append(&mut triangle_instance_2_point_1.get_vertex_data().clone());
-        triangle_instance_2_vertex_data
-            .append(&mut triangle_instance_2_point_2.get_vertex_data().clone());
-        triangle_instance_2_vertex_data
-            .append(&mut triangle_instance_2_point_3.get_vertex_data().clone());
-
-        let triangle_instance_2_number_of_vertices = triangle_instance_2_point_1
-            .get_number_of_vertices()
-            + triangle_instance_2_point_2.get_number_of_vertices()
-            + triangle_instance_2_point_3.get_number_of_vertices();
-
-        let triangle_instance_2 = TriangleInstance::new(
+        let triangle_instance_2 = self.triangle_instance_creator.create_triangle_instance(
             name.clone() + "-triangle-2",
             "".to_string(),
             scale,
@@ -499,8 +477,6 @@ impl<TRgb: GetR + GetG + GetB, TPosition: Get2DCoordiantes>
             triangle_instance_2_point_1,
             triangle_instance_2_point_2,
             triangle_instance_2_point_3,
-            triangle_instance_2_number_of_vertices,
-            triangle_instance_2_vertex_data,
         );
 
         vertex_data.append(&mut triangle_instance_1.get_vertex_data().clone());

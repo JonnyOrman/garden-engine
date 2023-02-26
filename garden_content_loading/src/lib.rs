@@ -765,7 +765,10 @@ pub fn compose_json_to_content_converter(
     let json_to_boxed_rectangle_converter =
         JsonToBoxedRectangleConverter::new(json_to_rectangle_converter);
 
-    let rectangle_instance_creator = RectangleInstanceCreator::new();
+    let rectangle_instance_triangle_instance_creator = TriangleInstanceCreator::new();
+
+    let rectangle_instance_creator =
+        RectangleInstanceCreator::new(rectangle_instance_triangle_instance_creator);
 
     let json_to_rectangle_instance_converter = JsonToRectangleInstanceConverter::new(
         Rc::clone(&json_to_string_converter),
