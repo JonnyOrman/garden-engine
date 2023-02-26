@@ -1,12 +1,15 @@
 use garden::GetName;
 use garden_content::{
-    rectangles::{CreateRectangle, Rectangle, RectangleCreator, RectangleInstance},
+    rectangles::{
+        CreateRectangle, CreateRectangleInstance, Rectangle, RectangleCreator, RectangleInstance,
+        RectangleInstanceCreator,
+    },
     triangles::{
         CreateTriangle, CreateTriangleInstance, Triangle, TriangleCreator, TriangleInstance,
         TriangleInstanceCreator,
     },
-    Content, Get2DCoordiantes, GetB, GetContentInstanceData, GetG, GetNumberOfVertices, GetR,
-    GetRgb, GetVertexData, GetX, GetY, Rgb, TrianglePoint, TwoDPoint,
+    Content, GetB, GetContentInstanceData, GetG, GetR, GetRgb, GetX, GetY, Rgb, TrianglePoint,
+    TwoDPoint,
 };
 use garden_json::{ConvertJsonToValue, JsonToF32Converter, JsonToStringConverter};
 use garden_loading::Load;
@@ -442,11 +445,13 @@ pub struct JsonToRectangleInstanceConverter<
     TJsonToF32Converter,
     TJsonToPositionConverter,
     TJsonToRgbConverter,
+    TRectangleInstanceCreator,
 > {
     json_to_string_converter: Rc<TJsonToStringConverter>,
     json_to_f32_converter: Rc<TJsonToF32Converter>,
     json_to_position_converter: Rc<TJsonToPositionConverter>,
     json_to_rgb_converter: Rc<TJsonToRgbConverter>,
+    rectangle_instance_creator: TRectangleInstanceCreator,
 }
 
 impl<
@@ -454,12 +459,14 @@ impl<
         TJsonToF32Converter,
         TJsonToPositionConverter,
         TJsonToRgbConverter,
+        TRectangleInstanceCreator,
     >
     JsonToRectangleInstanceConverter<
         TJsonToStringConverter,
         TJsonToF32Converter,
         TJsonToPositionConverter,
         TJsonToRgbConverter,
+        TRectangleInstanceCreator,
     >
 {
     fn new(
@@ -467,12 +474,14 @@ impl<
         json_to_f32_converter: Rc<TJsonToF32Converter>,
         json_to_position_converter: Rc<TJsonToPositionConverter>,
         json_to_rgb_converter: Rc<TJsonToRgbConverter>,
+        rectangle_instance_creator: TRectangleInstanceCreator,
     ) -> Self {
         Self {
             json_to_string_converter,
             json_to_f32_converter,
             json_to_position_converter,
             json_to_rgb_converter,
+            rectangle_instance_creator,
         }
     }
 }
@@ -480,13 +489,18 @@ impl<
 impl<
         TJsonToStringConverter: ConvertJsonToValue<String>,
         TJsonToF32Converter: ConvertJsonToValue<f32>,
-        TJsonToPositionConverter: ConvertJsonToValue<TPosition>,
-        TPosition: Get2DCoordiantes,
+        TJsonToPositionConverter: ConvertJsonToValue<TwoDPoint>,
         TJsonToRgbConverter: ConvertJsonToValue<Rgb>,
+        TRectangleInstanceCreator: CreateRectangleInstance<
+            TwoDPoint,
+            TrianglePoint<TwoDPoint, Rgb>,
+            TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+            Rgb,
+        >,
     >
     ConvertJsonToValue<
         RectangleInstance<
-            TPosition,
+            TwoDPoint,
             TrianglePoint<TwoDPoint, Rgb>,
             TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
             Rgb,
@@ -497,40 +511,54 @@ impl<
         TJsonToF32Converter,
         TJsonToPositionConverter,
         TJsonToRgbConverter,
+        TRectangleInstanceCreator,
     >
 {
     fn convert_json_to_value(
         &self,
         json: &Value,
     ) -> RectangleInstance<
-        TPosition,
+        TwoDPoint,
         TrianglePoint<TwoDPoint, Rgb>,
         TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
         Rgb,
     > {
+        let name = self
+            .json_to_string_converter
+            .convert_json_to_value(&json["name"]);
+
+        let content_name = self
+            .json_to_string_converter
+            .convert_json_to_value(&json["contentName"]);
+
         let scale = self
             .json_to_f32_converter
             .convert_json_to_value(&json["scale"]);
 
-        RectangleInstance::<
-            TPosition,
-            TrianglePoint<TwoDPoint, Rgb>,
-            TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-            Rgb,
-        >::new(
-            self.json_to_string_converter
-                .convert_json_to_value(&json["name"]),
-            self.json_to_string_converter
-                .convert_json_to_value(&json["contentName"]),
+        let position = self
+            .json_to_position_converter
+            .convert_json_to_value(&json["position"]);
+
+        let width = self
+            .json_to_f32_converter
+            .convert_json_to_value(&json["width"]);
+
+        let height = self
+            .json_to_f32_converter
+            .convert_json_to_value(&json["height"]);
+
+        let rgb = self
+            .json_to_rgb_converter
+            .convert_json_to_value(&json["rgb"]);
+
+        self.rectangle_instance_creator.create_rectangle_instance(
+            name,
+            content_name,
             scale,
-            self.json_to_position_converter
-                .convert_json_to_value(&json["position"]),
-            self.json_to_f32_converter
-                .convert_json_to_value(&json["width"]),
-            self.json_to_f32_converter
-                .convert_json_to_value(&json["height"]),
-            self.json_to_rgb_converter
-                .convert_json_to_value(&json["rgb"]),
+            position,
+            width,
+            height,
+            rgb,
         )
     }
 }
@@ -737,11 +765,14 @@ pub fn compose_json_to_content_converter(
     let json_to_boxed_rectangle_converter =
         JsonToBoxedRectangleConverter::new(json_to_rectangle_converter);
 
+    let rectangle_instance_creator = RectangleInstanceCreator::new();
+
     let json_to_rectangle_instance_converter = JsonToRectangleInstanceConverter::new(
         Rc::clone(&json_to_string_converter),
         Rc::clone(&json_to_f32_converter),
         Rc::clone(&json_to_two_d_point_converter),
         Rc::clone(&json_to_rgb_converter),
+        rectangle_instance_creator,
     );
 
     let json_to_boxed_rectangle_instance_converter =
