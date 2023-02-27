@@ -47,6 +47,14 @@ pub trait Create<T> {
     fn create(&self) -> T;
 }
 
+pub trait GetWidth {
+    fn get_width(&self) -> f32;
+}
+
+pub trait GetHeight {
+    fn get_height(&self) -> f32;
+}
+
 pub mod gl {
     #![allow(clippy::all)]
     include!(concat!(env!("OUT_DIR"), "/gl_bindings.rs"));

@@ -5,12 +5,20 @@ use std::rc::Rc;
 
 use garden::GetName;
 
+pub trait GetContentName {
+    fn get_content_name(&self) -> &str;
+}
+
 pub trait GetVertexData {
     fn get_vertex_data(&self) -> Vec<f32>;
 }
 
 pub trait GetNumberOfVertices {
     fn get_number_of_vertices(&self) -> i32;
+}
+
+pub trait GetScale {
+    fn get_scale(&self) -> f32;
 }
 
 pub trait Scale {
@@ -198,10 +206,6 @@ impl<TTwoDPoint: GetY, TRgb> GetRgb<TRgb> for TrianglePoint<TTwoDPoint, TRgb> {
     fn get_rgb(&self) -> &TRgb {
         &self.rgb
     }
-}
-
-pub trait GetScale {
-    fn get_scale(&self) -> f32;
 }
 
 pub trait GetPosition<TPosition> {

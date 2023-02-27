@@ -1,11 +1,11 @@
 use garden::{
-    gl, Initialise, OnCreateGlutinVbo, OnDraw, RunEndComponent, RunFullComponent, RunLoop,
+    gl, GetHeight, GetWidth, Initialise, OnCreateGlutinVbo, OnDraw, RunEndComponent,
+    RunFullComponent, RunLoop,
 };
 use garden_content::{Content, GetNumberOfObjects, GetNumberOfVertices, GetVertexDataPtr};
 use garden_content_loading::compose_content_loader;
 use garden_json_component::JsonComponent;
 use garden_loading::Load;
-use garden_scenes::{GetHeight, GetWidth};
 use garden_winit::AddComponent;
 
 pub fn add_content<TGameInstanceBuilder: AddComponent, TScene: GetWidth + GetHeight>(

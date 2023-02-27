@@ -1,10 +1,10 @@
-use garden::GetName;
+use garden::{GetHeight, GetName, GetWidth};
 
 use crate::{
     triangles::{CreateTriangleInstance, TriangleInstance},
-    Get2DCoordiantes, GetB, GetContentInstanceData, GetG, GetNumberOfObjects, GetNumberOfVertices,
-    GetR, GetRgb, GetVertexData, GetX, GetY, Rgb, RunObjectInstance, Scale, TrianglePoint,
-    TwoDPoint,
+    Get2DCoordiantes, GetB, GetContentInstanceData, GetContentName, GetG, GetNumberOfObjects,
+    GetNumberOfVertices, GetPosition, GetR, GetRgb, GetScale, GetVertexData, GetX, GetY, Rgb,
+    RunObjectInstance, Scale, TrianglePoint, TwoDPoint,
 };
 
 pub struct Rectangle<TRgb> {
@@ -61,6 +61,8 @@ pub struct RectangleInstance<TPosition, TPoint, TTriangleInstance, TRgb> {
     content_name: String,
     scale: f32,
     position: TPosition,
+    width: f32,
+    height: f32,
     number_of_vertices: i32,
     vertex_data: Vec<f32>,
     point_1: TPoint,
@@ -97,6 +99,8 @@ impl<TPosition, TRgb, TPoint, TTriangleInstance>
             content_name,
             scale,
             position,
+            width,
+            height,
             vertex_data,
             number_of_vertices,
             point_1,
@@ -114,6 +118,14 @@ impl<TPosition, TPoint, TTrianglePoint, TRgb> GetName
     for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb>
 {
     fn get_name(&self) -> &str {
+        &self.name
+    }
+}
+
+impl<TPosition, TPoint, TTrianglePoint, TRgb> GetContentName
+    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb>
+{
+    fn get_content_name(&self) -> &str {
         &self.name
     }
 }
@@ -330,6 +342,46 @@ impl<TPosition, TRgb> GetContentInstanceData
         TRgb,
     >
 {
+}
+
+impl<TPosition, TPoint, TTrianglePoint, TRgb> GetScale
+    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb>
+{
+    fn get_scale(&self) -> f32 {
+        self.scale
+    }
+}
+
+impl<TPosition, TPoint, TTrianglePoint, TRgb> GetWidth
+    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb>
+{
+    fn get_width(&self) -> f32 {
+        self.width
+    }
+}
+
+impl<TPosition, TPoint, TTrianglePoint, TRgb> GetHeight
+    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb>
+{
+    fn get_height(&self) -> f32 {
+        self.height
+    }
+}
+
+impl<TPosition, TPoint, TTrianglePoint, TRgb> GetPosition<TPosition>
+    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb>
+{
+    fn get_position(&self) -> &TPosition {
+        &self.position
+    }
+}
+
+impl<TPosition, TPoint, TTrianglePoint, TRgb> GetRgb<TRgb>
+    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb>
+{
+    fn get_rgb(&self) -> &TRgb {
+        &self.rgb
+    }
 }
 
 pub trait CreateRectangleInstance<TPosition, TPoint, TTriangle, TRgb> {
@@ -553,6 +605,71 @@ impl<TRectangleInstance: GetContentInstanceData> GetContentInstanceData
 impl<TRectangleInstance: GetContentInstanceData> RunObjectInstance
     for RectangleInstanceRunner<TRectangleInstance>
 {
+}
+
+pub trait ScaleRectangleInstance<TRectangleInstance> {
+    fn scale_rectangle_instance(
+        &self,
+        triangle_instance: &TRectangleInstance,
+        x: f32,
+        y: f32,
+    ) -> TRectangleInstance;
+}
+
+pub struct RectangleInstanceScaler<TRectangleInstanceCreator> {
+    rectangle_instance_creator: TRectangleInstanceCreator,
+}
+
+impl<
+        TRectangleInstanceCreator: CreateRectangleInstance<
+            TwoDPoint,
+            TwoDPoint,
+            TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+            Rgb,
+        >,
+    >
+    ScaleRectangleInstance<
+        RectangleInstance<
+            TwoDPoint,
+            TwoDPoint,
+            TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+            Rgb,
+        >,
+    > for RectangleInstanceScaler<TRectangleInstanceCreator>
+{
+    fn scale_rectangle_instance(
+        &self,
+        rectangle_instance: &RectangleInstance<
+            TwoDPoint,
+            TwoDPoint,
+            TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+            Rgb,
+        >,
+        x: f32,
+        y: f32,
+    ) -> RectangleInstance<
+        TwoDPoint,
+        TwoDPoint,
+        TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+        Rgb,
+    > {
+        self.rectangle_instance_creator.create_rectangle_instance(
+            rectangle_instance.get_name().to_string(),
+            rectangle_instance.get_content_name().to_string(),
+            rectangle_instance.get_scale(),
+            TwoDPoint::new(
+                rectangle_instance.get_position().get_x(),
+                rectangle_instance.get_position().get_y(),
+            ),
+            rectangle_instance.get_width() * x,
+            rectangle_instance.get_height() * y,
+            Rgb::new(
+                rectangle_instance.get_rgb().get_r(),
+                rectangle_instance.get_rgb().get_g(),
+                rectangle_instance.get_rgb().get_b(),
+            ),
+        )
+    }
 }
 
 #[cfg(test)]

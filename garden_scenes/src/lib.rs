@@ -1,10 +1,4 @@
-pub trait GetWidth {
-    fn get_width(&self) -> f32;
-}
-
-pub trait GetHeight {
-    fn get_height(&self) -> f32;
-}
+use garden::{GetHeight, GetWidth};
 
 pub struct TwoDScene {
     width: f32,
@@ -31,7 +25,8 @@ impl GetHeight for TwoDScene {
 
 #[cfg(test)]
 mod tests {
-    use crate::{GetHeight, GetWidth, TwoDScene};
+    use crate::TwoDScene;
+    use garden::{GetHeight, GetWidth};
 
     #[test]
     fn when_a_two_d_scene_gets_its_width_then_the_width_is_returned() {

@@ -478,6 +478,9 @@ version = "0.1.0"
 [[package]]
 name = "garden_scenes"
 version = "0.1.0"
+dependencies = [
+ "garden",
+]
 
 [[package]]
 name = "garden_scenes_component"

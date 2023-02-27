@@ -1,21 +1,21 @@
 use garden::GetName;
 
 use crate::{
-    GetB, GetContentInstanceData, GetG, GetNumberOfObjects, GetNumberOfVertices, GetPosition, GetR,
-    GetRgb, GetScale, GetVertexData, GetX, GetY, Rgb, RunObjectInstance, Scale, TrianglePoint,
-    TwoDPoint,
+    GetB, GetContentInstanceData, GetContentName, GetG, GetNumberOfObjects, GetNumberOfVertices,
+    GetPosition, GetR, GetRgb, GetScale, GetVertexData, GetX, GetY, Rgb, RunObjectInstance, Scale,
+    TrianglePoint, TwoDPoint,
 };
 
 pub trait GetPoint1<TPoint> {
-    fn get_point_1(&self) -> TPoint;
+    fn get_point_1(&self) -> &TPoint;
 }
 
 pub trait GetPoint2<TPoint> {
-    fn get_point_2(&self) -> TPoint;
+    fn get_point_2(&self) -> &TPoint;
 }
 
 pub trait GetPoint3<TPoint> {
-    fn get_point_3(&self) -> TPoint;
+    fn get_point_3(&self) -> &TPoint;
 }
 
 pub trait GetTrianglePoints<TPoint>:
@@ -133,7 +133,7 @@ impl<TTrianglePoint: GetVertexData + GetNumberOfVertices> CreateTriangle<TTriang
 
 pub struct TriangleInstance<TPosition, TTrianglePoint> {
     name: String,
-    contentName: String,
+    content_name: String,
     scale: f32,
     position: TPosition,
     point_1: TTrianglePoint,
@@ -146,7 +146,7 @@ pub struct TriangleInstance<TPosition, TTrianglePoint> {
 impl<TPosition, TTrianglePoint> TriangleInstance<TPosition, TTrianglePoint> {
     pub fn new(
         name: String,
-        contentName: String,
+        content_name: String,
         scale: f32,
         position: TPosition,
         point_1: TTrianglePoint,
@@ -157,7 +157,7 @@ impl<TPosition, TTrianglePoint> TriangleInstance<TPosition, TTrianglePoint> {
     ) -> Self {
         Self {
             name,
-            contentName,
+            content_name,
             scale,
             position,
             point_1,
@@ -167,22 +167,6 @@ impl<TPosition, TTrianglePoint> TriangleInstance<TPosition, TTrianglePoint> {
             vertex_data,
         }
     }
-
-    pub fn get_content_name(&self) -> &str {
-        &self.contentName
-    }
-
-    pub fn get_point_1(&self) -> &TTrianglePoint {
-        &self.point_1
-    }
-
-    pub fn get_point_2(&self) -> &TTrianglePoint {
-        &self.point_2
-    }
-
-    pub fn get_point_3(&self) -> &TTrianglePoint {
-        &self.point_3
-    }
 }
 
 impl<TPosition, TTrianglePoint> GetName for TriangleInstance<TPosition, TTrianglePoint> {
@@ -191,10 +175,45 @@ impl<TPosition, TTrianglePoint> GetName for TriangleInstance<TPosition, TTriangl
     }
 }
 
+impl<TPosition, TTrianglePoint> GetContentName for TriangleInstance<TPosition, TTrianglePoint> {
+    fn get_content_name(&self) -> &str {
+        &self.content_name
+    }
+}
+
 impl<TPosition, TTrianglePoint> GetScale for TriangleInstance<TPosition, TTrianglePoint> {
     fn get_scale(&self) -> f32 {
         self.scale
     }
+}
+
+impl<TPosition, TTrianglePoint> GetPoint1<TTrianglePoint>
+    for TriangleInstance<TPosition, TTrianglePoint>
+{
+    fn get_point_1(&self) -> &TTrianglePoint {
+        &self.point_1
+    }
+}
+
+impl<TPosition, TTrianglePoint> GetPoint2<TTrianglePoint>
+    for TriangleInstance<TPosition, TTrianglePoint>
+{
+    fn get_point_2(&self) -> &TTrianglePoint {
+        &self.point_2
+    }
+}
+
+impl<TPosition, TTrianglePoint> GetPoint3<TTrianglePoint>
+    for TriangleInstance<TPosition, TTrianglePoint>
+{
+    fn get_point_3(&self) -> &TTrianglePoint {
+        &self.point_3
+    }
+}
+
+impl<TPosition, TTrianglePoint> GetTrianglePoints<TTrianglePoint>
+    for TriangleInstance<TPosition, TTrianglePoint>
+{
 }
 
 impl<TPosition, TTrianglePoint> GetPosition<TPosition>
