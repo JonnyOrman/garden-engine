@@ -2,7 +2,7 @@ use garden::GetName;
 use garden_content::{
     rectangles::{
         CreateRectangle, CreateRectangleInstance, Rectangle, RectangleCreator, RectangleInstance,
-        RectangleInstanceCreator, RectangleInstanceRunner,
+        RectangleInstanceCreator, RectangleInstanceRunner, RectangleInstanceScaler,
     },
     triangles::{
         CreateTriangle, CreateTriangleInstance, Triangle, TriangleCreator, TriangleInstance,
@@ -641,6 +641,7 @@ impl<
                 TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
                 Rgb,
             >,
+            RectangleInstanceScaler<RectangleInstanceCreator<TriangleInstanceCreator>>,
         >,
     > for JsonToRectangleInstanceRunnerConverter<TJsonToRectangleInstanceConverter>
 {
@@ -654,10 +655,14 @@ impl<
             TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
             Rgb,
         >,
+        RectangleInstanceScaler<RectangleInstanceCreator<TriangleInstanceCreator>>,
     > {
         RectangleInstanceRunner::new(
             self.json_to_rectangle_instance_converter
                 .convert_json_to_value(json),
+            RectangleInstanceScaler::new(RectangleInstanceCreator::new(
+                TriangleInstanceCreator::new(),
+            )),
         )
     }
 }
@@ -687,6 +692,7 @@ impl<
                     TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
                     Rgb,
                 >,
+                RectangleInstanceScaler<RectangleInstanceCreator<TriangleInstanceCreator>>,
             >,
         >,
     > ConvertJsonToValue<Box<dyn RunObjectInstance>>

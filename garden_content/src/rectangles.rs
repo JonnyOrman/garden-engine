@@ -558,52 +558,72 @@ impl<
     }
 }
 
-pub struct RectangleInstanceRunner<TRectangleInstance> {
+pub struct RectangleInstanceRunner<TRectangleInstance, TRectangleInstanceScaler> {
     rectangle_instance: TRectangleInstance,
+    rectangle_instance_scaler: TRectangleInstanceScaler,
 }
 
-impl<TRectangleInstance> RectangleInstanceRunner<TRectangleInstance> {
-    pub fn new(rectangle_instance: TRectangleInstance) -> Self {
-        Self { rectangle_instance }
+impl<TRectangleInstance, TRectangleInstanceScaler>
+    RectangleInstanceRunner<TRectangleInstance, TRectangleInstanceScaler>
+{
+    pub fn new(
+        rectangle_instance: TRectangleInstance,
+        rectangle_instance_scaler: TRectangleInstanceScaler,
+    ) -> Self {
+        Self {
+            rectangle_instance,
+            rectangle_instance_scaler,
+        }
     }
 }
-impl<TRectangleInstance: GetVertexData> GetVertexData
-    for RectangleInstanceRunner<TRectangleInstance>
+impl<TRectangleInstance: GetVertexData, TRectangleInstanceScaler> GetVertexData
+    for RectangleInstanceRunner<TRectangleInstance, TRectangleInstanceScaler>
 {
     fn get_vertex_data(&self) -> Vec<f32> {
         self.rectangle_instance.get_vertex_data()
     }
 }
 
-impl<TRectangleInstance: GetNumberOfVertices> GetNumberOfVertices
-    for RectangleInstanceRunner<TRectangleInstance>
+impl<TRectangleInstance: GetNumberOfVertices, TRectangleInstanceScaler> GetNumberOfVertices
+    for RectangleInstanceRunner<TRectangleInstance, TRectangleInstanceScaler>
 {
     fn get_number_of_vertices(&self) -> i32 {
         self.rectangle_instance.get_number_of_vertices()
     }
 }
 
-impl<TRectangleInstance: Scale> Scale for RectangleInstanceRunner<TRectangleInstance> {
+impl<
+        TRectangleInstance: Scale,
+        TRectangleInstanceScaler: ScaleRectangleInstance<TRectangleInstance>,
+    > Scale for RectangleInstanceRunner<TRectangleInstance, TRectangleInstanceScaler>
+{
     fn scale(&mut self, x: f32, y: f32) {
-        self.rectangle_instance.scale(x, y)
+        self.rectangle_instance =
+            self.rectangle_instance_scaler
+                .scale_rectangle_instance(&self.rectangle_instance, x, y);
     }
 }
 
-impl<TRectangleInstance: GetNumberOfObjects> GetNumberOfObjects
-    for RectangleInstanceRunner<TRectangleInstance>
+impl<TRectangleInstance: GetNumberOfObjects, TRectangleInstanceScaler> GetNumberOfObjects
+    for RectangleInstanceRunner<TRectangleInstance, TRectangleInstanceScaler>
 {
     fn get_number_of_objects(&self) -> i32 {
         self.rectangle_instance.get_number_of_objects()
     }
 }
 
-impl<TRectangleInstance: GetContentInstanceData> GetContentInstanceData
-    for RectangleInstanceRunner<TRectangleInstance>
+impl<
+        TRectangleInstance: GetContentInstanceData,
+        TRectangleInstanceScaler: ScaleRectangleInstance<TRectangleInstance>,
+    > GetContentInstanceData
+    for RectangleInstanceRunner<TRectangleInstance, TRectangleInstanceScaler>
 {
 }
 
-impl<TRectangleInstance: GetContentInstanceData> RunObjectInstance
-    for RectangleInstanceRunner<TRectangleInstance>
+impl<
+        TRectangleInstance: GetContentInstanceData,
+        TRectangleInstanceScaler: ScaleRectangleInstance<TRectangleInstance>,
+    > RunObjectInstance for RectangleInstanceRunner<TRectangleInstance, TRectangleInstanceScaler>
 {
 }
 
@@ -620,10 +640,18 @@ pub struct RectangleInstanceScaler<TRectangleInstanceCreator> {
     rectangle_instance_creator: TRectangleInstanceCreator,
 }
 
+impl<TRectangleInstanceCreator> RectangleInstanceScaler<TRectangleInstanceCreator> {
+    pub fn new(rectangle_instance_creator: TRectangleInstanceCreator) -> Self {
+        Self {
+            rectangle_instance_creator,
+        }
+    }
+}
+
 impl<
         TRectangleInstanceCreator: CreateRectangleInstance<
             TwoDPoint,
-            TwoDPoint,
+            TrianglePoint<TwoDPoint, Rgb>,
             TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
             Rgb,
         >,
@@ -631,7 +659,7 @@ impl<
     ScaleRectangleInstance<
         RectangleInstance<
             TwoDPoint,
-            TwoDPoint,
+            TrianglePoint<TwoDPoint, Rgb>,
             TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
             Rgb,
         >,
@@ -641,7 +669,7 @@ impl<
         &self,
         rectangle_instance: &RectangleInstance<
             TwoDPoint,
-            TwoDPoint,
+            TrianglePoint<TwoDPoint, Rgb>,
             TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
             Rgb,
         >,
@@ -649,7 +677,7 @@ impl<
         y: f32,
     ) -> RectangleInstance<
         TwoDPoint,
-        TwoDPoint,
+        TrianglePoint<TwoDPoint, Rgb>,
         TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
         Rgb,
     > {
@@ -658,11 +686,11 @@ impl<
             rectangle_instance.get_content_name().to_string(),
             rectangle_instance.get_scale(),
             TwoDPoint::new(
-                rectangle_instance.get_position().get_x(),
-                rectangle_instance.get_position().get_y(),
+                rectangle_instance.get_position().get_x() / x,
+                rectangle_instance.get_position().get_y() / y,
             ),
-            rectangle_instance.get_width() * x,
-            rectangle_instance.get_height() * y,
+            rectangle_instance.get_width() / x,
+            rectangle_instance.get_height() / y,
             Rgb::new(
                 rectangle_instance.get_rgb().get_r(),
                 rectangle_instance.get_rgb().get_g(),
