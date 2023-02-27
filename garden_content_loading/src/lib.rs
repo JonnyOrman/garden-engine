@@ -6,7 +6,7 @@ use garden_content::{
     },
     triangles::{
         CreateTriangle, CreateTriangleInstance, Triangle, TriangleCreator, TriangleInstance,
-        TriangleInstanceCreator, TriangleInstanceRunner,
+        TriangleInstanceCreator, TriangleInstanceRunner, TriangleInstanceScaler,
     },
     Content, GetB, GetG, GetR, GetRgb, GetX, GetY, Rgb, RunObjectInstance, TrianglePoint,
     TwoDPoint,
@@ -431,16 +431,23 @@ impl<
         TJsonToTriangleInstanceConverter: ConvertJsonToValue<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>>,
     >
     ConvertJsonToValue<
-        TriangleInstanceRunner<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>>,
+        TriangleInstanceRunner<
+            TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+            TriangleInstanceScaler<TriangleInstanceCreator>,
+        >,
     > for JsonToTriangleInstanceRunnerConverter<TJsonToTriangleInstanceConverter>
 {
     fn convert_json_to_value(
         &self,
         json: &Value,
-    ) -> TriangleInstanceRunner<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>> {
+    ) -> TriangleInstanceRunner<
+        TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+        TriangleInstanceScaler<TriangleInstanceCreator>,
+    > {
         TriangleInstanceRunner::new(
             self.json_to_triangle_instance_converter
                 .convert_json_to_value(json),
+            TriangleInstanceScaler::new(TriangleInstanceCreator::new()),
         )
     }
 }
@@ -463,7 +470,10 @@ impl<TJsonToTriangleInstanceRunnerConverter>
 
 impl<
         TJsonToTriangleInstanceRunnerConverter: ConvertJsonToValue<
-            TriangleInstanceRunner<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>>,
+            TriangleInstanceRunner<
+                TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+                TriangleInstanceScaler<TriangleInstanceCreator>,
+            >,
         >,
     > ConvertJsonToValue<Box<dyn RunObjectInstance>>
     for JsonToBoxedTriangleInstanceRunnerConverter<TJsonToTriangleInstanceRunnerConverter>

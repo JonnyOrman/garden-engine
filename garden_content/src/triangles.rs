@@ -6,6 +6,23 @@ use crate::{
     TwoDPoint,
 };
 
+pub trait GetPoint1<TPoint> {
+    fn get_point_1(&self) -> TPoint;
+}
+
+pub trait GetPoint2<TPoint> {
+    fn get_point_2(&self) -> TPoint;
+}
+
+pub trait GetPoint3<TPoint> {
+    fn get_point_3(&self) -> TPoint;
+}
+
+pub trait GetTrianglePoints<TPoint>:
+    GetPoint1<TPoint> + GetPoint2<TPoint> + GetPoint3<TPoint>
+{
+}
+
 pub struct Triangle<TTrianglePoint> {
     name: String,
     point_1: TTrianglePoint,
@@ -323,52 +340,156 @@ impl<TPosition, TTrianglePoint: GetVertexData + GetNumberOfVertices>
     }
 }
 
-pub struct TriangleInstanceRunner<TTriangleInstance> {
+pub struct TriangleInstanceRunner<TTriangleInstance, TTriangleInstanceScaler> {
     triangle_instance: TTriangleInstance,
+    triangle_instance_scaler: TTriangleInstanceScaler,
 }
 
-impl<TTriangleInstance> TriangleInstanceRunner<TTriangleInstance> {
-    pub fn new(triangle_instance: TTriangleInstance) -> Self {
-        Self { triangle_instance }
+impl<TTriangleInstance, TTriangleInstanceScaler>
+    TriangleInstanceRunner<TTriangleInstance, TTriangleInstanceScaler>
+{
+    pub fn new(
+        triangle_instance: TTriangleInstance,
+        triangle_instance_scaler: TTriangleInstanceScaler,
+    ) -> Self {
+        Self {
+            triangle_instance,
+            triangle_instance_scaler,
+        }
     }
 }
 
-impl<TTriangleInstance: GetVertexData> GetVertexData for TriangleInstanceRunner<TTriangleInstance> {
+impl<TTriangleInstance: GetVertexData, TTriangleInstanceScaler> GetVertexData
+    for TriangleInstanceRunner<TTriangleInstance, TTriangleInstanceScaler>
+{
     fn get_vertex_data(&self) -> Vec<f32> {
         self.triangle_instance.get_vertex_data()
     }
 }
 
-impl<TTriangleInstance: GetNumberOfVertices> GetNumberOfVertices
-    for TriangleInstanceRunner<TTriangleInstance>
+impl<TTriangleInstance: GetNumberOfVertices, TTriangleInstanceScaler> GetNumberOfVertices
+    for TriangleInstanceRunner<TTriangleInstance, TTriangleInstanceScaler>
 {
     fn get_number_of_vertices(&self) -> i32 {
         self.triangle_instance.get_number_of_vertices()
     }
 }
 
-impl<TTriangleInstance: Scale> Scale for TriangleInstanceRunner<TTriangleInstance> {
+impl<
+        TTriangleInstance: Scale,
+        TTriangleInstanceScaler: ScaleTriangleInstance<TTriangleInstance>,
+    > Scale for TriangleInstanceRunner<TTriangleInstance, TTriangleInstanceScaler>
+{
     fn scale(&mut self, x: f32, y: f32) {
-        self.triangle_instance.scale(x, y)
+        self.triangle_instance =
+            self.triangle_instance_scaler
+                .scale_triangle_instance(&self.triangle_instance, x, y);
     }
 }
 
-impl<TTriangleInstance: GetNumberOfObjects> GetNumberOfObjects
-    for TriangleInstanceRunner<TTriangleInstance>
+impl<TTriangleInstance: GetNumberOfObjects, TTriangleInstanceScaler> GetNumberOfObjects
+    for TriangleInstanceRunner<TTriangleInstance, TTriangleInstanceScaler>
 {
     fn get_number_of_objects(&self) -> i32 {
         self.triangle_instance.get_number_of_objects()
     }
 }
 
-impl<TTriangleInstance: GetContentInstanceData> GetContentInstanceData
-    for TriangleInstanceRunner<TTriangleInstance>
+impl<
+        TTriangleInstance: GetContentInstanceData,
+        TTriangleInstanceScaler: ScaleTriangleInstance<TTriangleInstance>,
+    > GetContentInstanceData
+    for TriangleInstanceRunner<TTriangleInstance, TTriangleInstanceScaler>
 {
 }
 
-impl<TTriangleInstance: GetContentInstanceData> RunObjectInstance
-    for TriangleInstanceRunner<TTriangleInstance>
+impl<
+        TTriangleInstance: GetContentInstanceData,
+        TTriangleInstanceScaler: ScaleTriangleInstance<TTriangleInstance>,
+    > RunObjectInstance for TriangleInstanceRunner<TTriangleInstance, TTriangleInstanceScaler>
 {
+}
+
+pub trait ScaleTriangleInstance<TTriangleInstance> {
+    fn scale_triangle_instance(
+        &self,
+        triangle_instance: &TTriangleInstance,
+        x: f32,
+        y: f32,
+    ) -> TTriangleInstance;
+}
+
+pub struct TriangleInstanceScaler<TTriangleInstanceCreator> {
+    triangle_instance_creator: TTriangleInstanceCreator,
+}
+
+impl<TTriangleInstanceCreator> TriangleInstanceScaler<TTriangleInstanceCreator> {
+    pub fn new(triangle_instance_creator: TTriangleInstanceCreator) -> Self {
+        Self {
+            triangle_instance_creator,
+        }
+    }
+}
+
+impl<
+        TTriangleInstanceCreator: CreateTriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+    > ScaleTriangleInstance<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>>
+    for TriangleInstanceScaler<TTriangleInstanceCreator>
+{
+    fn scale_triangle_instance(
+        &self,
+        triangle_instance: &TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+        x: f32,
+        y: f32,
+    ) -> TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>> {
+        let new_position = TwoDPoint::new(
+            triangle_instance.get_position().get_x() / x,
+            triangle_instance.get_position().get_y() / y,
+        );
+        let new_point_1 = TrianglePoint::<TwoDPoint, Rgb>::new(
+            TwoDPoint::new(
+                triangle_instance.get_point_1().get_x() / x,
+                triangle_instance.get_point_1().get_y() / y,
+            ),
+            Rgb::new(
+                triangle_instance.get_point_1().get_rgb().get_r(),
+                triangle_instance.get_point_1().get_rgb().get_g(),
+                triangle_instance.get_point_1().get_rgb().get_b(),
+            ),
+        );
+        let new_point_2 = TrianglePoint::<TwoDPoint, Rgb>::new(
+            TwoDPoint::new(
+                triangle_instance.get_point_2().get_x() / x,
+                triangle_instance.get_point_2().get_y() / y,
+            ),
+            Rgb::new(
+                triangle_instance.get_point_2().get_rgb().get_r(),
+                triangle_instance.get_point_2().get_rgb().get_g(),
+                triangle_instance.get_point_2().get_rgb().get_b(),
+            ),
+        );
+        let new_point_3 = TrianglePoint::<TwoDPoint, Rgb>::new(
+            TwoDPoint::new(
+                triangle_instance.get_point_3().get_x() / x,
+                triangle_instance.get_point_3().get_y() / y,
+            ),
+            Rgb::new(
+                triangle_instance.get_point_3().get_rgb().get_r(),
+                triangle_instance.get_point_3().get_rgb().get_g(),
+                triangle_instance.get_point_3().get_rgb().get_b(),
+            ),
+        );
+
+        self.triangle_instance_creator.create_triangle_instance(
+            triangle_instance.get_name().to_string(),
+            triangle_instance.get_content_name().to_string(),
+            triangle_instance.get_scale(),
+            new_position,
+            new_point_1,
+            new_point_2,
+            new_point_3,
+        )
+    }
 }
 
 #[cfg(test)]

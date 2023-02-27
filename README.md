@@ -2,7 +2,7 @@
 
 > :warning: **Early stage WIP**
 
-A modular game engine written in Rust.
+Game engine written in Rust.
 
 ## Running the empty example
 
