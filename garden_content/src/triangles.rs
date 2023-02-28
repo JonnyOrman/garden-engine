@@ -391,8 +391,8 @@ mod tests {
     use mockall::mock;
 
     use crate::{
-        GetContentInstanceData, GetNumberOfObjects, GetNumberOfVertices, GetVertexData, GetX, GetY,
-        Scale,
+        GetContentInstanceData, GetContentName, GetNumberOfObjects, GetNumberOfVertices,
+        GetVertexData, GetX, GetY, Scale,
     };
 
     use crate::triangles::{Triangle, TriangleInstance};

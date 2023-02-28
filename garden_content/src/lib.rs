@@ -508,7 +508,7 @@ mod tests {
 
         let result = two_d_point.get_vertex_data();
 
-        assert_eq!(result, expected_vertex_data);
+        assert_eq!(expected_vertex_data, result);
     }
 
     #[test]
@@ -522,7 +522,7 @@ mod tests {
 
         let result = two_d_point.get_number_of_vertices();
 
-        assert_eq!(result, expected_number_of_vertices);
+        assert_eq!(expected_number_of_vertices, result);
     }
 
     #[test]
@@ -537,94 +537,112 @@ mod tests {
 
         let result = rgb.get_vertex_data();
 
-        assert_eq!(result, expected_vertex_data);
+        assert_eq!(expected_vertex_data, result);
     }
 
     #[test]
     fn when_a_rgb_gets_its_number_of_vertices_then_the_number_of_vertices_is_returned() {
-        let r = 1.0;
-        let g = 0.5;
-        let b = 0.0;
-
         let expected_number_of_vertices = 3;
 
-        let rgb = Rgb::new(r, g, b);
+        let rgb = Rgb::new(0.0, 0.0, 0.0);
 
         let result = rgb.get_number_of_vertices();
 
-        assert_eq!(result, expected_number_of_vertices);
+        assert_eq!(expected_number_of_vertices, result);
     }
 
     #[test]
     fn when_a_triangle_point_gets_its_vertex_data_then_the_vertex_data_is_returned() {
-        let x = 1.0;
-        let y = -0.5;
-        let r = 1.0;
-        let g = 0.5;
-        let b = 0.0;
+        let point = MockVertexObject::new();
 
-        let two_d_point = create_mock_vertex_object(vec![x, y], 0);
+        let rgb = MockVertexObject::new();
 
-        let rgb = create_mock_vertex_object(vec![r, g, b], 0);
+        let number_of_vertices = 0;
 
-        let expected_vertex_data = vec![x, y, r, g, b];
+        let vertex_data = vec![1.0, -0.5, 1.0, 0.5, 0.0];
 
-        let triangle_point =
-            TrianglePoint::<MockVertexObject, MockVertexObject>::new(two_d_point, rgb);
+        let triangle_point = TrianglePoint::<MockVertexObject, MockVertexObject>::new(
+            point,
+            rgb,
+            number_of_vertices,
+            vertex_data.clone(),
+        );
 
         let result = triangle_point.get_vertex_data();
 
-        assert_eq!(result, expected_vertex_data);
+        assert_eq!(vertex_data, result);
     }
 
     #[test]
     fn when_a_triangle_point_gets_its_number_of_vertices_then_the_number_of_vertices_is_returned() {
-        let two_d_point = create_mock_vertex_object(vec![], 2);
+        let point = MockVertexObject::new();
 
-        let rgb = create_mock_vertex_object(vec![], 3);
+        let rgb = MockVertexObject::new();
 
-        let expected_number_of_vertices = 5;
+        let number_of_vertices = 5;
 
-        let triangle_point =
-            TrianglePoint::<MockVertexObject, MockVertexObject>::new(two_d_point, rgb);
+        let vertex_data = vec![];
+
+        let triangle_point = TrianglePoint::<MockVertexObject, MockVertexObject>::new(
+            point,
+            rgb,
+            number_of_vertices,
+            vertex_data,
+        );
 
         let result = triangle_point.get_number_of_vertices();
 
-        assert_eq!(result, expected_number_of_vertices);
+        assert_eq!(number_of_vertices, result);
     }
 
     #[test]
     fn when_a_triangle_point_gets_x_then_point_x_is_returned() {
         let x = 1.23;
 
-        let mut two_d_point = create_mock_vertex_object(vec![], 2);
-        two_d_point.expect_get_x().times(1).returning(move || x);
+        let mut point = MockVertexObject::new();
+        point.expect_get_x().times(1).returning(move || x);
 
-        let rgb = create_mock_vertex_object(vec![], 3);
+        let rgb = MockVertexObject::new();
 
-        let triangle_point =
-            TrianglePoint::<MockVertexObject, MockVertexObject>::new(two_d_point, rgb);
+        let number_of_vertices = 0;
+
+        let vertex_data = vec![];
+
+        let triangle_point = TrianglePoint::<MockVertexObject, MockVertexObject>::new(
+            point,
+            rgb,
+            number_of_vertices,
+            vertex_data,
+        );
 
         let result = triangle_point.get_x();
 
-        assert_eq!(result, x);
+        assert_eq!(x, result);
     }
 
     #[test]
     fn when_a_triangle_point_gets_y_then_point_y_is_returned() {
-        let y = 1.23;
+        let y = 4.56;
 
-        let mut two_d_point = create_mock_vertex_object(vec![], 2);
-        two_d_point.expect_get_y().times(1).returning(move || y);
+        let mut point = MockVertexObject::new();
+        point.expect_get_y().times(1).returning(move || y);
 
-        let rgb = create_mock_vertex_object(vec![], 3);
+        let rgb = MockVertexObject::new();
 
-        let triangle_point =
-            TrianglePoint::<MockVertexObject, MockVertexObject>::new(two_d_point, rgb);
+        let number_of_vertices = 0;
+
+        let vertex_data = vec![];
+
+        let triangle_point = TrianglePoint::<MockVertexObject, MockVertexObject>::new(
+            point,
+            rgb,
+            number_of_vertices,
+            vertex_data,
+        );
 
         let result = triangle_point.get_y();
 
-        assert_eq!(result, y);
+        assert_eq!(y, result);
     }
 
     #[test]
@@ -677,7 +695,7 @@ mod tests {
         let triangle_3_point_3_g = 0.0;
         let triangle_3_point_3_b = 1.0;
 
-        let mut triangle_instance_1 = Box::new(create_mock_vertex_object(
+        let mut triangle_instance_1 = Box::new(create_mock_object_instance_runner(
             vec![
                 triangle_1_point_1_x,
                 triangle_1_point_1_y,
@@ -702,7 +720,7 @@ mod tests {
             .times(1)
             .returning(move || 0);
 
-        let mut triangle_instance_2 = Box::new(create_mock_vertex_object(
+        let mut triangle_instance_2 = Box::new(create_mock_object_instance_runner(
             vec![
                 triangle_2_point_1_x,
                 triangle_2_point_1_y,
@@ -727,7 +745,7 @@ mod tests {
             .times(1)
             .returning(move || 0);
 
-        let mut triangle_instance_3 = Box::new(create_mock_vertex_object(
+        let mut triangle_instance_3 = Box::new(create_mock_object_instance_runner(
             vec![
                 triangle_3_point_1_x,
                 triangle_3_point_1_y,
@@ -816,19 +834,19 @@ mod tests {
 
     #[test]
     fn when_content_gets_its_number_of_vertices_then_the_number_of_vertices_is_returned() {
-        let mut object_instance_1 = create_mock_vertex_object(vec![], 15);
+        let mut object_instance_1 = create_mock_object_instance_runner(vec![], 15);
         object_instance_1
             .expect_get_number_of_objects()
             .times(1)
             .returning(move || 0);
 
-        let mut object_instance_2 = create_mock_vertex_object(vec![], 15);
+        let mut object_instance_2 = create_mock_object_instance_runner(vec![], 15);
         object_instance_2
             .expect_get_number_of_objects()
             .times(1)
             .returning(move || 0);
 
-        let mut object_instance_3 = create_mock_vertex_object(vec![], 15);
+        let mut object_instance_3 = create_mock_object_instance_runner(vec![], 15);
         object_instance_3
             .expect_get_number_of_objects()
             .times(1)
@@ -836,7 +854,7 @@ mod tests {
 
         let objects = vec![];
 
-        let mut object_instances = Vec::<Box<dyn GetContentInstanceData>>::new();
+        let mut object_instances = Vec::<Box<dyn RunObjectInstance>>::new();
         object_instances.push(Box::new(object_instance_1));
         object_instances.push(Box::new(object_instance_2));
         object_instances.push(Box::new(object_instance_3));
@@ -852,19 +870,19 @@ mod tests {
 
     #[test]
     fn when_content_gets_its_number_of_objects_then_the_number_of_objects_is_returned() {
-        let mut object_instance_1 = create_mock_vertex_object(vec![], 0);
+        let mut object_instance_1 = create_mock_object_instance_runner(vec![], 0);
         object_instance_1
             .expect_get_number_of_objects()
             .times(1)
             .returning(move || 1);
 
-        let mut object_instance_2 = create_mock_vertex_object(vec![], 0);
+        let mut object_instance_2 = create_mock_object_instance_runner(vec![], 0);
         object_instance_2
             .expect_get_number_of_objects()
             .times(1)
             .returning(move || 2);
 
-        let mut object_instance_3 = create_mock_vertex_object(vec![], 0);
+        let mut object_instance_3 = create_mock_object_instance_runner(vec![], 0);
         object_instance_3
             .expect_get_number_of_objects()
             .times(1)
@@ -872,7 +890,7 @@ mod tests {
 
         let objects = vec![];
 
-        let mut object_instances = Vec::<Box<dyn GetContentInstanceData>>::new();
+        let mut object_instances = Vec::<Box<dyn RunObjectInstance>>::new();
         object_instances.push(Box::new(object_instance_1));
         object_instances.push(Box::new(object_instance_2));
         object_instances.push(Box::new(object_instance_3));
@@ -954,9 +972,17 @@ mod tests {
         impl RunObjectInstance for ObjectInstanceRunner {}
         impl GetContentInstanceData for ObjectInstanceRunner {}
         impl Scale for ObjectInstanceRunner {
-            fn scale(&self, x: f32, y: f32) {}
+            fn scale(&mut self, x: f32, y: f32) {}
         }
-        impl
+        impl GetNumberOfObjects for ObjectInstanceRunner {
+            fn get_number_of_objects(&self) -> i32;
+        }
+        impl GetNumberOfVertices for ObjectInstanceRunner {
+            fn get_number_of_vertices(&self) -> i32;
+        }
+        impl GetVertexData for ObjectInstanceRunner {
+            fn get_vertex_data(&self) -> Vec<f32>;
+        }
     }
 
     fn create_mock_vertex_object(
@@ -976,5 +1002,21 @@ mod tests {
         triangle_point
     }
 
-    fn create_mock_run_object_instance() -> MockObjectInstanceRunner {}
+    fn create_mock_object_instance_runner(
+        vertex_data: Vec<f32>,
+        number_of_vertices: i32,
+    ) -> MockObjectInstanceRunner {
+        let mut mock_object_instance_runner = MockObjectInstanceRunner::new();
+
+        mock_object_instance_runner
+            .expect_get_vertex_data()
+            .times(1)
+            .returning(move || vertex_data.clone());
+        mock_object_instance_runner
+            .expect_get_number_of_vertices()
+            .times(1)
+            .returning(move || number_of_vertices);
+
+        mock_object_instance_runner
+    }
 }

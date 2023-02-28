@@ -498,6 +498,7 @@ dependencies = [
 name = "garden_scenes_loading"
 version = "0.1.0"
 dependencies = [
+ "garden",
  "garden_json",
  "garden_loading",
  "garden_scenes",

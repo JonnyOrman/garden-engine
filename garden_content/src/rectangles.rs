@@ -606,44 +606,6 @@ mod tests {
         assert_eq!(name, result);
     }
 
-    #[test]
-    fn when_a_rectangle_instance_creator_creates_a_rectangle_instance_then_the_rectangle_instance_is_created(
-    ) {
-        let name = "RectangleInstanceName";
-
-        let content_name = "";
-
-        let scale = 0.0;
-
-        let mut position = MockRectanglePosition::new();
-        position.expect_get_x().times(4).returning(move || 1.23);
-        position.expect_get_y().times(4).returning(move || 4.56);
-
-        let width = 1.23;
-
-        let height = 4.56;
-
-        let mut rgb = MockRectangleRgb::new();
-        rgb.expect_get_r().times(4).returning(move || 1.0);
-        rgb.expect_get_g().times(4).returning(move || 0.0);
-        rgb.expect_get_b().times(4).returning(move || 0.0);
-
-        let rectangle_instance_creator = RectangleInstanceCreator::new();
-
-        let rectangle_instance = rectangle_instance_creator.create_rectangle_instance(
-            name.to_string(),
-            content_name.to_string(),
-            scale,
-            position,
-            width,
-            height,
-            rgb,
-        );
-
-        assert_eq!(name, rectangle_instance.get_name());
-        assert_eq!(30, rectangle_instance.get_number_of_vertices());
-    }
-
     mock! {
         RectangleRgb {}
         impl GetR for RectangleRgb{
