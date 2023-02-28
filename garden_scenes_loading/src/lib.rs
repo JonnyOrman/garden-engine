@@ -74,8 +74,9 @@ pub fn compose_scene_loader(
 mod tests {
     use std::rc::Rc;
 
+    use garden::{GetHeight, GetWidth};
     use garden_json::{ConvertJsonToValue, JsonToF32Converter};
-    use garden_scenes::{GetHeight, GetWidth, TwoDScene};
+    use garden_scenes::TwoDScene;
     use mockall::{mock, predicate};
     use serde_json::{json, Value};
 

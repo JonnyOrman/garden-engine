@@ -5,6 +5,10 @@ use std::rc::Rc;
 
 use garden::GetName;
 
+pub trait GetContentName {
+    fn get_content_name(&self) -> &str;
+}
+
 pub trait GetVertexData {
     fn get_vertex_data(&self) -> Vec<f32>;
 }
@@ -13,14 +17,24 @@ pub trait GetNumberOfVertices {
     fn get_number_of_vertices(&self) -> i32;
 }
 
+pub trait GetScale {
+    fn get_scale(&self) -> f32;
+}
+
 pub trait Scale {
     fn scale(&mut self, x: f32, y: f32);
 }
 
-pub trait GetContentInstanceData:
-    GetVertexData + GetNumberOfVertices + Scale + GetNumberOfObjects
-{
+pub trait ScaleObjectInstance<TObjectInstance> {
+    fn scale_object_instance(
+        &self,
+        object_instance: &TObjectInstance,
+        x: f32,
+        y: f32,
+    ) -> TObjectInstance;
 }
+
+pub trait GetContentInstanceData: GetVertexData + GetNumberOfVertices + GetNumberOfObjects {}
 
 pub trait GetNumberOfObjects {
     fn get_number_of_objects(&self) -> i32;
@@ -81,6 +95,28 @@ impl GetNumberOfVertices for TwoDPoint {
     }
 }
 
+pub trait GetTwoDPointProperties: GetVertexData + GetNumberOfVertices {}
+
+impl GetTwoDPointProperties for TwoDPoint {}
+
+pub trait CreateTwoDPoint<TTwoDPoint> {
+    fn create_two_d_point(&self, x: f32, y: f32) -> TTwoDPoint;
+}
+
+pub struct TwoDPointCreator {}
+
+impl TwoDPointCreator {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl CreateTwoDPoint<TwoDPoint> for TwoDPointCreator {
+    fn create_two_d_point(&self, x: f32, y: f32) -> TwoDPoint {
+        TwoDPoint::new(x, y)
+    }
+}
+
 pub trait GetR {
     fn get_r(&self) -> f32;
 }
@@ -92,6 +128,8 @@ pub trait GetG {
 pub trait GetB {
     fn get_b(&self) -> f32;
 }
+
+pub trait GetRgbValues: GetR + GetG + GetB {}
 
 pub struct Rgb {
     r: f32,
@@ -137,6 +175,30 @@ impl GetNumberOfVertices for Rgb {
     }
 }
 
+pub trait GetRgbProperties: GetRgbValues + GetVertexData + GetNumberOfVertices {}
+
+impl GetRgbValues for Rgb {}
+
+impl GetRgbProperties for Rgb {}
+
+pub trait CreateRgb<TRgb> {
+    fn create_rgb(&self, r: f32, g: f32, b: f32) -> TRgb;
+}
+
+pub struct RgbCreator {}
+
+impl RgbCreator {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl CreateRgb<Rgb> for RgbCreator {
+    fn create_rgb(&self, r: f32, g: f32, b: f32) -> Rgb {
+        Rgb::new(r, g, b)
+    }
+}
+
 pub trait GetRgb<TRgb> {
     fn get_rgb(&self) -> &TRgb;
 }
@@ -153,14 +215,12 @@ impl<
         TRgb: GetVertexData + GetNumberOfVertices,
     > TrianglePoint<TTwoDPoint, TRgb>
 {
-    pub fn new(point: TTwoDPoint, rgb: TRgb) -> Self {
-        let mut vertex_data = vec![];
-
-        vertex_data.append(&mut point.get_vertex_data());
-        vertex_data.append(&mut rgb.get_vertex_data());
-
-        let number_of_vertices = point.get_number_of_vertices() + rgb.get_number_of_vertices();
-
+    pub fn new(
+        point: TTwoDPoint,
+        rgb: TRgb,
+        number_of_vertices: i32,
+        vertex_data: Vec<f32>,
+    ) -> Self {
         Self {
             point,
             rgb,
@@ -194,14 +254,82 @@ impl<TTwoDPoint: GetY, TRgb> GetY for TrianglePoint<TTwoDPoint, TRgb> {
     }
 }
 
+impl<TTwoDPoint: Get2DCoordiantes, TRgb> Get2DCoordiantes for TrianglePoint<TTwoDPoint, TRgb> {}
+
 impl<TTwoDPoint: GetY, TRgb> GetRgb<TRgb> for TrianglePoint<TTwoDPoint, TRgb> {
     fn get_rgb(&self) -> &TRgb {
         &self.rgb
     }
 }
 
-pub trait GetScale {
-    fn get_scale(&self) -> f32;
+impl<TTwoDPoint, TRgb: GetR> GetR for TrianglePoint<TTwoDPoint, TRgb> {
+    fn get_r(&self) -> f32 {
+        self.rgb.get_r()
+    }
+}
+
+impl<TTwoDPoint, TRgb: GetG> GetG for TrianglePoint<TTwoDPoint, TRgb> {
+    fn get_g(&self) -> f32 {
+        self.rgb.get_g()
+    }
+}
+
+impl<TTwoDPoint, TRgb: GetB> GetB for TrianglePoint<TTwoDPoint, TRgb> {
+    fn get_b(&self) -> f32 {
+        self.rgb.get_b()
+    }
+}
+
+impl<TTwoDPoint, TRgb: GetRgbValues> GetRgbValues for TrianglePoint<TTwoDPoint, TRgb> {}
+
+pub trait CreateTrianglePoint<TTrianglePoint> {
+    fn create_triangle_point(&self, x: f32, y: f32, r: f32, g: f32, b: f32) -> TTrianglePoint;
+}
+
+pub struct TrianglePointCreator<TTwoDPointCreator, TRgbCreator> {
+    two_d_point_creator: Rc<TTwoDPointCreator>,
+    rgb_creator: Rc<TRgbCreator>,
+}
+
+impl<TTwoDPointCreator, TRgbCreator> TrianglePointCreator<TTwoDPointCreator, TRgbCreator> {
+    pub fn new(two_d_point_creator: Rc<TTwoDPointCreator>, rgb_creator: Rc<TRgbCreator>) -> Self {
+        Self {
+            two_d_point_creator,
+            rgb_creator,
+        }
+    }
+}
+
+impl<
+        TTwoDPointCreator: CreateTwoDPoint<TTwoDPoint>,
+        TRgbCreator: CreateRgb<TRgb>,
+        TTwoDPoint: GetTwoDPointProperties,
+        TRgb: GetRgbProperties,
+    > CreateTrianglePoint<TrianglePoint<TTwoDPoint, TRgb>>
+    for TrianglePointCreator<TTwoDPointCreator, TRgbCreator>
+{
+    fn create_triangle_point(
+        &self,
+        x: f32,
+        y: f32,
+        r: f32,
+        g: f32,
+        b: f32,
+    ) -> TrianglePoint<TTwoDPoint, TRgb> {
+        let two_d_point = self.two_d_point_creator.create_two_d_point(x, y);
+
+        let rgb = self.rgb_creator.create_rgb(r, g, b);
+
+        let mut vertex_data = vec![];
+
+        vertex_data.append(&mut two_d_point.get_vertex_data());
+        vertex_data.append(&mut rgb.get_vertex_data());
+
+        let number_of_vertices =
+            two_d_point.get_number_of_vertices() + rgb.get_number_of_vertices();
+
+        TrianglePoint::new(two_d_point, rgb, number_of_vertices, vertex_data)
+    }
 }
 
 pub trait GetPosition<TPosition> {
@@ -210,7 +338,7 @@ pub trait GetPosition<TPosition> {
 
 pub struct Content {
     objects: Option<Vec<Rc<Box<dyn GetName>>>>,
-    object_instances: Option<Vec<Box<dyn GetContentInstanceData>>>,
+    object_instance_runners: Option<Vec<Box<dyn RunObjectInstance>>>,
     vertex_data: Vec<f32>,
     number_of_vertices: i32,
     number_of_objects: i32,
@@ -219,7 +347,7 @@ pub struct Content {
 impl Content {
     pub fn new(
         objects: Vec<Rc<Box<dyn GetName>>>,
-        object_instances: Vec<Box<dyn GetContentInstanceData>>,
+        object_instance_runners: Vec<Box<dyn RunObjectInstance>>,
     ) -> Self {
         let mut number_of_vertices = 0;
 
@@ -227,7 +355,7 @@ impl Content {
 
         let mut number_of_objects = 0;
 
-        for object_instance in object_instances.iter() {
+        for object_instance in object_instance_runners.iter() {
             number_of_vertices += object_instance.get_number_of_vertices();
             vertex_data.append(&mut object_instance.get_vertex_data());
             number_of_objects += object_instance.get_number_of_objects();
@@ -235,7 +363,7 @@ impl Content {
 
         Self {
             objects: Some(objects),
-            object_instances: Some(object_instances),
+            object_instance_runners: Some(object_instance_runners),
             vertex_data,
             number_of_vertices,
             number_of_objects,
@@ -246,28 +374,24 @@ impl Content {
         &self.objects
     }
 
-    pub fn get_object_instances(&self) -> &Option<Vec<Box<dyn GetContentInstanceData>>> {
-        &self.object_instances
-    }
-
     pub fn scale_object_instances(&mut self, x: f32, y: f32) {
-        let mut new_object_instances = Vec::<Box<dyn GetContentInstanceData>>::new();
+        let mut new_object_instance_runners = Vec::<Box<dyn RunObjectInstance>>::new();
 
         let mut new_vertex_data = vec![];
 
-        let mut i = self.object_instances.as_ref().unwrap().len();
+        let mut i = self.object_instance_runners.as_ref().unwrap().len();
 
-        let mut object_instances = self.object_instances.take().unwrap();
+        let mut object_instance_runners = self.object_instance_runners.take().unwrap();
 
         while i > 0 {
-            let mut t = object_instances.remove(i - 1);
+            let mut t = object_instance_runners.remove(i - 1);
             t.scale(x, y);
             new_vertex_data.append(&mut t.get_vertex_data());
-            new_object_instances.push(t);
+            new_object_instance_runners.push(t);
             i = i - 1;
         }
 
-        self.object_instances = Some(new_object_instances);
+        self.object_instance_runners = Some(new_object_instance_runners);
 
         self.vertex_data = new_vertex_data;
     }
@@ -297,13 +421,80 @@ impl GetVertexDataPtr for Content {
     }
 }
 
+pub trait RunObjectInstance: GetContentInstanceData + Scale {}
+
+pub struct ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler> {
+    object_instance: TObjectInstance,
+    object_instance_scaler: TObjectInstanceScaler,
+}
+
+impl<TObjectInstance, TObjectInstanceScaler>
+    ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler>
+{
+    pub fn new(
+        object_instance: TObjectInstance,
+        object_instance_scaler: TObjectInstanceScaler,
+    ) -> Self {
+        Self {
+            object_instance,
+            object_instance_scaler,
+        }
+    }
+}
+
+impl<TObjectInstance, TObjectInstanceScaler: ScaleObjectInstance<TObjectInstance>> Scale
+    for ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler>
+{
+    fn scale(&mut self, x: f32, y: f32) {
+        self.object_instance =
+            self.object_instance_scaler
+                .scale_object_instance(&self.object_instance, x, y);
+    }
+}
+
+impl<TObjectInstance: GetNumberOfObjects, TObjectInstanceScaler> GetNumberOfObjects
+    for ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler>
+{
+    fn get_number_of_objects(&self) -> i32 {
+        self.object_instance.get_number_of_objects()
+    }
+}
+
+impl<TObjectInstance: GetNumberOfVertices, TObjectInstanceScaler> GetNumberOfVertices
+    for ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler>
+{
+    fn get_number_of_vertices(&self) -> i32 {
+        self.object_instance.get_number_of_vertices()
+    }
+}
+
+impl<TObjectInstance: GetVertexData, TObjectInstanceScaler> GetVertexData
+    for ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler>
+{
+    fn get_vertex_data(&self) -> Vec<f32> {
+        self.object_instance.get_vertex_data()
+    }
+}
+
+impl<TObjectInstance: GetContentInstanceData, TObjectInstanceScaler> GetContentInstanceData
+    for ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler>
+{
+}
+
+impl<
+        TObjectInstance: GetContentInstanceData,
+        TObjectInstanceScaler: ScaleObjectInstance<TObjectInstance>,
+    > RunObjectInstance for ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler>
+{
+}
+
 #[cfg(test)]
 mod tests {
     use mockall::mock;
 
     use crate::{
         Content, GetContentInstanceData, GetNumberOfObjects, GetNumberOfVertices, GetVertexData,
-        GetX, GetY, Rgb, Scale, TrianglePoint, TwoDPoint,
+        GetX, GetY, Rgb, RunObjectInstance, Scale, TrianglePoint, TwoDPoint,
     };
 
     #[test]
@@ -317,7 +508,7 @@ mod tests {
 
         let result = two_d_point.get_vertex_data();
 
-        assert_eq!(result, expected_vertex_data);
+        assert_eq!(expected_vertex_data, result);
     }
 
     #[test]
@@ -331,7 +522,7 @@ mod tests {
 
         let result = two_d_point.get_number_of_vertices();
 
-        assert_eq!(result, expected_number_of_vertices);
+        assert_eq!(expected_number_of_vertices, result);
     }
 
     #[test]
@@ -346,94 +537,112 @@ mod tests {
 
         let result = rgb.get_vertex_data();
 
-        assert_eq!(result, expected_vertex_data);
+        assert_eq!(expected_vertex_data, result);
     }
 
     #[test]
     fn when_a_rgb_gets_its_number_of_vertices_then_the_number_of_vertices_is_returned() {
-        let r = 1.0;
-        let g = 0.5;
-        let b = 0.0;
-
         let expected_number_of_vertices = 3;
 
-        let rgb = Rgb::new(r, g, b);
+        let rgb = Rgb::new(0.0, 0.0, 0.0);
 
         let result = rgb.get_number_of_vertices();
 
-        assert_eq!(result, expected_number_of_vertices);
+        assert_eq!(expected_number_of_vertices, result);
     }
 
     #[test]
     fn when_a_triangle_point_gets_its_vertex_data_then_the_vertex_data_is_returned() {
-        let x = 1.0;
-        let y = -0.5;
-        let r = 1.0;
-        let g = 0.5;
-        let b = 0.0;
+        let point = MockVertexObject::new();
 
-        let two_d_point = create_mock_vertex_object(vec![x, y], 0);
+        let rgb = MockVertexObject::new();
 
-        let rgb = create_mock_vertex_object(vec![r, g, b], 0);
+        let number_of_vertices = 0;
 
-        let expected_vertex_data = vec![x, y, r, g, b];
+        let vertex_data = vec![1.0, -0.5, 1.0, 0.5, 0.0];
 
-        let triangle_point =
-            TrianglePoint::<MockVertexObject, MockVertexObject>::new(two_d_point, rgb);
+        let triangle_point = TrianglePoint::<MockVertexObject, MockVertexObject>::new(
+            point,
+            rgb,
+            number_of_vertices,
+            vertex_data.clone(),
+        );
 
         let result = triangle_point.get_vertex_data();
 
-        assert_eq!(result, expected_vertex_data);
+        assert_eq!(vertex_data, result);
     }
 
     #[test]
     fn when_a_triangle_point_gets_its_number_of_vertices_then_the_number_of_vertices_is_returned() {
-        let two_d_point = create_mock_vertex_object(vec![], 2);
+        let point = MockVertexObject::new();
 
-        let rgb = create_mock_vertex_object(vec![], 3);
+        let rgb = MockVertexObject::new();
 
-        let expected_number_of_vertices = 5;
+        let number_of_vertices = 5;
 
-        let triangle_point =
-            TrianglePoint::<MockVertexObject, MockVertexObject>::new(two_d_point, rgb);
+        let vertex_data = vec![];
+
+        let triangle_point = TrianglePoint::<MockVertexObject, MockVertexObject>::new(
+            point,
+            rgb,
+            number_of_vertices,
+            vertex_data,
+        );
 
         let result = triangle_point.get_number_of_vertices();
 
-        assert_eq!(result, expected_number_of_vertices);
+        assert_eq!(number_of_vertices, result);
     }
 
     #[test]
     fn when_a_triangle_point_gets_x_then_point_x_is_returned() {
         let x = 1.23;
 
-        let mut two_d_point = create_mock_vertex_object(vec![], 2);
-        two_d_point.expect_get_x().times(1).returning(move || x);
+        let mut point = MockVertexObject::new();
+        point.expect_get_x().times(1).returning(move || x);
 
-        let rgb = create_mock_vertex_object(vec![], 3);
+        let rgb = MockVertexObject::new();
 
-        let triangle_point =
-            TrianglePoint::<MockVertexObject, MockVertexObject>::new(two_d_point, rgb);
+        let number_of_vertices = 0;
+
+        let vertex_data = vec![];
+
+        let triangle_point = TrianglePoint::<MockVertexObject, MockVertexObject>::new(
+            point,
+            rgb,
+            number_of_vertices,
+            vertex_data,
+        );
 
         let result = triangle_point.get_x();
 
-        assert_eq!(result, x);
+        assert_eq!(x, result);
     }
 
     #[test]
     fn when_a_triangle_point_gets_y_then_point_y_is_returned() {
-        let y = 1.23;
+        let y = 4.56;
 
-        let mut two_d_point = create_mock_vertex_object(vec![], 2);
-        two_d_point.expect_get_y().times(1).returning(move || y);
+        let mut point = MockVertexObject::new();
+        point.expect_get_y().times(1).returning(move || y);
 
-        let rgb = create_mock_vertex_object(vec![], 3);
+        let rgb = MockVertexObject::new();
 
-        let triangle_point =
-            TrianglePoint::<MockVertexObject, MockVertexObject>::new(two_d_point, rgb);
+        let number_of_vertices = 0;
+
+        let vertex_data = vec![];
+
+        let triangle_point = TrianglePoint::<MockVertexObject, MockVertexObject>::new(
+            point,
+            rgb,
+            number_of_vertices,
+            vertex_data,
+        );
 
         let result = triangle_point.get_y();
 
-        assert_eq!(result, y);
+        assert_eq!(y, result);
     }
 
     #[test]
@@ -486,7 +695,7 @@ mod tests {
         let triangle_3_point_3_g = 0.0;
         let triangle_3_point_3_b = 1.0;
 
-        let mut triangle_instance_1 = Box::new(create_mock_vertex_object(
+        let mut triangle_instance_1 = Box::new(create_mock_object_instance_runner(
             vec![
                 triangle_1_point_1_x,
                 triangle_1_point_1_y,
@@ -511,7 +720,7 @@ mod tests {
             .times(1)
             .returning(move || 0);
 
-        let mut triangle_instance_2 = Box::new(create_mock_vertex_object(
+        let mut triangle_instance_2 = Box::new(create_mock_object_instance_runner(
             vec![
                 triangle_2_point_1_x,
                 triangle_2_point_1_y,
@@ -536,7 +745,7 @@ mod tests {
             .times(1)
             .returning(move || 0);
 
-        let mut triangle_instance_3 = Box::new(create_mock_vertex_object(
+        let mut triangle_instance_3 = Box::new(create_mock_object_instance_runner(
             vec![
                 triangle_3_point_1_x,
                 triangle_3_point_1_y,
@@ -563,7 +772,7 @@ mod tests {
 
         let objects = vec![];
 
-        let mut object_instances = Vec::<Box<dyn GetContentInstanceData>>::new();
+        let mut object_instances = Vec::<Box<dyn RunObjectInstance>>::new();
         object_instances.push(triangle_instance_1);
         object_instances.push(triangle_instance_2);
         object_instances.push(triangle_instance_3);
@@ -625,19 +834,19 @@ mod tests {
 
     #[test]
     fn when_content_gets_its_number_of_vertices_then_the_number_of_vertices_is_returned() {
-        let mut object_instance_1 = create_mock_vertex_object(vec![], 15);
+        let mut object_instance_1 = create_mock_object_instance_runner(vec![], 15);
         object_instance_1
             .expect_get_number_of_objects()
             .times(1)
             .returning(move || 0);
 
-        let mut object_instance_2 = create_mock_vertex_object(vec![], 15);
+        let mut object_instance_2 = create_mock_object_instance_runner(vec![], 15);
         object_instance_2
             .expect_get_number_of_objects()
             .times(1)
             .returning(move || 0);
 
-        let mut object_instance_3 = create_mock_vertex_object(vec![], 15);
+        let mut object_instance_3 = create_mock_object_instance_runner(vec![], 15);
         object_instance_3
             .expect_get_number_of_objects()
             .times(1)
@@ -645,7 +854,7 @@ mod tests {
 
         let objects = vec![];
 
-        let mut object_instances = Vec::<Box<dyn GetContentInstanceData>>::new();
+        let mut object_instances = Vec::<Box<dyn RunObjectInstance>>::new();
         object_instances.push(Box::new(object_instance_1));
         object_instances.push(Box::new(object_instance_2));
         object_instances.push(Box::new(object_instance_3));
@@ -661,19 +870,19 @@ mod tests {
 
     #[test]
     fn when_content_gets_its_number_of_objects_then_the_number_of_objects_is_returned() {
-        let mut object_instance_1 = create_mock_vertex_object(vec![], 0);
+        let mut object_instance_1 = create_mock_object_instance_runner(vec![], 0);
         object_instance_1
             .expect_get_number_of_objects()
             .times(1)
             .returning(move || 1);
 
-        let mut object_instance_2 = create_mock_vertex_object(vec![], 0);
+        let mut object_instance_2 = create_mock_object_instance_runner(vec![], 0);
         object_instance_2
             .expect_get_number_of_objects()
             .times(1)
             .returning(move || 2);
 
-        let mut object_instance_3 = create_mock_vertex_object(vec![], 0);
+        let mut object_instance_3 = create_mock_object_instance_runner(vec![], 0);
         object_instance_3
             .expect_get_number_of_objects()
             .times(1)
@@ -681,7 +890,7 @@ mod tests {
 
         let objects = vec![];
 
-        let mut object_instances = Vec::<Box<dyn GetContentInstanceData>>::new();
+        let mut object_instances = Vec::<Box<dyn RunObjectInstance>>::new();
         object_instances.push(Box::new(object_instance_1));
         object_instances.push(Box::new(object_instance_2));
         object_instances.push(Box::new(object_instance_3));
@@ -693,30 +902,6 @@ mod tests {
         let result = content.get_number_of_objects();
 
         assert_eq!(result, expected_number_of_objects);
-    }
-
-    mock! {
-        VertexObject {}
-        impl GetVertexData for VertexObject {
-            fn get_vertex_data(&self) -> Vec<f32>;
-        }
-        impl GetNumberOfVertices for VertexObject {
-            fn get_number_of_vertices(&self) -> i32;
-        }
-        impl Scale for VertexObject {
-            fn scale(&mut self, x: f32, y: f32);
-        }
-        impl GetNumberOfObjects for VertexObject {
-            fn get_number_of_objects(&self) -> i32;
-        }
-        impl GetContentInstanceData for VertexObject {
-        }
-        impl GetX for VertexObject {
-            fn get_x(&self) -> f32;
-        }
-        impl GetY for VertexObject {
-            fn get_y(&self) -> f32;
-        }
     }
 
     #[test]
@@ -758,6 +943,48 @@ mod tests {
         assert_eq!(result, [x, y]);
     }
 
+    mock! {
+        VertexObject {}
+        impl GetVertexData for VertexObject {
+            fn get_vertex_data(&self) -> Vec<f32>;
+        }
+        impl GetNumberOfVertices for VertexObject {
+            fn get_number_of_vertices(&self) -> i32;
+        }
+        impl Scale for VertexObject {
+            fn scale(&mut self, x: f32, y: f32);
+        }
+        impl GetNumberOfObjects for VertexObject {
+            fn get_number_of_objects(&self) -> i32;
+        }
+        impl GetContentInstanceData for VertexObject {
+        }
+        impl GetX for VertexObject {
+            fn get_x(&self) -> f32;
+        }
+        impl GetY for VertexObject {
+            fn get_y(&self) -> f32;
+        }
+    }
+
+    mock! {
+        ObjectInstanceRunner {}
+        impl RunObjectInstance for ObjectInstanceRunner {}
+        impl GetContentInstanceData for ObjectInstanceRunner {}
+        impl Scale for ObjectInstanceRunner {
+            fn scale(&mut self, x: f32, y: f32) {}
+        }
+        impl GetNumberOfObjects for ObjectInstanceRunner {
+            fn get_number_of_objects(&self) -> i32;
+        }
+        impl GetNumberOfVertices for ObjectInstanceRunner {
+            fn get_number_of_vertices(&self) -> i32;
+        }
+        impl GetVertexData for ObjectInstanceRunner {
+            fn get_vertex_data(&self) -> Vec<f32>;
+        }
+    }
+
     fn create_mock_vertex_object(
         vertex_data: Vec<f32>,
         number_of_vertices: i32,
@@ -773,5 +1000,23 @@ mod tests {
             .returning(move || number_of_vertices);
 
         triangle_point
+    }
+
+    fn create_mock_object_instance_runner(
+        vertex_data: Vec<f32>,
+        number_of_vertices: i32,
+    ) -> MockObjectInstanceRunner {
+        let mut mock_object_instance_runner = MockObjectInstanceRunner::new();
+
+        mock_object_instance_runner
+            .expect_get_vertex_data()
+            .times(1)
+            .returning(move || vertex_data.clone());
+        mock_object_instance_runner
+            .expect_get_number_of_vertices()
+            .times(1)
+            .returning(move || number_of_vertices);
+
+        mock_object_instance_runner
     }
 }

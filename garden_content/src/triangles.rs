@@ -1,9 +1,29 @@
+use std::rc::Rc;
+
 use garden::GetName;
 
 use crate::{
-    GetB, GetContentInstanceData, GetG, GetNumberOfObjects, GetNumberOfVertices, GetPosition, GetR,
-    GetRgb, GetScale, GetVertexData, GetX, GetY, Rgb, Scale, TrianglePoint, TwoDPoint,
+    CreateTrianglePoint, GetB, GetContentInstanceData, GetContentName, GetG, GetNumberOfObjects,
+    GetNumberOfVertices, GetPosition, GetR, GetRgb, GetScale, GetVertexData, GetX, GetY, Rgb,
+    ScaleObjectInstance, TrianglePoint, TwoDPoint,
 };
+
+pub trait GetPoint1<TPoint> {
+    fn get_point_1(&self) -> &TPoint;
+}
+
+pub trait GetPoint2<TPoint> {
+    fn get_point_2(&self) -> &TPoint;
+}
+
+pub trait GetPoint3<TPoint> {
+    fn get_point_3(&self) -> &TPoint;
+}
+
+pub trait GetTrianglePoints<TPoint>:
+    GetPoint1<TPoint> + GetPoint2<TPoint> + GetPoint3<TPoint>
+{
+}
 
 pub struct Triangle<TTrianglePoint> {
     name: String,
@@ -115,7 +135,7 @@ impl<TTrianglePoint: GetVertexData + GetNumberOfVertices> CreateTriangle<TTriang
 
 pub struct TriangleInstance<TPosition, TTrianglePoint> {
     name: String,
-    contentName: String,
+    content_name: String,
     scale: f32,
     position: TPosition,
     point_1: TTrianglePoint,
@@ -128,7 +148,7 @@ pub struct TriangleInstance<TPosition, TTrianglePoint> {
 impl<TPosition, TTrianglePoint> TriangleInstance<TPosition, TTrianglePoint> {
     pub fn new(
         name: String,
-        contentName: String,
+        content_name: String,
         scale: f32,
         position: TPosition,
         point_1: TTrianglePoint,
@@ -139,7 +159,7 @@ impl<TPosition, TTrianglePoint> TriangleInstance<TPosition, TTrianglePoint> {
     ) -> Self {
         Self {
             name,
-            contentName,
+            content_name,
             scale,
             position,
             point_1,
@@ -149,22 +169,6 @@ impl<TPosition, TTrianglePoint> TriangleInstance<TPosition, TTrianglePoint> {
             vertex_data,
         }
     }
-
-    pub fn get_content_name(&self) -> &str {
-        &self.contentName
-    }
-
-    pub fn get_point_1(&self) -> &TTrianglePoint {
-        &self.point_1
-    }
-
-    pub fn get_point_2(&self) -> &TTrianglePoint {
-        &self.point_2
-    }
-
-    pub fn get_point_3(&self) -> &TTrianglePoint {
-        &self.point_3
-    }
 }
 
 impl<TPosition, TTrianglePoint> GetName for TriangleInstance<TPosition, TTrianglePoint> {
@@ -173,10 +177,45 @@ impl<TPosition, TTrianglePoint> GetName for TriangleInstance<TPosition, TTriangl
     }
 }
 
+impl<TPosition, TTrianglePoint> GetContentName for TriangleInstance<TPosition, TTrianglePoint> {
+    fn get_content_name(&self) -> &str {
+        &self.content_name
+    }
+}
+
 impl<TPosition, TTrianglePoint> GetScale for TriangleInstance<TPosition, TTrianglePoint> {
     fn get_scale(&self) -> f32 {
         self.scale
     }
+}
+
+impl<TPosition, TTrianglePoint> GetPoint1<TTrianglePoint>
+    for TriangleInstance<TPosition, TTrianglePoint>
+{
+    fn get_point_1(&self) -> &TTrianglePoint {
+        &self.point_1
+    }
+}
+
+impl<TPosition, TTrianglePoint> GetPoint2<TTrianglePoint>
+    for TriangleInstance<TPosition, TTrianglePoint>
+{
+    fn get_point_2(&self) -> &TTrianglePoint {
+        &self.point_2
+    }
+}
+
+impl<TPosition, TTrianglePoint> GetPoint3<TTrianglePoint>
+    for TriangleInstance<TPosition, TTrianglePoint>
+{
+    fn get_point_3(&self) -> &TTrianglePoint {
+        &self.point_3
+    }
+}
+
+impl<TPosition, TTrianglePoint> GetTrianglePoints<TTrianglePoint>
+    for TriangleInstance<TPosition, TTrianglePoint>
+{
 }
 
 impl<TPosition, TTrianglePoint> GetPosition<TPosition>
@@ -201,61 +240,6 @@ impl<TPosition, TTrianglePoint> GetNumberOfVertices
     }
 }
 
-impl Scale for TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>> {
-    fn scale(&mut self, x: f32, y: f32) {
-        let new_position = TwoDPoint::new(
-            self.get_position().get_x() / x,
-            self.get_position().get_y() / y,
-        );
-        let new_point_1 = TrianglePoint::<TwoDPoint, Rgb>::new(
-            TwoDPoint::new(
-                self.get_point_1().get_x() / x,
-                self.get_point_1().get_y() / y,
-            ),
-            Rgb::new(
-                self.get_point_1().get_rgb().get_r(),
-                self.get_point_1().get_rgb().get_g(),
-                self.get_point_1().get_rgb().get_b(),
-            ),
-        );
-        let new_point_2 = TrianglePoint::<TwoDPoint, Rgb>::new(
-            TwoDPoint::new(
-                self.get_point_2().get_x() / x,
-                self.get_point_2().get_y() / y,
-            ),
-            Rgb::new(
-                self.get_point_2().get_rgb().get_r(),
-                self.get_point_2().get_rgb().get_g(),
-                self.get_point_2().get_rgb().get_b(),
-            ),
-        );
-        let new_point_3 = TrianglePoint::<TwoDPoint, Rgb>::new(
-            TwoDPoint::new(
-                self.get_point_3().get_x() / x,
-                self.get_point_3().get_y() / y,
-            ),
-            Rgb::new(
-                self.get_point_3().get_rgb().get_r(),
-                self.get_point_3().get_rgb().get_g(),
-                self.get_point_3().get_rgb().get_b(),
-            ),
-        );
-
-        let mut new_vertex_data = vec![];
-
-        new_vertex_data.append(&mut new_point_1.get_vertex_data().clone());
-        new_vertex_data.append(&mut new_point_2.get_vertex_data().clone());
-        new_vertex_data.append(&mut new_point_3.get_vertex_data().clone());
-
-        self.position = new_position;
-        self.point_1 = new_point_1;
-        self.point_2 = new_point_2;
-        self.point_3 = new_point_3;
-
-        self.vertex_data = new_vertex_data;
-    }
-}
-
 impl GetNumberOfObjects for TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>> {
     fn get_number_of_objects(&self) -> i32 {
         1
@@ -264,7 +248,7 @@ impl GetNumberOfObjects for TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint,
 
 impl GetContentInstanceData for TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>> {}
 
-pub trait CreateTriangleInstance<TPosition, TTrianglePoint> {
+pub trait CreateTriangleInstance<TPosition, TTrianglePoint, TTriangleInstance> {
     fn create_triangle_instance(
         &self,
         name: String,
@@ -274,7 +258,7 @@ pub trait CreateTriangleInstance<TPosition, TTrianglePoint> {
         point_1: TTrianglePoint,
         point_2: TTrianglePoint,
         point_3: TTrianglePoint,
-    ) -> TriangleInstance<TPosition, TTrianglePoint>;
+    ) -> TTriangleInstance;
 }
 
 pub struct TriangleInstanceCreator {}
@@ -286,7 +270,8 @@ impl TriangleInstanceCreator {
 }
 
 impl<TPosition, TTrianglePoint: GetVertexData + GetNumberOfVertices>
-    CreateTriangleInstance<TPosition, TTrianglePoint> for TriangleInstanceCreator
+    CreateTriangleInstance<TPosition, TTrianglePoint, TriangleInstance<TPosition, TTrianglePoint>>
+    for TriangleInstanceCreator
 {
     fn create_triangle_instance(
         &self,
@@ -322,14 +307,92 @@ impl<TPosition, TTrianglePoint: GetVertexData + GetNumberOfVertices>
     }
 }
 
+pub struct TriangleInstanceScaler<TTriangleInstanceCreator, TTrianglePointCreator> {
+    triangle_instance_creator: Rc<TTriangleInstanceCreator>,
+    triangle_point_creator: Rc<TTrianglePointCreator>,
+}
+
+impl<TTriangleInstanceCreator, TTrianglePointCreator>
+    TriangleInstanceScaler<TTriangleInstanceCreator, TTrianglePointCreator>
+{
+    pub fn new(
+        triangle_instance_creator: Rc<TTriangleInstanceCreator>,
+        triangle_point_creator: Rc<TTrianglePointCreator>,
+    ) -> Self {
+        Self {
+            triangle_instance_creator,
+            triangle_point_creator,
+        }
+    }
+}
+
+impl<
+        TTriangleInstanceCreator: CreateTriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>, TTriangleInstance>,
+        TTrianglePointCreator: CreateTrianglePoint<TrianglePoint<TwoDPoint, Rgb>>,
+        TTriangleInstance: GetContentInstanceData
+            + GetPosition<TwoDPoint>
+            + GetTrianglePoints<TrianglePoint<TwoDPoint, Rgb>>
+            + GetName
+            + GetContentName
+            + GetScale,
+    > ScaleObjectInstance<TTriangleInstance>
+    for TriangleInstanceScaler<TTriangleInstanceCreator, TTrianglePointCreator>
+{
+    fn scale_object_instance(
+        &self,
+        triangle_instance: &TTriangleInstance,
+        x: f32,
+        y: f32,
+    ) -> TTriangleInstance {
+        let new_position = TwoDPoint::new(
+            triangle_instance.get_position().get_x() / x,
+            triangle_instance.get_position().get_y() / y,
+        );
+
+        let new_point_1 = self.triangle_point_creator.create_triangle_point(
+            triangle_instance.get_point_1().get_x() / x,
+            triangle_instance.get_point_1().get_y() / y,
+            triangle_instance.get_point_1().get_rgb().get_r(),
+            triangle_instance.get_point_1().get_rgb().get_g(),
+            triangle_instance.get_point_1().get_rgb().get_b(),
+        );
+
+        let new_point_2 = self.triangle_point_creator.create_triangle_point(
+            triangle_instance.get_point_2().get_x() / x,
+            triangle_instance.get_point_2().get_y() / y,
+            triangle_instance.get_point_2().get_rgb().get_r(),
+            triangle_instance.get_point_2().get_rgb().get_g(),
+            triangle_instance.get_point_2().get_rgb().get_b(),
+        );
+
+        let new_point_3 = self.triangle_point_creator.create_triangle_point(
+            triangle_instance.get_point_3().get_x() / x,
+            triangle_instance.get_point_3().get_y() / y,
+            triangle_instance.get_point_3().get_rgb().get_r(),
+            triangle_instance.get_point_3().get_rgb().get_g(),
+            triangle_instance.get_point_3().get_rgb().get_b(),
+        );
+
+        self.triangle_instance_creator.create_triangle_instance(
+            triangle_instance.get_name().to_string(),
+            triangle_instance.get_content_name().to_string(),
+            triangle_instance.get_scale(),
+            new_position,
+            new_point_1,
+            new_point_2,
+            new_point_3,
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use garden::GetName;
     use mockall::mock;
 
     use crate::{
-        GetContentInstanceData, GetNumberOfObjects, GetNumberOfVertices, GetVertexData, GetX, GetY,
-        Scale,
+        GetContentInstanceData, GetContentName, GetNumberOfObjects, GetNumberOfVertices,
+        GetVertexData, GetX, GetY, Scale,
     };
 
     use crate::triangles::{Triangle, TriangleInstance};
