@@ -305,6 +305,71 @@ impl GetVertexDataPtr for Content {
 
 pub trait RunObjectInstance: GetContentInstanceData + Scale {}
 
+pub struct ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler> {
+    object_instance: TObjectInstance,
+    object_instance_scaler: TObjectInstanceScaler,
+}
+
+impl<TObjectInstance, TObjectInstanceScaler>
+    ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler>
+{
+    pub fn new(
+        object_instance: TObjectInstance,
+        object_instance_scaler: TObjectInstanceScaler,
+    ) -> Self {
+        Self {
+            object_instance,
+            object_instance_scaler,
+        }
+    }
+}
+
+impl<TObjectInstance, TObjectInstanceScaler: ScaleObjectInstance<TObjectInstance>> Scale
+    for ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler>
+{
+    fn scale(&mut self, x: f32, y: f32) {
+        self.object_instance =
+            self.object_instance_scaler
+                .scale_object_instance(&self.object_instance, x, y);
+    }
+}
+
+impl<TObjectInstance: GetNumberOfObjects, TObjectInstanceScaler> GetNumberOfObjects
+    for ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler>
+{
+    fn get_number_of_objects(&self) -> i32 {
+        self.object_instance.get_number_of_objects()
+    }
+}
+
+impl<TObjectInstance: GetNumberOfVertices, TObjectInstanceScaler> GetNumberOfVertices
+    for ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler>
+{
+    fn get_number_of_vertices(&self) -> i32 {
+        self.object_instance.get_number_of_vertices()
+    }
+}
+
+impl<TObjectInstance: GetVertexData, TObjectInstanceScaler> GetVertexData
+    for ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler>
+{
+    fn get_vertex_data(&self) -> Vec<f32> {
+        self.object_instance.get_vertex_data()
+    }
+}
+
+impl<TObjectInstance: GetContentInstanceData, TObjectInstanceScaler> GetContentInstanceData
+    for ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler>
+{
+}
+
+impl<
+        TObjectInstance: GetContentInstanceData,
+        TObjectInstanceScaler: ScaleObjectInstance<TObjectInstance>,
+    > RunObjectInstance for ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler>
+{
+}
+
 #[cfg(test)]
 mod tests {
     use mockall::mock;
