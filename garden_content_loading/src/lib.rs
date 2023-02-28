@@ -8,8 +8,9 @@ use garden_content::{
         CreateTriangle, CreateTriangleInstance, Triangle, TriangleCreator, TriangleInstance,
         TriangleInstanceCreator, TriangleInstanceScaler,
     },
-    Content, GetB, GetG, GetR, GetRgb, GetX, GetY, ObjectInstanceRunner, Rgb, RunObjectInstance,
-    TrianglePoint, TwoDPoint,
+    Content, CreateTrianglePoint, GetB, GetG, GetNumberOfVertices, GetR, GetRgb, GetVertexData,
+    GetX, GetY, ObjectInstanceRunner, Rgb, RgbCreator, RunObjectInstance, TrianglePoint,
+    TrianglePointCreator, TwoDPoint, TwoDPointCreator,
 };
 use garden_json::{ConvertJsonToValue, JsonToF32Converter, JsonToStringConverter};
 use garden_loading::Load;
@@ -274,12 +275,14 @@ pub struct JsonToTriangleInstanceConverter<
     TJsonToTrianglePointConverter,
     TJsonToF32Converter,
     TTriangleInstanceCreator,
+    TTrianglePointCreator,
 > {
     json_to_string_converter: Rc<TJsonToStringConverter>,
     json_to_two_d_point_converter: Rc<TJsonToTwoDPointConverter>,
     json_to_triangle_point_converter: Rc<TJsonToTrianglePointConverter>,
     json_to_f32_converter: Rc<TJsonToF32Converter>,
     triangle_instance_creator: TTriangleInstanceCreator,
+    triangle_point_creator: TTrianglePointCreator,
 }
 
 impl<
@@ -288,6 +291,7 @@ impl<
         TJsonToTrianglePointConverter,
         TJsonToF32Converter,
         TTriangleInstanceCreator,
+        TTrianglePointCreator,
     >
     JsonToTriangleInstanceConverter<
         TJsonToStringConverter,
@@ -295,6 +299,7 @@ impl<
         TJsonToTrianglePointConverter,
         TJsonToF32Converter,
         TTriangleInstanceCreator,
+        TTrianglePointCreator,
     >
 {
     fn new(
@@ -303,6 +308,7 @@ impl<
         json_to_triangle_point_converter: Rc<TJsonToTrianglePointConverter>,
         json_to_f32_converter: Rc<TJsonToF32Converter>,
         triangle_instance_creator: TTriangleInstanceCreator,
+        triangle_point_creator: TTrianglePointCreator,
     ) -> Self {
         Self {
             json_to_string_converter,
@@ -310,6 +316,7 @@ impl<
             json_to_triangle_point_converter,
             json_to_f32_converter,
             triangle_instance_creator,
+            triangle_point_creator,
         }
     }
 }
@@ -320,6 +327,7 @@ impl<
         TJsonToTrianglePointConverter: ConvertJsonToValue<TrianglePoint<TwoDPoint, Rgb>>,
         TJsonToF32Converter: ConvertJsonToValue<f32>,
         TTriangleInstanceCreator: CreateTriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+        TTrianglePointCreator: CreateTrianglePoint<TrianglePoint<TwoDPoint, Rgb>>,
     > ConvertJsonToValue<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>>
     for JsonToTriangleInstanceConverter<
         TJsonToStringConverter,
@@ -327,6 +335,7 @@ impl<
         TJsonToTrianglePointConverter,
         TJsonToF32Converter,
         TTriangleInstanceCreator,
+        TTrianglePointCreator,
     >
 {
     fn convert_json_to_value(
@@ -345,48 +354,36 @@ impl<
             .json_to_triangle_point_converter
             .convert_json_to_value(&json["point1"]);
 
-        let point_1_translated = TrianglePoint::<TwoDPoint, Rgb>::new(
-            TwoDPoint::new(
-                point_1.get_x() * scale + position.get_x(),
-                point_1.get_y() * scale + position.get_y(),
-            ),
-            Rgb::new(
-                point_1.get_rgb().get_r(),
-                point_1.get_rgb().get_g(),
-                point_1.get_rgb().get_b(),
-            ),
+        let point_1_translated = self.triangle_point_creator.create_triangle_point(
+            point_1.get_x() * scale + position.get_x(),
+            point_1.get_y() * scale + position.get_y(),
+            point_1.get_rgb().get_r(),
+            point_1.get_rgb().get_g(),
+            point_1.get_rgb().get_b(),
         );
 
         let point_2 = self
             .json_to_triangle_point_converter
             .convert_json_to_value(&json["point2"]);
 
-        let point_2_translated = TrianglePoint::<TwoDPoint, Rgb>::new(
-            TwoDPoint::new(
-                point_2.get_x() * scale + position.get_x(),
-                point_2.get_y() * scale + position.get_y(),
-            ),
-            Rgb::new(
-                point_2.get_rgb().get_r(),
-                point_2.get_rgb().get_g(),
-                point_2.get_rgb().get_b(),
-            ),
+        let point_2_translated = self.triangle_point_creator.create_triangle_point(
+            point_2.get_x() * scale + position.get_x(),
+            point_2.get_y() * scale + position.get_y(),
+            point_2.get_rgb().get_r(),
+            point_2.get_rgb().get_g(),
+            point_2.get_rgb().get_b(),
         );
 
         let point_3 = self
             .json_to_triangle_point_converter
             .convert_json_to_value(&json["point3"]);
 
-        let point_3_translated = TrianglePoint::new(
-            TwoDPoint::new(
-                point_3.get_x() * scale + position.get_x(),
-                point_3.get_y() * scale + position.get_y(),
-            ),
-            Rgb::new(
-                point_3.get_rgb().get_r(),
-                point_3.get_rgb().get_g(),
-                point_3.get_rgb().get_b(),
-            ),
+        let point_3_translated = self.triangle_point_creator.create_triangle_point(
+            point_3.get_x() * scale + position.get_x(),
+            point_3.get_y() * scale + position.get_y(),
+            point_3.get_rgb().get_r(),
+            point_3.get_rgb().get_g(),
+            point_3.get_rgb().get_b(),
         );
 
         let name = self
@@ -433,7 +430,10 @@ impl<
     ConvertJsonToValue<
         ObjectInstanceRunner<
             TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-            TriangleInstanceScaler<TriangleInstanceCreator>,
+            TriangleInstanceScaler<
+                TriangleInstanceCreator,
+                TrianglePointCreator<TwoDPointCreator, RgbCreator>,
+            >,
         >,
     > for JsonToTriangleInstanceRunnerConverter<TJsonToTriangleInstanceConverter>
 {
@@ -442,12 +442,18 @@ impl<
         json: &Value,
     ) -> ObjectInstanceRunner<
         TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-        TriangleInstanceScaler<TriangleInstanceCreator>,
+        TriangleInstanceScaler<
+            TriangleInstanceCreator,
+            TrianglePointCreator<TwoDPointCreator, RgbCreator>,
+        >,
     > {
         ObjectInstanceRunner::new(
             self.json_to_triangle_instance_converter
                 .convert_json_to_value(json),
-            TriangleInstanceScaler::new(TriangleInstanceCreator::new()),
+            TriangleInstanceScaler::new(
+                TriangleInstanceCreator::new(),
+                TrianglePointCreator::new(TwoDPointCreator::new(), RgbCreator::new()),
+            ),
         )
     }
 }
@@ -472,7 +478,10 @@ impl<
         TJsonToTriangleInstanceRunnerConverter: ConvertJsonToValue<
             ObjectInstanceRunner<
                 TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-                TriangleInstanceScaler<TriangleInstanceCreator>,
+                TriangleInstanceScaler<
+                    TriangleInstanceCreator,
+                    TrianglePointCreator<TwoDPointCreator, RgbCreator>,
+                >,
             >,
         >,
     > ConvertJsonToValue<Box<dyn RunObjectInstance>>
@@ -539,9 +548,13 @@ impl<
         TJsonToRgbConverter: ConvertJsonToValue<Rgb>,
         TRectangleInstanceCreator: CreateRectangleInstance<
             TwoDPoint,
-            TrianglePoint<TwoDPoint, Rgb>,
-            TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
             Rgb,
+            RectangleInstance<
+                TwoDPoint,
+                TrianglePoint<TwoDPoint, Rgb>,
+                TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+                Rgb,
+            >,
         >,
     >
     ConvertJsonToValue<
@@ -641,7 +654,12 @@ impl<
                 TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
                 Rgb,
             >,
-            RectangleInstanceScaler<RectangleInstanceCreator<TriangleInstanceCreator>>,
+            RectangleInstanceScaler<
+                RectangleInstanceCreator<
+                    TriangleInstanceCreator,
+                    TrianglePointCreator<TwoDPointCreator, RgbCreator>,
+                >,
+            >,
         >,
     > for JsonToRectangleInstanceRunnerConverter<TJsonToRectangleInstanceConverter>
 {
@@ -655,13 +673,19 @@ impl<
             TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
             Rgb,
         >,
-        RectangleInstanceScaler<RectangleInstanceCreator<TriangleInstanceCreator>>,
+        RectangleInstanceScaler<
+            RectangleInstanceCreator<
+                TriangleInstanceCreator,
+                TrianglePointCreator<TwoDPointCreator, RgbCreator>,
+            >,
+        >,
     > {
         ObjectInstanceRunner::new(
             self.json_to_rectangle_instance_converter
                 .convert_json_to_value(json),
             RectangleInstanceScaler::new(RectangleInstanceCreator::new(
                 TriangleInstanceCreator::new(),
+                TrianglePointCreator::new(TwoDPointCreator::new(), RgbCreator::new()),
             )),
         )
     }
@@ -692,7 +716,12 @@ impl<
                     TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
                     Rgb,
                 >,
-                RectangleInstanceScaler<RectangleInstanceCreator<TriangleInstanceCreator>>,
+                RectangleInstanceScaler<
+                    RectangleInstanceCreator<
+                        TriangleInstanceCreator,
+                        TrianglePointCreator<TwoDPointCreator, RgbCreator>,
+                    >,
+                >,
             >,
         >,
     > ConvertJsonToValue<Box<dyn RunObjectInstance>>
@@ -764,12 +793,23 @@ impl<
     for JsonToTrianglePointConverter<TJsonToTwoDPointConverter, TJsonToRgbConverter>
 {
     fn convert_json_to_value(&self, json: &Value) -> TrianglePoint<TwoDPoint, Rgb> {
-        TrianglePoint::new(
-            self.json_to_two_d_point_converter
-                .convert_json_to_value(&json["twoDPoint"]),
-            self.json_to_rgb_converter
-                .convert_json_to_value(&json["rgb"]),
-        )
+        let two_d_point = self
+            .json_to_two_d_point_converter
+            .convert_json_to_value(&json["twoDPoint"]);
+
+        let rgb = self
+            .json_to_rgb_converter
+            .convert_json_to_value(&json["rgb"]);
+
+        let mut vertex_data = vec![];
+
+        vertex_data.append(&mut two_d_point.get_vertex_data());
+        vertex_data.append(&mut rgb.get_vertex_data());
+
+        let number_of_vertices =
+            two_d_point.get_number_of_vertices() + rgb.get_number_of_vertices();
+
+        TrianglePoint::new(two_d_point, rgb, number_of_vertices, vertex_data)
     }
 }
 
@@ -857,6 +897,7 @@ pub fn compose_json_to_content_converter(
         Rc::clone(&json_to_triangle_point_converter),
         Rc::clone(&json_to_f32_converter),
         triangle_instance_creator,
+        TrianglePointCreator::new(TwoDPointCreator::new(), RgbCreator::new()),
     );
 
     let json_to_triangle_instance_runner_converter =
@@ -879,8 +920,10 @@ pub fn compose_json_to_content_converter(
 
     let rectangle_instance_triangle_instance_creator = TriangleInstanceCreator::new();
 
-    let rectangle_instance_creator =
-        RectangleInstanceCreator::new(rectangle_instance_triangle_instance_creator);
+    let rectangle_instance_creator = RectangleInstanceCreator::new(
+        rectangle_instance_triangle_instance_creator,
+        TrianglePointCreator::new(TwoDPointCreator::new(), RgbCreator::new()),
+    );
 
     let json_to_rectangle_instance_converter = JsonToRectangleInstanceConverter::new(
         Rc::clone(&json_to_string_converter),

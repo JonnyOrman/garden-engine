@@ -95,6 +95,28 @@ impl GetNumberOfVertices for TwoDPoint {
     }
 }
 
+pub trait GetTwoDPointProperties: GetVertexData + GetNumberOfVertices {}
+
+impl GetTwoDPointProperties for TwoDPoint {}
+
+pub trait CreateTwoDPoint<TTwoDPoint> {
+    fn create_two_d_point(&self, x: f32, y: f32) -> TTwoDPoint;
+}
+
+pub struct TwoDPointCreator {}
+
+impl TwoDPointCreator {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl CreateTwoDPoint<TwoDPoint> for TwoDPointCreator {
+    fn create_two_d_point(&self, x: f32, y: f32) -> TwoDPoint {
+        TwoDPoint::new(x, y)
+    }
+}
+
 pub trait GetR {
     fn get_r(&self) -> f32;
 }
@@ -151,6 +173,28 @@ impl GetNumberOfVertices for Rgb {
     }
 }
 
+pub trait GetRgbProperties: GetR + GetG + GetB + GetVertexData + GetNumberOfVertices {}
+
+impl GetRgbProperties for Rgb {}
+
+pub trait CreateRgb<TRgb> {
+    fn create_rgb(&self, r: f32, g: f32, b: f32) -> TRgb;
+}
+
+pub struct RgbCreator {}
+
+impl RgbCreator {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl CreateRgb<Rgb> for RgbCreator {
+    fn create_rgb(&self, r: f32, g: f32, b: f32) -> Rgb {
+        Rgb::new(r, g, b)
+    }
+}
+
 pub trait GetRgb<TRgb> {
     fn get_rgb(&self) -> &TRgb;
 }
@@ -167,13 +211,18 @@ impl<
         TRgb: GetVertexData + GetNumberOfVertices,
     > TrianglePoint<TTwoDPoint, TRgb>
 {
-    pub fn new(point: TTwoDPoint, rgb: TRgb) -> Self {
-        let mut vertex_data = vec![];
+    pub fn new(
+        point: TTwoDPoint,
+        rgb: TRgb,
+        number_of_vertices: i32,
+        vertex_data: Vec<f32>,
+    ) -> Self {
+        // let mut vertex_data = vec![];
 
-        vertex_data.append(&mut point.get_vertex_data());
-        vertex_data.append(&mut rgb.get_vertex_data());
+        // vertex_data.append(&mut point.get_vertex_data());
+        // vertex_data.append(&mut rgb.get_vertex_data());
 
-        let number_of_vertices = point.get_number_of_vertices() + rgb.get_number_of_vertices();
+        // let number_of_vertices = point.get_number_of_vertices() + rgb.get_number_of_vertices();
 
         Self {
             point,
@@ -211,6 +260,56 @@ impl<TTwoDPoint: GetY, TRgb> GetY for TrianglePoint<TTwoDPoint, TRgb> {
 impl<TTwoDPoint: GetY, TRgb> GetRgb<TRgb> for TrianglePoint<TTwoDPoint, TRgb> {
     fn get_rgb(&self) -> &TRgb {
         &self.rgb
+    }
+}
+
+pub trait CreateTrianglePoint<TTrianglePoint> {
+    fn create_triangle_point(&self, x: f32, y: f32, r: f32, g: f32, b: f32) -> TTrianglePoint;
+}
+
+pub struct TrianglePointCreator<TTwoDPointCreator, TRgbCreator> {
+    two_d_point_creator: TTwoDPointCreator,
+    rgb_creator: TRgbCreator,
+}
+
+impl<TTwoDPointCreator, TRgbCreator> TrianglePointCreator<TTwoDPointCreator, TRgbCreator> {
+    pub fn new(two_d_point_creator: TTwoDPointCreator, rgb_creator: TRgbCreator) -> Self {
+        Self {
+            two_d_point_creator,
+            rgb_creator,
+        }
+    }
+}
+
+impl<
+        TTwoDPointCreator: CreateTwoDPoint<TTwoDPoint>,
+        TRgbCreator: CreateRgb<TRgb>,
+        TTwoDPoint: GetTwoDPointProperties,
+        TRgb: GetRgbProperties,
+    > CreateTrianglePoint<TrianglePoint<TTwoDPoint, TRgb>>
+    for TrianglePointCreator<TTwoDPointCreator, TRgbCreator>
+{
+    fn create_triangle_point(
+        &self,
+        x: f32,
+        y: f32,
+        r: f32,
+        g: f32,
+        b: f32,
+    ) -> TrianglePoint<TTwoDPoint, TRgb> {
+        let two_d_point = self.two_d_point_creator.create_two_d_point(x, y);
+
+        let rgb = self.rgb_creator.create_rgb(r, g, b);
+
+        let mut vertex_data = vec![];
+
+        vertex_data.append(&mut two_d_point.get_vertex_data());
+        vertex_data.append(&mut rgb.get_vertex_data());
+
+        let number_of_vertices =
+            two_d_point.get_number_of_vertices() + rgb.get_number_of_vertices();
+
+        TrianglePoint::new(two_d_point, rgb, number_of_vertices, vertex_data)
     }
 }
 
