@@ -222,6 +222,35 @@ impl<TPosition, TPoint, TTrianglePoint, TRgb> GetRgb<TRgb>
     }
 }
 
+impl<TPosition, TPoint, TTrianglePoint, TRgb: GetR> GetR
+    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb>
+{
+    fn get_r(&self) -> f32 {
+        self.get_rgb().get_r()
+    }
+}
+
+impl<TPosition, TPoint, TTrianglePoint, TRgb: GetG> GetG
+    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb>
+{
+    fn get_g(&self) -> f32 {
+        self.get_rgb().get_g()
+    }
+}
+
+impl<TPosition, TPoint, TTrianglePoint, TRgb: GetB> GetB
+    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb>
+{
+    fn get_b(&self) -> f32 {
+        self.get_rgb().get_b()
+    }
+}
+
+impl<TPosition, TPoint, TTrianglePoint, TRgb: GetRgbValues> GetRgbValues
+    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb>
+{
+}
+
 pub trait CreateRectangleInstance<TPosition, TRgb, TRectangleInstance> {
     fn create_rectangle_instance(
         &self,
@@ -441,44 +470,25 @@ impl<TRectangleInstanceCreator, TTwoDPointCreator, TRgbCreator>
 }
 
 impl<
-        TRectangleInstanceCreator: CreateRectangleInstance<
-            TwoDPoint,
-            Rgb,
-            RectangleInstance<
-                TwoDPoint,
-                TrianglePoint<TwoDPoint, Rgb>,
-                TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-                Rgb,
-            >,
-        >,
+        TRectangleInstance: GetName
+            + GetContentName
+            + GetScale
+            + GetPosition<TwoDPoint>
+            + GetWidth
+            + GetHeight
+            + GetRgbValues,
+        TRectangleInstanceCreator: CreateRectangleInstance<TwoDPoint, Rgb, TRectangleInstance>,
         TTwoDPointCreator: CreateTwoDPoint<TwoDPoint>,
         TRgbCreator: CreateRgb<Rgb>,
-    >
-    ScaleObjectInstance<
-        RectangleInstance<
-            TwoDPoint,
-            TrianglePoint<TwoDPoint, Rgb>,
-            TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-            Rgb,
-        >,
-    > for RectangleInstanceScaler<TRectangleInstanceCreator, TTwoDPointCreator, TRgbCreator>
+    > ScaleObjectInstance<TRectangleInstance>
+    for RectangleInstanceScaler<TRectangleInstanceCreator, TTwoDPointCreator, TRgbCreator>
 {
     fn scale_object_instance(
         &self,
-        rectangle_instance: &RectangleInstance<
-            TwoDPoint,
-            TrianglePoint<TwoDPoint, Rgb>,
-            TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-            Rgb,
-        >,
+        rectangle_instance: &TRectangleInstance,
         x: f32,
         y: f32,
-    ) -> RectangleInstance<
-        TwoDPoint,
-        TrianglePoint<TwoDPoint, Rgb>,
-        TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-        Rgb,
-    > {
+    ) -> TRectangleInstance {
         self.rectangle_instance_creator.create_rectangle_instance(
             rectangle_instance.get_name().to_string(),
             rectangle_instance.get_content_name().to_string(),
@@ -490,9 +500,9 @@ impl<
             rectangle_instance.get_width() / x,
             rectangle_instance.get_height() / y,
             self.rgb_creator.create_rgb(
-                rectangle_instance.get_rgb().get_r(),
-                rectangle_instance.get_rgb().get_g(),
-                rectangle_instance.get_rgb().get_b(),
+                rectangle_instance.get_r(),
+                rectangle_instance.get_g(),
+                rectangle_instance.get_b(),
             ),
         )
     }
