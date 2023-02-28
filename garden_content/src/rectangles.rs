@@ -415,11 +415,11 @@ impl<
 }
 
 pub struct RectangleInstanceScaler<TRectangleInstanceCreator> {
-    rectangle_instance_creator: TRectangleInstanceCreator,
+    rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
 }
 
 impl<TRectangleInstanceCreator> RectangleInstanceScaler<TRectangleInstanceCreator> {
-    pub fn new(rectangle_instance_creator: TRectangleInstanceCreator) -> Self {
+    pub fn new(rectangle_instance_creator: Rc<TRectangleInstanceCreator>) -> Self {
         Self {
             rectangle_instance_creator,
         }

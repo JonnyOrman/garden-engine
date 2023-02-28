@@ -186,7 +186,7 @@ pub struct JsonToRectangleConverter<
     json_to_string_converter: Rc<TJsonToStringConverter>,
     json_to_f32_converter: Rc<TJsonToF32Converter>,
     json_to_rgb_converter: Rc<TJsonToRgbConverter>,
-    rectangle_creator: TRectangleCreator,
+    rectangle_creator: Rc<TRectangleCreator>,
 }
 
 impl<TJsonToStringConverter, TJsonToF32Converter, TJsonToRgbConverter, TRectangleCreator>
@@ -201,7 +201,7 @@ impl<TJsonToStringConverter, TJsonToF32Converter, TJsonToRgbConverter, TRectangl
         json_to_string_converter: Rc<TJsonToStringConverter>,
         json_to_f32_converter: Rc<TJsonToF32Converter>,
         json_to_rgb_converter: Rc<TJsonToRgbConverter>,
-        rectangle_creator: TRectangleCreator,
+        rectangle_creator: Rc<TRectangleCreator>,
     ) -> Self {
         Self {
             json_to_string_converter,
@@ -527,7 +527,7 @@ pub struct JsonToRectangleInstanceConverter<
     json_to_f32_converter: Rc<TJsonToF32Converter>,
     json_to_position_converter: Rc<TJsonToPositionConverter>,
     json_to_rgb_converter: Rc<TJsonToRgbConverter>,
-    rectangle_instance_creator: TRectangleInstanceCreator,
+    rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
 }
 
 impl<
@@ -550,7 +550,7 @@ impl<
         json_to_f32_converter: Rc<TJsonToF32Converter>,
         json_to_position_converter: Rc<TJsonToPositionConverter>,
         json_to_rgb_converter: Rc<TJsonToRgbConverter>,
-        rectangle_instance_creator: TRectangleInstanceCreator,
+        rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
     ) -> Self {
         Self {
             json_to_string_converter,
@@ -647,28 +647,38 @@ pub struct JsonToRectangleInstanceRunnerConverter<
     TJsonToRectangleInstanceConverter,
     TTrianglePointCreator,
     TTriangleInstanceCreator,
+    TRectangleInstanceCreator,
 > {
     json_to_rectangle_instance_converter: TJsonToRectangleInstanceConverter,
     triangle_point_creator: Rc<TTrianglePointCreator>,
     triangle_instance_creator: Rc<TTriangleInstanceCreator>,
+    rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
 }
 
-impl<TJsonToRectangleInstanceConverter, TTrianglePointCreator, TTriangleInstanceCreator>
+impl<
+        TJsonToRectangleInstanceConverter,
+        TTrianglePointCreator,
+        TTriangleInstanceCreator,
+        TRectangleInstanceCreator,
+    >
     JsonToRectangleInstanceRunnerConverter<
         TJsonToRectangleInstanceConverter,
         TTrianglePointCreator,
         TTriangleInstanceCreator,
+        TRectangleInstanceCreator,
     >
 {
     fn new(
         json_to_rectangle_instance_converter: TJsonToRectangleInstanceConverter,
         triangle_point_creator: Rc<TTrianglePointCreator>,
         triangle_instance_creator: Rc<TTriangleInstanceCreator>,
+        rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
     ) -> Self {
         Self {
             json_to_rectangle_instance_converter,
             triangle_point_creator,
             triangle_instance_creator,
+            rectangle_instance_creator,
         }
     }
 }
@@ -703,6 +713,10 @@ impl<
         TJsonToRectangleInstanceConverter,
         TrianglePointCreator<TwoDPointCreator, RgbCreator>,
         TriangleInstanceCreator,
+        RectangleInstanceCreator<
+            TriangleInstanceCreator,
+            TrianglePointCreator<TwoDPointCreator, RgbCreator>,
+        >,
     >
 {
     fn convert_json_to_value(
@@ -725,10 +739,7 @@ impl<
         ObjectInstanceRunner::new(
             self.json_to_rectangle_instance_converter
                 .convert_json_to_value(json),
-            RectangleInstanceScaler::new(RectangleInstanceCreator::new(
-                Rc::clone(&self.triangle_instance_creator),
-                Rc::clone(&self.triangle_point_creator),
-            )),
+            RectangleInstanceScaler::new(Rc::clone(&self.rectangle_instance_creator)),
         )
     }
 }
@@ -956,35 +967,36 @@ pub fn compose_json_to_content_converter(
     let json_to_boxed_triangle_instance_runner_converter =
         JsonToBoxedTriangleInstanceRunnerConverter::new(json_to_triangle_instance_runner_converter);
 
-    let rectangle_creator = RectangleCreator::new();
+    let rectangle_creator = Rc::new(RectangleCreator::new());
 
     let json_to_rectangle_converter = JsonToRectangleConverter::new(
         Rc::clone(&json_to_string_converter),
         Rc::clone(&json_to_f32_converter),
         Rc::clone(&json_to_rgb_converter),
-        rectangle_creator,
+        Rc::clone(&rectangle_creator),
     );
 
     let json_to_boxed_rectangle_converter =
         JsonToBoxedRectangleConverter::new(json_to_rectangle_converter);
 
-    let rectangle_instance_creator = RectangleInstanceCreator::new(
+    let rectangle_instance_creator = Rc::new(RectangleInstanceCreator::new(
         Rc::clone(&triangle_instance_creator),
         Rc::clone(&triangle_point_creator),
-    );
+    ));
 
     let json_to_rectangle_instance_converter = JsonToRectangleInstanceConverter::new(
         Rc::clone(&json_to_string_converter),
         Rc::clone(&json_to_f32_converter),
         Rc::clone(&json_to_two_d_point_converter),
         Rc::clone(&json_to_rgb_converter),
-        rectangle_instance_creator,
+        Rc::clone(&rectangle_instance_creator),
     );
 
     let json_to_rectangle_instance_runner_converter = JsonToRectangleInstanceRunnerConverter::new(
         json_to_rectangle_instance_converter,
         Rc::clone(&triangle_point_creator),
         Rc::clone(&triangle_instance_creator),
+        Rc::clone(&rectangle_instance_creator),
     );
 
     let json_to_boxed_rectangle_instance_runner_converter =
