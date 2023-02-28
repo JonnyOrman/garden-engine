@@ -646,11 +646,15 @@ pub struct JsonToRectangleInstanceRunnerConverter<
     TTrianglePointCreator,
     TTriangleInstanceCreator,
     TRectangleInstanceCreator,
+    TTwoDPointCreator,
+    TRgbCreator,
 > {
     json_to_rectangle_instance_converter: TJsonToRectangleInstanceConverter,
     triangle_point_creator: Rc<TTrianglePointCreator>,
     triangle_instance_creator: Rc<TTriangleInstanceCreator>,
     rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
+    two_d_point_creator: Rc<TTwoDPointCreator>,
+    rgb_creator: Rc<TRgbCreator>,
 }
 
 impl<
@@ -658,12 +662,16 @@ impl<
         TTrianglePointCreator,
         TTriangleInstanceCreator,
         TRectangleInstanceCreator,
+        TTwoDPointCreator,
+        TRgbCreator,
     >
     JsonToRectangleInstanceRunnerConverter<
         TJsonToRectangleInstanceConverter,
         TTrianglePointCreator,
         TTriangleInstanceCreator,
         TRectangleInstanceCreator,
+        TTwoDPointCreator,
+        TRgbCreator,
     >
 {
     fn new(
@@ -671,12 +679,16 @@ impl<
         triangle_point_creator: Rc<TTrianglePointCreator>,
         triangle_instance_creator: Rc<TTriangleInstanceCreator>,
         rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
+        two_d_point_creator: Rc<TTwoDPointCreator>,
+        rgb_creator: Rc<TRgbCreator>,
     ) -> Self {
         Self {
             json_to_rectangle_instance_converter,
             triangle_point_creator,
             triangle_instance_creator,
             rectangle_instance_creator,
+            two_d_point_creator,
+            rgb_creator,
         }
     }
 }
@@ -690,6 +702,7 @@ impl<
                 Rgb,
             >,
         >,
+        TRgbCreator,
     >
     ConvertJsonToValue<
         ObjectInstanceRunner<
@@ -705,6 +718,8 @@ impl<
                     TrianglePointCreator<TwoDPointCreator, RgbCreator>,
                     TwoDPointCreator,
                 >,
+                TwoDPointCreator,
+                TRgbCreator,
             >,
         >,
     >
@@ -717,6 +732,8 @@ impl<
             TrianglePointCreator<TwoDPointCreator, RgbCreator>,
             TwoDPointCreator,
         >,
+        TwoDPointCreator,
+        TRgbCreator,
     >
 {
     fn convert_json_to_value(
@@ -735,12 +752,18 @@ impl<
                 TrianglePointCreator<TwoDPointCreator, RgbCreator>,
                 TwoDPointCreator,
             >,
+            TwoDPointCreator,
+            TRgbCreator,
         >,
     > {
         ObjectInstanceRunner::new(
             self.json_to_rectangle_instance_converter
                 .convert_json_to_value(json),
-            RectangleInstanceScaler::new(Rc::clone(&self.rectangle_instance_creator)),
+            RectangleInstanceScaler::new(
+                Rc::clone(&self.rectangle_instance_creator),
+                Rc::clone(&self.two_d_point_creator),
+                Rc::clone(&self.rgb_creator),
+            ),
         )
     }
 }
@@ -776,6 +799,8 @@ impl<
                         TrianglePointCreator<TwoDPointCreator, RgbCreator>,
                         TwoDPointCreator,
                     >,
+                    TwoDPointCreator,
+                    RgbCreator,
                 >,
             >,
         >,
@@ -948,9 +973,11 @@ pub fn compose_json_to_content_converter(
 
     let two_d_point_creator = Rc::new(TwoDPointCreator::new());
 
+    let rgb_creator = Rc::new(RgbCreator::new());
+
     let triangle_point_creator = Rc::new(TrianglePointCreator::new(
         Rc::clone(&two_d_point_creator),
-        RgbCreator::new(),
+        Rc::clone(&rgb_creator),
     ));
 
     let json_to_triangle_instance_converter = JsonToTriangleInstanceConverter::new(
@@ -1002,6 +1029,8 @@ pub fn compose_json_to_content_converter(
         Rc::clone(&triangle_point_creator),
         Rc::clone(&triangle_instance_creator),
         Rc::clone(&rectangle_instance_creator),
+        Rc::clone(&two_d_point_creator),
+        Rc::clone(&rgb_creator),
     );
 
     let json_to_boxed_rectangle_instance_runner_converter =

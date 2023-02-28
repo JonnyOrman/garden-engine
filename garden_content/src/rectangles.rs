@@ -4,10 +4,10 @@ use garden::{GetHeight, GetName, GetWidth};
 
 use crate::{
     triangles::{CreateTriangleInstance, TriangleInstance},
-    CreateTrianglePoint, CreateTwoDPoint, Get2DCoordiantes, GetB, GetContentInstanceData,
-    GetContentName, GetG, GetNumberOfObjects, GetNumberOfVertices, GetPosition, GetR, GetRgb,
-    GetRgbValues, GetScale, GetVertexData, GetX, GetY, Rgb, ScaleObjectInstance, TrianglePoint,
-    TwoDPoint,
+    CreateRgb, CreateTrianglePoint, CreateTwoDPoint, Get2DCoordiantes, GetB,
+    GetContentInstanceData, GetContentName, GetG, GetNumberOfObjects, GetNumberOfVertices,
+    GetPosition, GetR, GetRgb, GetRgbValues, GetScale, GetVertexData, GetX, GetY, Rgb,
+    ScaleObjectInstance, TrianglePoint, TwoDPoint,
 };
 
 pub struct Rectangle<TRgb> {
@@ -418,14 +418,24 @@ impl<
     }
 }
 
-pub struct RectangleInstanceScaler<TRectangleInstanceCreator> {
+pub struct RectangleInstanceScaler<TRectangleInstanceCreator, TTwoDPointCreator, TRgbCreator> {
     rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
+    two_d_point_creator: Rc<TTwoDPointCreator>,
+    rgb_creator: Rc<TRgbCreator>,
 }
 
-impl<TRectangleInstanceCreator> RectangleInstanceScaler<TRectangleInstanceCreator> {
-    pub fn new(rectangle_instance_creator: Rc<TRectangleInstanceCreator>) -> Self {
+impl<TRectangleInstanceCreator, TTwoDPointCreator, TRgbCreator>
+    RectangleInstanceScaler<TRectangleInstanceCreator, TTwoDPointCreator, TRgbCreator>
+{
+    pub fn new(
+        rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
+        two_d_point_creator: Rc<TTwoDPointCreator>,
+        rgb_creator: Rc<TRgbCreator>,
+    ) -> Self {
         Self {
             rectangle_instance_creator,
+            two_d_point_creator,
+            rgb_creator,
         }
     }
 }
@@ -441,6 +451,8 @@ impl<
                 Rgb,
             >,
         >,
+        TTwoDPointCreator: CreateTwoDPoint<TwoDPoint>,
+        TRgbCreator: CreateRgb<Rgb>,
     >
     ScaleObjectInstance<
         RectangleInstance<
@@ -449,7 +461,7 @@ impl<
             TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
             Rgb,
         >,
-    > for RectangleInstanceScaler<TRectangleInstanceCreator>
+    > for RectangleInstanceScaler<TRectangleInstanceCreator, TTwoDPointCreator, TRgbCreator>
 {
     fn scale_object_instance(
         &self,
@@ -471,13 +483,13 @@ impl<
             rectangle_instance.get_name().to_string(),
             rectangle_instance.get_content_name().to_string(),
             rectangle_instance.get_scale(),
-            TwoDPoint::new(
+            self.two_d_point_creator.create_two_d_point(
                 rectangle_instance.get_position().get_x() / x,
                 rectangle_instance.get_position().get_y() / y,
             ),
             rectangle_instance.get_width() / x,
             rectangle_instance.get_height() / y,
-            Rgb::new(
+            self.rgb_creator.create_rgb(
                 rectangle_instance.get_rgb().get_r(),
                 rectangle_instance.get_rgb().get_g(),
                 rectangle_instance.get_rgb().get_b(),
