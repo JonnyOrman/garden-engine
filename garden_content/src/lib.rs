@@ -25,10 +25,7 @@ pub trait Scale {
     fn scale(&mut self, x: f32, y: f32);
 }
 
-pub trait GetContentInstanceData:
-    GetVertexData + GetNumberOfVertices + Scale + GetNumberOfObjects
-{
-}
+pub trait GetContentInstanceData: GetVertexData + GetNumberOfVertices + GetNumberOfObjects {}
 
 pub trait GetNumberOfObjects {
     fn get_number_of_objects(&self) -> i32;
@@ -297,7 +294,7 @@ impl GetVertexDataPtr for Content {
     }
 }
 
-pub trait RunObjectInstance: GetContentInstanceData {}
+pub trait RunObjectInstance: GetContentInstanceData + Scale {}
 
 #[cfg(test)]
 mod tests {

@@ -238,61 +238,6 @@ impl<TPosition, TTrianglePoint> GetNumberOfVertices
     }
 }
 
-impl Scale for TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>> {
-    fn scale(&mut self, x: f32, y: f32) {
-        let new_position = TwoDPoint::new(
-            self.get_position().get_x() / x,
-            self.get_position().get_y() / y,
-        );
-        let new_point_1 = TrianglePoint::<TwoDPoint, Rgb>::new(
-            TwoDPoint::new(
-                self.get_point_1().get_x() / x,
-                self.get_point_1().get_y() / y,
-            ),
-            Rgb::new(
-                self.get_point_1().get_rgb().get_r(),
-                self.get_point_1().get_rgb().get_g(),
-                self.get_point_1().get_rgb().get_b(),
-            ),
-        );
-        let new_point_2 = TrianglePoint::<TwoDPoint, Rgb>::new(
-            TwoDPoint::new(
-                self.get_point_2().get_x() / x,
-                self.get_point_2().get_y() / y,
-            ),
-            Rgb::new(
-                self.get_point_2().get_rgb().get_r(),
-                self.get_point_2().get_rgb().get_g(),
-                self.get_point_2().get_rgb().get_b(),
-            ),
-        );
-        let new_point_3 = TrianglePoint::<TwoDPoint, Rgb>::new(
-            TwoDPoint::new(
-                self.get_point_3().get_x() / x,
-                self.get_point_3().get_y() / y,
-            ),
-            Rgb::new(
-                self.get_point_3().get_rgb().get_r(),
-                self.get_point_3().get_rgb().get_g(),
-                self.get_point_3().get_rgb().get_b(),
-            ),
-        );
-
-        let mut new_vertex_data = vec![];
-
-        new_vertex_data.append(&mut new_point_1.get_vertex_data().clone());
-        new_vertex_data.append(&mut new_point_2.get_vertex_data().clone());
-        new_vertex_data.append(&mut new_point_3.get_vertex_data().clone());
-
-        self.position = new_position;
-        self.point_1 = new_point_1;
-        self.point_2 = new_point_2;
-        self.point_3 = new_point_3;
-
-        self.vertex_data = new_vertex_data;
-    }
-}
-
 impl GetNumberOfObjects for TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>> {
     fn get_number_of_objects(&self) -> i32 {
         1
@@ -394,10 +339,8 @@ impl<TTriangleInstance: GetNumberOfVertices, TTriangleInstanceScaler> GetNumberO
     }
 }
 
-impl<
-        TTriangleInstance: Scale,
-        TTriangleInstanceScaler: ScaleTriangleInstance<TTriangleInstance>,
-    > Scale for TriangleInstanceRunner<TTriangleInstance, TTriangleInstanceScaler>
+impl<TTriangleInstance, TTriangleInstanceScaler: ScaleTriangleInstance<TTriangleInstance>> Scale
+    for TriangleInstanceRunner<TTriangleInstance, TTriangleInstanceScaler>
 {
     fn scale(&mut self, x: f32, y: f32) {
         self.triangle_instance =
