@@ -129,6 +129,8 @@ pub trait GetB {
     fn get_b(&self) -> f32;
 }
 
+pub trait GetRgbValues: GetR + GetG + GetB {}
+
 pub struct Rgb {
     r: f32,
     g: f32,
@@ -173,7 +175,9 @@ impl GetNumberOfVertices for Rgb {
     }
 }
 
-pub trait GetRgbProperties: GetR + GetG + GetB + GetVertexData + GetNumberOfVertices {}
+pub trait GetRgbProperties: GetRgbValues + GetVertexData + GetNumberOfVertices {}
+
+impl GetRgbValues for Rgb {}
 
 impl GetRgbProperties for Rgb {}
 
@@ -256,6 +260,8 @@ impl<TTwoDPoint: GetY, TRgb> GetY for TrianglePoint<TTwoDPoint, TRgb> {
         self.point.get_y()
     }
 }
+
+impl<TTwoDPoint: Get2DCoordiantes, TRgb> Get2DCoordiantes for TrianglePoint<TTwoDPoint, TRgb> {}
 
 impl<TTwoDPoint: GetY, TRgb> GetRgb<TRgb> for TrianglePoint<TTwoDPoint, TRgb> {
     fn get_rgb(&self) -> &TRgb {

@@ -248,7 +248,7 @@ impl GetNumberOfObjects for TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint,
 
 impl GetContentInstanceData for TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>> {}
 
-pub trait CreateTriangleInstance<TPosition, TTrianglePoint> {
+pub trait CreateTriangleInstance<TPosition, TTrianglePoint, TTriangleInstance> {
     fn create_triangle_instance(
         &self,
         name: String,
@@ -258,7 +258,7 @@ pub trait CreateTriangleInstance<TPosition, TTrianglePoint> {
         point_1: TTrianglePoint,
         point_2: TTrianglePoint,
         point_3: TTrianglePoint,
-    ) -> TriangleInstance<TPosition, TTrianglePoint>;
+    ) -> TTriangleInstance;
 }
 
 pub struct TriangleInstanceCreator {}
@@ -270,7 +270,8 @@ impl TriangleInstanceCreator {
 }
 
 impl<TPosition, TTrianglePoint: GetVertexData + GetNumberOfVertices>
-    CreateTriangleInstance<TPosition, TTrianglePoint> for TriangleInstanceCreator
+    CreateTriangleInstance<TPosition, TTrianglePoint, TriangleInstance<TPosition, TTrianglePoint>>
+    for TriangleInstanceCreator
 {
     fn create_triangle_instance(
         &self,
@@ -326,17 +327,23 @@ impl<TTriangleInstanceCreator, TTrianglePointCreator>
 }
 
 impl<
-        TTriangleInstanceCreator: CreateTriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+        TTriangleInstanceCreator: CreateTriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>, TTriangleInstance>,
         TTrianglePointCreator: CreateTrianglePoint<TrianglePoint<TwoDPoint, Rgb>>,
-    > ScaleObjectInstance<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>>
+        TTriangleInstance: GetContentInstanceData
+            + GetPosition<TwoDPoint>
+            + GetTrianglePoints<TrianglePoint<TwoDPoint, Rgb>>
+            + GetName
+            + GetContentName
+            + GetScale,
+    > ScaleObjectInstance<TTriangleInstance>
     for TriangleInstanceScaler<TTriangleInstanceCreator, TTrianglePointCreator>
 {
     fn scale_object_instance(
         &self,
-        triangle_instance: &TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+        triangle_instance: &TTriangleInstance,
         x: f32,
         y: f32,
-    ) -> TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>> {
+    ) -> TTriangleInstance {
         let new_position = TwoDPoint::new(
             triangle_instance.get_position().get_x() / x,
             triangle_instance.get_position().get_y() / y,

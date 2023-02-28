@@ -4,9 +4,10 @@ use garden::{GetHeight, GetName, GetWidth};
 
 use crate::{
     triangles::{CreateTriangleInstance, TriangleInstance},
-    CreateTrianglePoint, CreateTwoDPoint, GetB, GetContentInstanceData, GetContentName, GetG,
-    GetNumberOfObjects, GetNumberOfVertices, GetPosition, GetR, GetRgb, GetScale, GetVertexData,
-    GetX, GetY, Rgb, ScaleObjectInstance, TrianglePoint, TwoDPoint,
+    CreateTrianglePoint, CreateTwoDPoint, Get2DCoordiantes, GetB, GetContentInstanceData,
+    GetContentName, GetG, GetNumberOfObjects, GetNumberOfVertices, GetPosition, GetR, GetRgb,
+    GetRgbValues, GetScale, GetVertexData, GetX, GetY, Rgb, ScaleObjectInstance, TrianglePoint,
+    TwoDPoint,
 };
 
 pub struct Rectangle<TRgb> {
@@ -261,19 +262,18 @@ impl<TTriangleInstanceCreator, TTrianglePointCreator, TTwoDPointCreator>
 }
 
 impl<
-        TTriangleInstanceCreator: CreateTriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-        TTrianglePointCreator: CreateTrianglePoint<TrianglePoint<TwoDPoint, Rgb>>,
-        TTwoDPointCreator: CreateTwoDPoint<TwoDPoint>,
+        TTriangleInstanceCreator: CreateTriangleInstance<TPosition, TPoint, TTriangleInstance>,
+        TTrianglePointCreator: CreateTrianglePoint<TPoint>,
+        TTwoDPointCreator: CreateTwoDPoint<TPosition>,
+        TPosition: Get2DCoordiantes,
+        TPoint: Get2DCoordiantes + GetRgb<TRgb>,
+        TRgb: GetRgbValues,
+        TTriangleInstance: GetContentInstanceData,
     >
     CreateRectangleInstance<
-        TwoDPoint,
-        Rgb,
-        RectangleInstance<
-            TwoDPoint,
-            TrianglePoint<TwoDPoint, Rgb>,
-            TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-            Rgb,
-        >,
+        TPosition,
+        TRgb,
+        RectangleInstance<TPosition, TPoint, TTriangleInstance, TRgb>,
     >
     for RectangleInstanceCreator<TTriangleInstanceCreator, TTrianglePointCreator, TTwoDPointCreator>
 {
@@ -282,16 +282,11 @@ impl<
         name: String,
         content_name: String,
         scale: f32,
-        position: TwoDPoint,
+        position: TPosition,
         width: f32,
         height: f32,
-        rgb: Rgb,
-    ) -> RectangleInstance<
-        TwoDPoint,
-        TrianglePoint<TwoDPoint, Rgb>,
-        TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-        Rgb,
-    > {
+        rgb: TRgb,
+    ) -> RectangleInstance<TPosition, TPoint, TTriangleInstance, TRgb> {
         let mut vertex_data = vec![];
 
         let x = width / 2.0;
@@ -496,9 +491,7 @@ mod tests {
     use garden::GetName;
     use mockall::mock;
 
-    use crate::{
-        Get2DCoordiantes, GetB, GetG, GetNumberOfObjects, GetNumberOfVertices, GetR, GetX, GetY,
-    };
+    use crate::{Get2DCoordiantes, GetB, GetG, GetNumberOfVertices, GetR, GetX, GetY};
 
     use crate::rectangles::{
         CreateRectangleInstance, Rectangle, RectangleInstance, RectangleInstanceCreator,

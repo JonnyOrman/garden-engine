@@ -326,9 +326,10 @@ impl<
         TJsonToTwoDPointConverter: ConvertJsonToValue<TwoDPoint>,
         TJsonToTrianglePointConverter: ConvertJsonToValue<TrianglePoint<TwoDPoint, Rgb>>,
         TJsonToF32Converter: ConvertJsonToValue<f32>,
-        TTriangleInstanceCreator: CreateTriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+        TTriangleInstanceCreator: CreateTriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>, TTriangleInstance>,
         TTrianglePointCreator: CreateTrianglePoint<TrianglePoint<TwoDPoint, Rgb>>,
-    > ConvertJsonToValue<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>>
+        TTriangleInstance,
+    > ConvertJsonToValue<TTriangleInstance>
     for JsonToTriangleInstanceConverter<
         TJsonToStringConverter,
         TJsonToTwoDPointConverter,
@@ -338,10 +339,7 @@ impl<
         TTrianglePointCreator,
     >
 {
-    fn convert_json_to_value(
-        &self,
-        json: &Value,
-    ) -> TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>> {
+    fn convert_json_to_value(&self, json: &Value) -> TTriangleInstance {
         let scale = self
             .json_to_f32_converter
             .convert_json_to_value(&json["scale"]);
