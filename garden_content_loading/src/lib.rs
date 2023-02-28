@@ -705,6 +705,7 @@ impl<
                 RectangleInstanceCreator<
                     TriangleInstanceCreator,
                     TrianglePointCreator<TwoDPointCreator, RgbCreator>,
+                    TwoDPointCreator,
                 >,
             >,
         >,
@@ -716,6 +717,7 @@ impl<
         RectangleInstanceCreator<
             TriangleInstanceCreator,
             TrianglePointCreator<TwoDPointCreator, RgbCreator>,
+            TwoDPointCreator,
         >,
     >
 {
@@ -733,6 +735,7 @@ impl<
             RectangleInstanceCreator<
                 TriangleInstanceCreator,
                 TrianglePointCreator<TwoDPointCreator, RgbCreator>,
+                TwoDPointCreator,
             >,
         >,
     > {
@@ -773,6 +776,7 @@ impl<
                     RectangleInstanceCreator<
                         TriangleInstanceCreator,
                         TrianglePointCreator<TwoDPointCreator, RgbCreator>,
+                        TwoDPointCreator,
                     >,
                 >,
             >,
@@ -944,8 +948,10 @@ pub fn compose_json_to_content_converter(
 
     let triangle_instance_creator = Rc::new(TriangleInstanceCreator::new());
 
+    let two_d_point_creator = Rc::new(TwoDPointCreator::new());
+
     let triangle_point_creator = Rc::new(TrianglePointCreator::new(
-        TwoDPointCreator::new(),
+        Rc::clone(&two_d_point_creator),
         RgbCreator::new(),
     ));
 
@@ -982,6 +988,7 @@ pub fn compose_json_to_content_converter(
     let rectangle_instance_creator = Rc::new(RectangleInstanceCreator::new(
         Rc::clone(&triangle_instance_creator),
         Rc::clone(&triangle_point_creator),
+        Rc::clone(&two_d_point_creator),
     ));
 
     let json_to_rectangle_instance_converter = JsonToRectangleInstanceConverter::new(

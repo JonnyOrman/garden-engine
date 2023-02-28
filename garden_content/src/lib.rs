@@ -268,12 +268,12 @@ pub trait CreateTrianglePoint<TTrianglePoint> {
 }
 
 pub struct TrianglePointCreator<TTwoDPointCreator, TRgbCreator> {
-    two_d_point_creator: TTwoDPointCreator,
+    two_d_point_creator: Rc<TTwoDPointCreator>,
     rgb_creator: TRgbCreator,
 }
 
 impl<TTwoDPointCreator, TRgbCreator> TrianglePointCreator<TTwoDPointCreator, TRgbCreator> {
-    pub fn new(two_d_point_creator: TTwoDPointCreator, rgb_creator: TRgbCreator) -> Self {
+    pub fn new(two_d_point_creator: Rc<TTwoDPointCreator>, rgb_creator: TRgbCreator) -> Self {
         Self {
             two_d_point_creator,
             rgb_creator,

@@ -4,9 +4,9 @@ use garden::{GetHeight, GetName, GetWidth};
 
 use crate::{
     triangles::{CreateTriangleInstance, TriangleInstance},
-    CreateTrianglePoint, GetB, GetContentInstanceData, GetContentName, GetG, GetNumberOfObjects,
-    GetNumberOfVertices, GetPosition, GetR, GetRgb, GetScale, GetVertexData, GetX, GetY, Rgb,
-    ScaleObjectInstance, TrianglePoint, TwoDPoint,
+    CreateTrianglePoint, CreateTwoDPoint, GetB, GetContentInstanceData, GetContentName, GetG,
+    GetNumberOfObjects, GetNumberOfVertices, GetPosition, GetR, GetRgb, GetScale, GetVertexData,
+    GetX, GetY, Rgb, ScaleObjectInstance, TrianglePoint, TwoDPoint,
 };
 
 pub struct Rectangle<TRgb> {
@@ -234,21 +234,28 @@ pub trait CreateRectangleInstance<TPosition, TRgb, TRectangleInstance> {
     ) -> TRectangleInstance;
 }
 
-pub struct RectangleInstanceCreator<TTriangleInstanceCreator, TTrianglePointCreator> {
+pub struct RectangleInstanceCreator<
+    TTriangleInstanceCreator,
+    TTrianglePointCreator,
+    TTwoDPointCreator,
+> {
     triangle_instance_creator: Rc<TTriangleInstanceCreator>,
     triangle_point_creator: Rc<TTrianglePointCreator>,
+    two_d_point_creator: Rc<TTwoDPointCreator>,
 }
 
-impl<TTriangleInstanceCreator, TTrianglePointCreator>
-    RectangleInstanceCreator<TTriangleInstanceCreator, TTrianglePointCreator>
+impl<TTriangleInstanceCreator, TTrianglePointCreator, TTwoDPointCreator>
+    RectangleInstanceCreator<TTriangleInstanceCreator, TTrianglePointCreator, TTwoDPointCreator>
 {
     pub fn new(
         triangle_instance_creator: Rc<TTriangleInstanceCreator>,
         triangle_point_creator: Rc<TTrianglePointCreator>,
+        two_d_point_creator: Rc<TTwoDPointCreator>,
     ) -> Self {
         Self {
             triangle_instance_creator,
             triangle_point_creator,
+            two_d_point_creator,
         }
     }
 }
@@ -256,6 +263,7 @@ impl<TTriangleInstanceCreator, TTrianglePointCreator>
 impl<
         TTriangleInstanceCreator: CreateTriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
         TTrianglePointCreator: CreateTrianglePoint<TrianglePoint<TwoDPoint, Rgb>>,
+        TTwoDPointCreator: CreateTwoDPoint<TwoDPoint>,
     >
     CreateRectangleInstance<
         TwoDPoint,
@@ -266,7 +274,8 @@ impl<
             TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
             Rgb,
         >,
-    > for RectangleInstanceCreator<TTriangleInstanceCreator, TTrianglePointCreator>
+    >
+    for RectangleInstanceCreator<TTriangleInstanceCreator, TTrianglePointCreator, TTwoDPointCreator>
 {
     fn create_rectangle_instance(
         &self,
@@ -348,7 +357,7 @@ impl<
             name.clone() + "-triangle-1",
             "".to_string(),
             scale,
-            TwoDPoint::new(0.0, 0.0),
+            self.two_d_point_creator.create_two_d_point(0.0, 0.0),
             triangle_instance_1_point_1,
             triangle_instance_1_point_2,
             triangle_instance_1_point_3,
@@ -382,7 +391,7 @@ impl<
             name.clone() + "-triangle-2",
             "".to_string(),
             scale,
-            TwoDPoint::new(0.0, 0.0),
+            self.two_d_point_creator.create_two_d_point(0.0, 0.0),
             triangle_instance_2_point_1,
             triangle_instance_2_point_2,
             triangle_instance_2_point_3,
