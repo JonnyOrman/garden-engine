@@ -266,7 +266,7 @@ impl<
         TTrianglePointCreator: CreateTrianglePoint<TPoint>,
         TTwoDPointCreator: CreateTwoDPoint<TPosition>,
         TPosition: Get2DCoordiantes,
-        TPoint: Get2DCoordiantes + GetRgb<TRgb>,
+        TPoint: Get2DCoordiantes + GetRgb<TRgb> + GetRgbValues,
         TRgb: GetRgbValues,
         TTriangleInstance: GetContentInstanceData,
     >

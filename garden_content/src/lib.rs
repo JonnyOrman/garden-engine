@@ -221,13 +221,6 @@ impl<
         number_of_vertices: i32,
         vertex_data: Vec<f32>,
     ) -> Self {
-        // let mut vertex_data = vec![];
-
-        // vertex_data.append(&mut point.get_vertex_data());
-        // vertex_data.append(&mut rgb.get_vertex_data());
-
-        // let number_of_vertices = point.get_number_of_vertices() + rgb.get_number_of_vertices();
-
         Self {
             point,
             rgb,
@@ -268,6 +261,26 @@ impl<TTwoDPoint: GetY, TRgb> GetRgb<TRgb> for TrianglePoint<TTwoDPoint, TRgb> {
         &self.rgb
     }
 }
+
+impl<TTwoDPoint, TRgb: GetR> GetR for TrianglePoint<TTwoDPoint, TRgb> {
+    fn get_r(&self) -> f32 {
+        self.rgb.get_r()
+    }
+}
+
+impl<TTwoDPoint, TRgb: GetG> GetG for TrianglePoint<TTwoDPoint, TRgb> {
+    fn get_g(&self) -> f32 {
+        self.rgb.get_g()
+    }
+}
+
+impl<TTwoDPoint, TRgb: GetB> GetB for TrianglePoint<TTwoDPoint, TRgb> {
+    fn get_b(&self) -> f32 {
+        self.rgb.get_b()
+    }
+}
+
+impl<TTwoDPoint, TRgb: GetRgbValues> GetRgbValues for TrianglePoint<TTwoDPoint, TRgb> {}
 
 pub trait CreateTrianglePoint<TTrianglePoint> {
     fn create_triangle_point(&self, x: f32, y: f32, r: f32, g: f32, b: f32) -> TTrianglePoint;
