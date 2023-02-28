@@ -4,7 +4,7 @@ use crate::{
     triangles::{CreateTriangleInstance, TriangleInstance},
     Get2DCoordiantes, GetB, GetContentInstanceData, GetContentName, GetG, GetNumberOfObjects,
     GetNumberOfVertices, GetPosition, GetR, GetRgb, GetScale, GetVertexData, GetX, GetY, Rgb,
-    RunObjectInstance, Scale, TrianglePoint, TwoDPoint,
+    RunObjectInstance, Scale, ScaleObjectInstance, TrianglePoint, TwoDPoint,
 };
 
 pub struct Rectangle<TRgb> {
@@ -411,6 +411,7 @@ impl<TRectangleInstance, TRectangleInstanceScaler>
         }
     }
 }
+
 impl<TRectangleInstance: GetVertexData, TRectangleInstanceScaler> GetVertexData
     for RectangleInstanceRunner<TRectangleInstance, TRectangleInstanceScaler>
 {
@@ -427,13 +428,13 @@ impl<TRectangleInstance: GetNumberOfVertices, TRectangleInstanceScaler> GetNumbe
     }
 }
 
-impl<TRectangleInstance, TRectangleInstanceScaler: ScaleRectangleInstance<TRectangleInstance>> Scale
+impl<TRectangleInstance, TRectangleInstanceScaler: ScaleObjectInstance<TRectangleInstance>> Scale
     for RectangleInstanceRunner<TRectangleInstance, TRectangleInstanceScaler>
 {
     fn scale(&mut self, x: f32, y: f32) {
         self.rectangle_instance =
             self.rectangle_instance_scaler
-                .scale_rectangle_instance(&self.rectangle_instance, x, y);
+                .scale_object_instance(&self.rectangle_instance, x, y);
     }
 }
 
@@ -447,7 +448,7 @@ impl<TRectangleInstance: GetNumberOfObjects, TRectangleInstanceScaler> GetNumber
 
 impl<
         TRectangleInstance: GetContentInstanceData,
-        TRectangleInstanceScaler: ScaleRectangleInstance<TRectangleInstance>,
+        TRectangleInstanceScaler: ScaleObjectInstance<TRectangleInstance>,
     > GetContentInstanceData
     for RectangleInstanceRunner<TRectangleInstance, TRectangleInstanceScaler>
 {
@@ -455,18 +456,9 @@ impl<
 
 impl<
         TRectangleInstance: GetContentInstanceData,
-        TRectangleInstanceScaler: ScaleRectangleInstance<TRectangleInstance>,
+        TRectangleInstanceScaler: ScaleObjectInstance<TRectangleInstance>,
     > RunObjectInstance for RectangleInstanceRunner<TRectangleInstance, TRectangleInstanceScaler>
 {
-}
-
-pub trait ScaleRectangleInstance<TRectangleInstance> {
-    fn scale_rectangle_instance(
-        &self,
-        triangle_instance: &TRectangleInstance,
-        x: f32,
-        y: f32,
-    ) -> TRectangleInstance;
 }
 
 pub struct RectangleInstanceScaler<TRectangleInstanceCreator> {
@@ -489,7 +481,7 @@ impl<
             Rgb,
         >,
     >
-    ScaleRectangleInstance<
+    ScaleObjectInstance<
         RectangleInstance<
             TwoDPoint,
             TrianglePoint<TwoDPoint, Rgb>,
@@ -498,7 +490,7 @@ impl<
         >,
     > for RectangleInstanceScaler<TRectangleInstanceCreator>
 {
-    fn scale_rectangle_instance(
+    fn scale_object_instance(
         &self,
         rectangle_instance: &RectangleInstance<
             TwoDPoint,

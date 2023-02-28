@@ -25,6 +25,15 @@ pub trait Scale {
     fn scale(&mut self, x: f32, y: f32);
 }
 
+pub trait ScaleObjectInstance<TObjectInstance> {
+    fn scale_object_instance(
+        &self,
+        object_instance: &TObjectInstance,
+        x: f32,
+        y: f32,
+    ) -> TObjectInstance;
+}
+
 pub trait GetContentInstanceData: GetVertexData + GetNumberOfVertices + GetNumberOfObjects {}
 
 pub trait GetNumberOfObjects {
@@ -302,7 +311,7 @@ mod tests {
 
     use crate::{
         Content, GetContentInstanceData, GetNumberOfObjects, GetNumberOfVertices, GetVertexData,
-        GetX, GetY, Rgb, Scale, TrianglePoint, TwoDPoint,
+        GetX, GetY, Rgb, RunObjectInstance, Scale, TrianglePoint, TwoDPoint,
     };
 
     #[test]
@@ -562,7 +571,7 @@ mod tests {
 
         let objects = vec![];
 
-        let mut object_instances = Vec::<Box<dyn GetContentInstanceData>>::new();
+        let mut object_instances = Vec::<Box<dyn RunObjectInstance>>::new();
         object_instances.push(triangle_instance_1);
         object_instances.push(triangle_instance_2);
         object_instances.push(triangle_instance_3);
@@ -694,30 +703,6 @@ mod tests {
         assert_eq!(result, expected_number_of_objects);
     }
 
-    mock! {
-        VertexObject {}
-        impl GetVertexData for VertexObject {
-            fn get_vertex_data(&self) -> Vec<f32>;
-        }
-        impl GetNumberOfVertices for VertexObject {
-            fn get_number_of_vertices(&self) -> i32;
-        }
-        impl Scale for VertexObject {
-            fn scale(&mut self, x: f32, y: f32);
-        }
-        impl GetNumberOfObjects for VertexObject {
-            fn get_number_of_objects(&self) -> i32;
-        }
-        impl GetContentInstanceData for VertexObject {
-        }
-        impl GetX for VertexObject {
-            fn get_x(&self) -> f32;
-        }
-        impl GetY for VertexObject {
-            fn get_y(&self) -> f32;
-        }
-    }
-
     #[test]
     fn when_two_d_point_gets_x_then_x_is_returned() {
         let x = 1.23;
@@ -757,6 +742,40 @@ mod tests {
         assert_eq!(result, [x, y]);
     }
 
+    mock! {
+        VertexObject {}
+        impl GetVertexData for VertexObject {
+            fn get_vertex_data(&self) -> Vec<f32>;
+        }
+        impl GetNumberOfVertices for VertexObject {
+            fn get_number_of_vertices(&self) -> i32;
+        }
+        impl Scale for VertexObject {
+            fn scale(&mut self, x: f32, y: f32);
+        }
+        impl GetNumberOfObjects for VertexObject {
+            fn get_number_of_objects(&self) -> i32;
+        }
+        impl GetContentInstanceData for VertexObject {
+        }
+        impl GetX for VertexObject {
+            fn get_x(&self) -> f32;
+        }
+        impl GetY for VertexObject {
+            fn get_y(&self) -> f32;
+        }
+    }
+
+    mock! {
+        ObjectInstanceRunner {}
+        impl RunObjectInstance for ObjectInstanceRunner {}
+        impl GetContentInstanceData for ObjectInstanceRunner {}
+        impl Scale for ObjectInstanceRunner {
+            fn scale(&self, x: f32, y: f32) {}
+        }
+        impl
+    }
+
     fn create_mock_vertex_object(
         vertex_data: Vec<f32>,
         number_of_vertices: i32,
@@ -773,4 +792,6 @@ mod tests {
 
         triangle_point
     }
+
+    fn create_mock_run_object_instance() -> MockObjectInstanceRunner {}
 }

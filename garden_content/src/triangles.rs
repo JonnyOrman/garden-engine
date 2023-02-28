@@ -3,7 +3,7 @@ use garden::GetName;
 use crate::{
     GetB, GetContentInstanceData, GetContentName, GetG, GetNumberOfObjects, GetNumberOfVertices,
     GetPosition, GetR, GetRgb, GetScale, GetVertexData, GetX, GetY, Rgb, RunObjectInstance, Scale,
-    TrianglePoint, TwoDPoint,
+    ScaleObjectInstance, TrianglePoint, TwoDPoint,
 };
 
 pub trait GetPoint1<TPoint> {
@@ -339,13 +339,13 @@ impl<TTriangleInstance: GetNumberOfVertices, TTriangleInstanceScaler> GetNumberO
     }
 }
 
-impl<TTriangleInstance, TTriangleInstanceScaler: ScaleTriangleInstance<TTriangleInstance>> Scale
+impl<TTriangleInstance, TTriangleInstanceScaler: ScaleObjectInstance<TTriangleInstance>> Scale
     for TriangleInstanceRunner<TTriangleInstance, TTriangleInstanceScaler>
 {
     fn scale(&mut self, x: f32, y: f32) {
         self.triangle_instance =
             self.triangle_instance_scaler
-                .scale_triangle_instance(&self.triangle_instance, x, y);
+                .scale_object_instance(&self.triangle_instance, x, y);
     }
 }
 
@@ -359,7 +359,7 @@ impl<TTriangleInstance: GetNumberOfObjects, TTriangleInstanceScaler> GetNumberOf
 
 impl<
         TTriangleInstance: GetContentInstanceData,
-        TTriangleInstanceScaler: ScaleTriangleInstance<TTriangleInstance>,
+        TTriangleInstanceScaler: ScaleObjectInstance<TTriangleInstance>,
     > GetContentInstanceData
     for TriangleInstanceRunner<TTriangleInstance, TTriangleInstanceScaler>
 {
@@ -367,18 +367,9 @@ impl<
 
 impl<
         TTriangleInstance: GetContentInstanceData,
-        TTriangleInstanceScaler: ScaleTriangleInstance<TTriangleInstance>,
+        TTriangleInstanceScaler: ScaleObjectInstance<TTriangleInstance>,
     > RunObjectInstance for TriangleInstanceRunner<TTriangleInstance, TTriangleInstanceScaler>
 {
-}
-
-pub trait ScaleTriangleInstance<TTriangleInstance> {
-    fn scale_triangle_instance(
-        &self,
-        triangle_instance: &TTriangleInstance,
-        x: f32,
-        y: f32,
-    ) -> TTriangleInstance;
 }
 
 pub struct TriangleInstanceScaler<TTriangleInstanceCreator> {
@@ -395,10 +386,10 @@ impl<TTriangleInstanceCreator> TriangleInstanceScaler<TTriangleInstanceCreator> 
 
 impl<
         TTriangleInstanceCreator: CreateTriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-    > ScaleTriangleInstance<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>>
+    > ScaleObjectInstance<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>>
     for TriangleInstanceScaler<TTriangleInstanceCreator>
 {
-    fn scale_triangle_instance(
+    fn scale_object_instance(
         &self,
         triangle_instance: &TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
         x: f32,
