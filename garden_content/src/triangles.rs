@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use garden::GetName;
 
 use crate::{
@@ -305,16 +307,16 @@ impl<TPosition, TTrianglePoint: GetVertexData + GetNumberOfVertices>
 }
 
 pub struct TriangleInstanceScaler<TTriangleInstanceCreator, TTrianglePointCreator> {
-    triangle_instance_creator: TTriangleInstanceCreator,
-    triangle_point_creator: TTrianglePointCreator,
+    triangle_instance_creator: Rc<TTriangleInstanceCreator>,
+    triangle_point_creator: Rc<TTrianglePointCreator>,
 }
 
 impl<TTriangleInstanceCreator, TTrianglePointCreator>
     TriangleInstanceScaler<TTriangleInstanceCreator, TTrianglePointCreator>
 {
     pub fn new(
-        triangle_instance_creator: TTriangleInstanceCreator,
-        triangle_point_creator: TTrianglePointCreator,
+        triangle_instance_creator: Rc<TTriangleInstanceCreator>,
+        triangle_point_creator: Rc<TTrianglePointCreator>,
     ) -> Self {
         Self {
             triangle_instance_creator,
