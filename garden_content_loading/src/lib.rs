@@ -1,21 +1,21 @@
 use garden::GetName;
 use garden_content::{
     rectangles::{
-        CreateRectangle, CreateRectangleInstance, Rectangle, RectangleCreator, RectangleInstance,
-        RectangleInstanceCreator, RectangleInstanceScaler,
+        ContentProvider, CreateRectangle, CreateRectangleInstance, GetRectangle, Rectangle,
+        RectangleCreator, RectangleInstance, RectangleInstanceCreator, RectangleInstanceScaler,
     },
     triangles::{
         CreateTriangle, CreateTriangleInstance, Triangle, TriangleCreator, TriangleInstance,
         TriangleInstanceCreator, TriangleInstanceScaler,
     },
-    Content, CreateTrianglePoint, GetB, GetG, GetNumberOfVertices, GetR, GetRgb, GetVertexData,
-    GetX, GetY, ObjectInstanceRunner, Rgb, RgbCreator, RunObjectInstance, TrianglePoint,
-    TrianglePointCreator, TwoDPoint, TwoDPointCreator,
+    Content, CreateTrianglePoint, GetB, GetContent, GetG, GetNumberOfVertices, GetR, GetRgb,
+    GetVertexData, GetX, GetY, ObjectInstanceRunner, Rgb, RgbCreator, RunObjectInstance,
+    TrianglePoint, TrianglePointCreator, TwoDPoint, TwoDPointCreator,
 };
 use garden_json::{ConvertJsonToValue, JsonToF32Converter, JsonToStringConverter};
 use garden_loading::Load;
 use serde_json::Value;
-use std::{collections::HashMap, fs, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, fs, rc::Rc};
 
 pub struct ContentLoader<TJsonToContentConverter> {
     json_to_content_converter: TJsonToContentConverter,
@@ -48,7 +48,7 @@ pub struct JsonToContentConverter<TJsonToObjectConverter, TJsonToObjectInstanceR
 
 impl<
         'a,
-        TJsonToObjectConverter: ConvertJsonToValue<Box<dyn GetName>>,
+        TJsonToObjectConverter: ConvertJsonToValue<Box<Rc<RefCell<dyn GetName>>>>,
         TJsonToObjectInstanceRunnerConverter: ConvertJsonToValue<Box<dyn RunObjectInstance>>,
     > JsonToContentConverter<TJsonToObjectConverter, TJsonToObjectInstanceRunnerConverter>
 {
@@ -65,20 +65,20 @@ impl<
 
 impl<
         'a,
-        TJsonToObjectConverter: ConvertJsonToValue<Box<dyn GetName>>,
+        TJsonToObjectConverter: ConvertJsonToValue<Box<Rc<RefCell<dyn GetName>>>>,
         TJsonToObjectInstanceRunnerConverter: ConvertJsonToValue<Box<dyn RunObjectInstance>>,
     > ConvertJsonToValue<Content>
     for JsonToContentConverter<TJsonToObjectConverter, TJsonToObjectInstanceRunnerConverter>
 {
     fn convert_json_to_value(&self, json: &Value) -> Content {
-        let mut objects = Vec::<Rc<Box<dyn GetName>>>::new();
+        let mut objects = Vec::<Box<Rc<RefCell<dyn GetName>>>>::new();
 
         if let Some(object_json_array) = json["content"]["objects"].as_array() {
             for object_json in object_json_array {
-                objects.push(Rc::new(
+                objects.push(
                     self.json_to_object_converter
                         .convert_json_to_value(object_json),
-                ));
+                );
             }
         }
 
@@ -127,14 +127,17 @@ impl<
         TJsonToStringConverter: ConvertJsonToValue<String>,
         TJsonToTrianglePointConverter: ConvertJsonToValue<TrianglePoint<TwoDPoint, Rgb>>,
         TTriangleCreator: CreateTriangle<TrianglePoint<TwoDPoint, Rgb>>,
-    > ConvertJsonToValue<Triangle<TrianglePoint<TwoDPoint, Rgb>>>
+    > ConvertJsonToValue<Rc<RefCell<Triangle<TrianglePoint<TwoDPoint, Rgb>>>>>
     for JsonToTriangleConverter<
         TJsonToStringConverter,
         TJsonToTrianglePointConverter,
         TTriangleCreator,
     >
 {
-    fn convert_json_to_value(&self, json: &Value) -> Triangle<TrianglePoint<TwoDPoint, Rgb>> {
+    fn convert_json_to_value(
+        &self,
+        json: &Value,
+    ) -> Rc<RefCell<Triangle<TrianglePoint<TwoDPoint, Rgb>>>> {
         let name = self
             .json_to_string_converter
             .convert_json_to_value(&json["name"]);
@@ -151,8 +154,10 @@ impl<
             .json_to_triangle_point_converter
             .convert_json_to_value(&json["point3"]);
 
-        self.triangle_creator
-            .create_triangle(name, point_1, point_2, point_3)
+        Rc::new(RefCell::new(
+            self.triangle_creator
+                .create_triangle(name, point_1, point_2, point_3),
+        ))
     }
 }
 
@@ -168,12 +173,14 @@ impl<TJsonToTriangleConverter> JsonToBoxedTriangleConverter<TJsonToTriangleConve
     }
 }
 
-impl<TJsonToTriangleConverter: ConvertJsonToValue<Triangle<TrianglePoint<TwoDPoint, Rgb>>>>
-    ConvertJsonToValue<Box<dyn GetName>>
+impl<
+        TJsonToTriangleConverter: ConvertJsonToValue<Rc<RefCell<Triangle<TrianglePoint<TwoDPoint, Rgb>>>>>,
+    > ConvertJsonToValue<Box<Rc<RefCell<dyn GetName>>>>
     for JsonToBoxedTriangleConverter<TJsonToTriangleConverter>
 {
-    fn convert_json_to_value(&self, json: &Value) -> Box<dyn GetName> {
+    fn convert_json_to_value(&self, json: &Value) -> Box<Rc<RefCell<dyn GetName>>> {
         Box::new(self.json_to_triangle_converter.convert_json_to_value(json))
+        //todo!()
     }
 }
 
@@ -218,7 +225,7 @@ impl<
         TJsonToRgbConverter: ConvertJsonToValue<TRgb>,
         TRgb,
         TRectangleCreator: CreateRectangle<TRgb>,
-    > ConvertJsonToValue<Rectangle<TRgb>>
+    > ConvertJsonToValue<Rc<RefCell<Rectangle<TRgb>>>>
     for JsonToRectangleConverter<
         TJsonToStringConverter,
         TJsonToF32Converter,
@@ -226,7 +233,7 @@ impl<
         TRectangleCreator,
     >
 {
-    fn convert_json_to_value(&self, json: &Value) -> Rectangle<TRgb> {
+    fn convert_json_to_value(&self, json: &Value) -> Rc<RefCell<Rectangle<TRgb>>> {
         let name = self
             .json_to_string_converter
             .convert_json_to_value(&json["name"]);
@@ -260,11 +267,11 @@ impl<TJsonToRectangleConverter> JsonToBoxedRectangleConverter<TJsonToRectangleCo
     }
 }
 
-impl<TJsonToRectangleConverter: ConvertJsonToValue<Rectangle<Rgb>>>
-    ConvertJsonToValue<Box<dyn GetName>>
+impl<TJsonToRectangleConverter: ConvertJsonToValue<Rc<RefCell<Rectangle<Rgb>>>>>
+    ConvertJsonToValue<Box<Rc<RefCell<dyn GetName>>>>
     for JsonToBoxedRectangleConverter<TJsonToRectangleConverter>
 {
-    fn convert_json_to_value(&self, json: &Value) -> Box<dyn GetName> {
+    fn convert_json_to_value(&self, json: &Value) -> Box<Rc<RefCell<dyn GetName>>> {
         Box::new(self.json_to_rectangle_converter.convert_json_to_value(json))
     }
 }
@@ -329,7 +336,7 @@ impl<
         TTriangleInstanceCreator: CreateTriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>, TTriangleInstance>,
         TTrianglePointCreator: CreateTrianglePoint<TrianglePoint<TwoDPoint, Rgb>>,
         TTriangleInstance,
-    > ConvertJsonToValue<TTriangleInstance>
+    > ConvertJsonToValue<Rc<RefCell<TTriangleInstance>>>
     for JsonToTriangleInstanceConverter<
         TJsonToStringConverter,
         TJsonToTwoDPointConverter,
@@ -339,7 +346,7 @@ impl<
         TTrianglePointCreator,
     >
 {
-    fn convert_json_to_value(&self, json: &Value) -> TTriangleInstance {
+    fn convert_json_to_value(&self, json: &Value) -> Rc<RefCell<TTriangleInstance>> {
         let scale = self
             .json_to_f32_converter
             .convert_json_to_value(&json["scale"]);
@@ -439,7 +446,7 @@ impl<TJsonToTriangleInstanceConverter, TTrianglePointCreator, TTriangleInstanceC
 }
 
 impl<
-        TJsonToTriangleInstanceConverter: ConvertJsonToValue<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>>,
+        TJsonToTriangleInstanceConverter: ConvertJsonToValue<Rc<RefCell<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>>>>,
     >
     ConvertJsonToValue<
         ObjectInstanceRunner<
@@ -520,20 +527,24 @@ pub struct JsonToRectangleInstanceConverter<
     TJsonToPositionConverter,
     TJsonToRgbConverter,
     TRectangleInstanceCreator,
+    TRectangleProvider,
 > {
     json_to_string_converter: Rc<TJsonToStringConverter>,
     json_to_f32_converter: Rc<TJsonToF32Converter>,
     json_to_position_converter: Rc<TJsonToPositionConverter>,
     json_to_rgb_converter: Rc<TJsonToRgbConverter>,
     rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
+    rectangle_provider: Rc<RefCell<TRectangleProvider>>,
 }
 
 impl<
+        'r,
         TJsonToStringConverter,
         TJsonToF32Converter,
         TJsonToPositionConverter,
         TJsonToRgbConverter,
         TRectangleInstanceCreator,
+        TRectangleProvider,
     >
     JsonToRectangleInstanceConverter<
         TJsonToStringConverter,
@@ -541,6 +552,7 @@ impl<
         TJsonToPositionConverter,
         TJsonToRgbConverter,
         TRectangleInstanceCreator,
+        TRectangleProvider,
     >
 {
     fn new(
@@ -549,6 +561,7 @@ impl<
         json_to_position_converter: Rc<TJsonToPositionConverter>,
         json_to_rgb_converter: Rc<TJsonToRgbConverter>,
         rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
+        rectangle_provider: Rc<RefCell<TRectangleProvider>>,
     ) -> Self {
         Self {
             json_to_string_converter,
@@ -556,6 +569,7 @@ impl<
             json_to_position_converter,
             json_to_rgb_converter,
             rectangle_instance_creator,
+            rectangle_provider,
         }
     }
 }
@@ -573,15 +587,23 @@ impl<
                 TrianglePoint<TwoDPoint, Rgb>,
                 TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
                 Rgb,
+                Rectangle<Rgb>,
             >,
+            Rectangle<Rgb>,
         >,
+        TRectangleProvider: GetContent<Rectangle<Rgb>>,
     >
     ConvertJsonToValue<
-        RectangleInstance<
-            TwoDPoint,
-            TrianglePoint<TwoDPoint, Rgb>,
-            TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-            Rgb,
+        Rc<
+            RefCell<
+                RectangleInstance<
+                    TwoDPoint,
+                    TrianglePoint<TwoDPoint, Rgb>,
+                    TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+                    Rgb,
+                    Rectangle<Rgb>,
+                >,
+            >,
         >,
     >
     for JsonToRectangleInstanceConverter<
@@ -590,16 +612,22 @@ impl<
         TJsonToPositionConverter,
         TJsonToRgbConverter,
         TRectangleInstanceCreator,
+        TRectangleProvider,
     >
 {
     fn convert_json_to_value(
         &self,
         json: &Value,
-    ) -> RectangleInstance<
-        TwoDPoint,
-        TrianglePoint<TwoDPoint, Rgb>,
-        TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-        Rgb,
+    ) -> Rc<
+        RefCell<
+            RectangleInstance<
+                TwoDPoint,
+                TrianglePoint<TwoDPoint, Rgb>,
+                TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+                Rgb,
+                Rectangle<Rgb>,
+            >,
+        >,
     > {
         let name = self
             .json_to_string_converter
@@ -629,15 +657,13 @@ impl<
             .json_to_rgb_converter
             .convert_json_to_value(&json["rgb"]);
 
-        self.rectangle_instance_creator.create_rectangle_instance(
-            name,
-            content_name,
-            scale,
-            position,
-            width,
-            height,
-            rgb,
-        )
+        let rectangle = self
+            .rectangle_provider
+            .borrow_mut()
+            .get_content(content_name);
+
+        self.rectangle_instance_creator
+            .create_rectangle_instance(name, rectangle, scale, position, width, height, rgb)
     }
 }
 
@@ -648,6 +674,7 @@ pub struct JsonToRectangleInstanceRunnerConverter<
     TRectangleInstanceCreator,
     TTwoDPointCreator,
     TRgbCreator,
+    TRectangleProvider,
 > {
     json_to_rectangle_instance_converter: TJsonToRectangleInstanceConverter,
     triangle_point_creator: Rc<TTrianglePointCreator>,
@@ -655,6 +682,7 @@ pub struct JsonToRectangleInstanceRunnerConverter<
     rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
     two_d_point_creator: Rc<TTwoDPointCreator>,
     rgb_creator: Rc<TRgbCreator>,
+    rectangle_provider: Rc<TRectangleProvider>,
 }
 
 impl<
@@ -664,6 +692,7 @@ impl<
         TRectangleInstanceCreator,
         TTwoDPointCreator,
         TRgbCreator,
+        TRectangleProvider,
     >
     JsonToRectangleInstanceRunnerConverter<
         TJsonToRectangleInstanceConverter,
@@ -672,6 +701,7 @@ impl<
         TRectangleInstanceCreator,
         TTwoDPointCreator,
         TRgbCreator,
+        TRectangleProvider,
     >
 {
     fn new(
@@ -681,6 +711,7 @@ impl<
         rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
         two_d_point_creator: Rc<TTwoDPointCreator>,
         rgb_creator: Rc<TRgbCreator>,
+        rectangle_provider: Rc<TRectangleProvider>,
     ) -> Self {
         Self {
             json_to_rectangle_instance_converter,
@@ -689,20 +720,28 @@ impl<
             rectangle_instance_creator,
             two_d_point_creator,
             rgb_creator,
+            rectangle_provider,
         }
     }
 }
 
 impl<
+        'r,
         TJsonToRectangleInstanceConverter: ConvertJsonToValue<
-            RectangleInstance<
-                TwoDPoint,
-                TrianglePoint<TwoDPoint, Rgb>,
-                TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-                Rgb,
+            Rc<
+                RefCell<
+                    RectangleInstance<
+                        TwoDPoint,
+                        TrianglePoint<TwoDPoint, Rgb>,
+                        TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+                        Rgb,
+                        Rectangle<Rgb>,
+                    >,
+                >,
             >,
         >,
         TRgbCreator,
+        TRectangleProvider,
     >
     ConvertJsonToValue<
         ObjectInstanceRunner<
@@ -711,6 +750,7 @@ impl<
                 TrianglePoint<TwoDPoint, Rgb>,
                 TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
                 Rgb,
+                Rectangle<Rgb>,
             >,
             RectangleInstanceScaler<
                 RectangleInstanceCreator<
@@ -734,6 +774,7 @@ impl<
         >,
         TwoDPointCreator,
         TRgbCreator,
+        TRectangleProvider,
     >
 {
     fn convert_json_to_value(
@@ -745,6 +786,7 @@ impl<
             TrianglePoint<TwoDPoint, Rgb>,
             TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
             Rgb,
+            Rectangle<Rgb>,
         >,
         RectangleInstanceScaler<
             RectangleInstanceCreator<
@@ -785,6 +827,7 @@ impl<TJsonToRectangleInstanceRunnerConverter>
 }
 
 impl<
+        'r,
         TJsonToRectangleInstanceRunnerConverter: ConvertJsonToValue<
             ObjectInstanceRunner<
                 RectangleInstance<
@@ -792,6 +835,7 @@ impl<
                     TrianglePoint<TwoDPoint, Rgb>,
                     TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
                     Rgb,
+                    Rectangle<Rgb>,
                 >,
                 RectangleInstanceScaler<
                     RectangleInstanceCreator<
@@ -808,10 +852,11 @@ impl<
     for JsonToBoxedRectangleInstanceRunnerConverter<TJsonToRectangleInstanceRunnerConverter>
 {
     fn convert_json_to_value(&self, json: &Value) -> Box<dyn RunObjectInstance> {
-        Box::new(
-            self.json_to_rectangle_instance_runner_converter
-                .convert_json_to_value(json),
-        )
+        let val = self
+            .json_to_rectangle_instance_runner_converter
+            .convert_json_to_value(json);
+
+        Box::new(val)
     }
 }
 
@@ -944,7 +989,7 @@ pub fn compose_json_to_content_converter(
     json_to_f32_converter: Rc<JsonToF32Converter>,
     json_to_string_converter: Rc<JsonToStringConverter>,
 ) -> JsonToContentConverter<
-    TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetName>>,
+    TypedJsonToValueConverter<JsonToStringConverter, Box<Rc<RefCell<dyn GetName>>>>,
     TypedJsonToValueConverter<JsonToStringConverter, Box<dyn RunObjectInstance>>,
 > {
     let json_to_two_d_point_converter = Rc::new(JsonToTwoDPointConverter::new(Rc::clone(
@@ -998,7 +1043,13 @@ pub fn compose_json_to_content_converter(
     let json_to_boxed_triangle_instance_runner_converter =
         JsonToBoxedTriangleInstanceRunnerConverter::new(json_to_triangle_instance_runner_converter);
 
-    let rectangle_creator = Rc::new(RectangleCreator::new());
+    let rectangle_provider = ContentProvider::<Rectangle<Rgb>>::new(vec![]);
+
+    let rectangle_provider_ref_cell = Rc::new(RefCell::new(rectangle_provider));
+
+    let rectangle_creator = Rc::new(RectangleCreator::new(Rc::clone(
+        &rectangle_provider_ref_cell,
+    )));
 
     let json_to_rectangle_converter = JsonToRectangleConverter::new(
         Rc::clone(&json_to_string_converter),
@@ -1022,6 +1073,7 @@ pub fn compose_json_to_content_converter(
         Rc::clone(&json_to_two_d_point_converter),
         Rc::clone(&json_to_rgb_converter),
         Rc::clone(&rectangle_instance_creator),
+        Rc::clone(&rectangle_provider_ref_cell),
     );
 
     let json_to_rectangle_instance_runner_converter = JsonToRectangleInstanceRunnerConverter::new(
@@ -1031,6 +1083,7 @@ pub fn compose_json_to_content_converter(
         Rc::clone(&rectangle_instance_creator),
         Rc::clone(&two_d_point_creator),
         Rc::clone(&rgb_creator),
+        Rc::clone(&rectangle_provider_ref_cell),
     );
 
     let json_to_boxed_rectangle_instance_runner_converter =
@@ -1039,15 +1092,13 @@ pub fn compose_json_to_content_converter(
         );
 
     let mut object_converters =
-        HashMap::<String, Box<dyn ConvertJsonToValue<Box<dyn GetName>>>>::new();
-    object_converters.insert(
-        "triangle".to_string(),
-        Box::new(json_to_boxed_triangle_converter),
-    );
-    object_converters.insert(
-        "rectangle".to_string(),
-        Box::new(json_to_boxed_rectangle_converter),
-    );
+        HashMap::<String, Box<dyn ConvertJsonToValue<Box<Rc<RefCell<dyn GetName>>>>>>::new();
+
+    let c = Box::new(json_to_boxed_triangle_converter);
+    object_converters.insert("triangle".to_string(), c);
+
+    let b = Box::new(json_to_boxed_rectangle_converter);
+    object_converters.insert("rectangle".to_string(), b);
 
     let json_to_object_converter =
         TypedJsonToValueConverter::new(Rc::clone(&json_to_string_converter), object_converters);
@@ -1081,7 +1132,7 @@ pub fn compose_content_loader(
     json_to_string_converter: Rc<JsonToStringConverter>,
 ) -> ContentLoader<
     JsonToContentConverter<
-        TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetName>>,
+        TypedJsonToValueConverter<JsonToStringConverter, Box<Rc<RefCell<dyn GetName>>>>,
         TypedJsonToValueConverter<JsonToStringConverter, Box<dyn RunObjectInstance>>,
     >,
 > {
@@ -1090,7 +1141,7 @@ pub fn compose_content_loader(
 
     ContentLoader::<
         JsonToContentConverter<
-            TypedJsonToValueConverter<JsonToStringConverter, Box<dyn GetName>>,
+            TypedJsonToValueConverter<JsonToStringConverter, Box<Rc<RefCell<dyn GetName>>>>,
             TypedJsonToValueConverter<JsonToStringConverter, Box<dyn RunObjectInstance>>,
         >,
     >::new(json_to_content_converter)

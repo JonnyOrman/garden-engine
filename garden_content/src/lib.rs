@@ -1,7 +1,7 @@
 pub mod rectangles;
 pub mod triangles;
 
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use garden::GetName;
 
@@ -28,10 +28,10 @@ pub trait Scale {
 pub trait ScaleObjectInstance<TObjectInstance> {
     fn scale_object_instance(
         &self,
-        object_instance: &TObjectInstance,
+        object_instance: Rc<RefCell<TObjectInstance>>,
         x: f32,
         y: f32,
-    ) -> TObjectInstance;
+    ) -> Rc<RefCell<TObjectInstance>>;
 }
 
 pub trait GetContentInstanceData: GetVertexData + GetNumberOfVertices + GetNumberOfObjects {}
@@ -337,7 +337,7 @@ pub trait GetPosition<TPosition> {
 }
 
 pub struct Content {
-    objects: Option<Vec<Rc<Box<dyn GetName>>>>,
+    objects: Option<Vec<Box<Rc<RefCell<dyn GetName>>>>>,
     object_instance_runners: Option<Vec<Box<dyn RunObjectInstance>>>,
     vertex_data: Vec<f32>,
     number_of_vertices: i32,
@@ -346,7 +346,7 @@ pub struct Content {
 
 impl Content {
     pub fn new(
-        objects: Vec<Rc<Box<dyn GetName>>>,
+        objects: Vec<Box<Rc<RefCell<dyn GetName>>>>,
         object_instance_runners: Vec<Box<dyn RunObjectInstance>>,
     ) -> Self {
         let mut number_of_vertices = 0;
@@ -370,7 +370,7 @@ impl Content {
         }
     }
 
-    pub fn get_objects(&self) -> &Option<Vec<Rc<Box<dyn GetName>>>> {
+    pub fn get_objects(&self) -> &Option<Vec<Box<Rc<RefCell<dyn GetName>>>>> {
         &self.objects
     }
 
@@ -424,7 +424,7 @@ impl GetVertexDataPtr for Content {
 pub trait RunObjectInstance: GetContentInstanceData + Scale {}
 
 pub struct ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler> {
-    object_instance: TObjectInstance,
+    object_instance: Rc<RefCell<TObjectInstance>>,
     object_instance_scaler: TObjectInstanceScaler,
 }
 
@@ -432,7 +432,7 @@ impl<TObjectInstance, TObjectInstanceScaler>
     ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler>
 {
     pub fn new(
-        object_instance: TObjectInstance,
+        object_instance: Rc<RefCell<TObjectInstance>>,
         object_instance_scaler: TObjectInstanceScaler,
     ) -> Self {
         Self {
@@ -446,9 +446,11 @@ impl<TObjectInstance, TObjectInstanceScaler: ScaleObjectInstance<TObjectInstance
     for ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler>
 {
     fn scale(&mut self, x: f32, y: f32) {
-        self.object_instance =
-            self.object_instance_scaler
-                .scale_object_instance(&self.object_instance, x, y);
+        self.object_instance = self.object_instance_scaler.scale_object_instance(
+            Rc::clone(&self.object_instance),
+            x,
+            y,
+        );
     }
 }
 
@@ -456,7 +458,7 @@ impl<TObjectInstance: GetNumberOfObjects, TObjectInstanceScaler> GetNumberOfObje
     for ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler>
 {
     fn get_number_of_objects(&self) -> i32 {
-        self.object_instance.get_number_of_objects()
+        self.object_instance.borrow().get_number_of_objects()
     }
 }
 
@@ -464,7 +466,7 @@ impl<TObjectInstance: GetNumberOfVertices, TObjectInstanceScaler> GetNumberOfVer
     for ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler>
 {
     fn get_number_of_vertices(&self) -> i32 {
-        self.object_instance.get_number_of_vertices()
+        self.object_instance.borrow().get_number_of_vertices()
     }
 }
 
@@ -472,7 +474,7 @@ impl<TObjectInstance: GetVertexData, TObjectInstanceScaler> GetVertexData
     for ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler>
 {
     fn get_vertex_data(&self) -> Vec<f32> {
-        self.object_instance.get_vertex_data()
+        self.object_instance.borrow().get_vertex_data()
     }
 }
 
@@ -486,6 +488,14 @@ impl<
         TObjectInstanceScaler: ScaleObjectInstance<TObjectInstance>,
     > RunObjectInstance for ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler>
 {
+}
+
+pub trait GetContent<TContent> {
+    fn get_content(&self, content_name: String) -> Rc<RefCell<TContent>>;
+}
+
+pub trait AddContent<TContent> {
+    fn add_content(&mut self, content: Rc<RefCell<TContent>>);
 }
 
 #[cfg(test)]
