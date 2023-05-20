@@ -34,6 +34,24 @@ impl<TRgb> GetName for Rectangle<TRgb> {
     }
 }
 
+impl<TRgb> GetWidth for Rectangle<TRgb> {
+    fn get_width(&self) -> f32 {
+        self.width
+    }
+}
+
+impl<TRgb> GetHeight for Rectangle<TRgb> {
+    fn get_height(&self) -> f32 {
+        self.height
+    }
+}
+
+impl<TRgb> GetRgb<TRgb> for Rectangle<TRgb> {
+    fn get_rgb(&self) -> &TRgb {
+        &self.rgb
+    }
+}
+
 pub trait CreateRectangle<TRgb> {
     fn create_rectangle(
         &self,
@@ -76,13 +94,11 @@ impl<TRectangleProvider: AddContent<Rectangle<TRgb>>, TRgb> CreateRectangle<TRgb
     }
 }
 
-pub struct RectangleInstance<TPosition, TPoint, TTriangleInstance, TRgb, TRectangle> {
+pub struct RectangleInstance<TPosition, TPoint, TTriangleInstance, TRectangle> {
     name: String,
     rectangle: Rc<RefCell<TRectangle>>,
     scale: f32,
     position: TPosition,
-    width: f32,
-    height: f32,
     number_of_vertices: i32,
     vertex_data: Vec<f32>,
     point_1: TPoint,
@@ -91,20 +107,16 @@ pub struct RectangleInstance<TPosition, TPoint, TTriangleInstance, TRgb, TRectan
     point_4: TPoint,
     triangle_instance_1: Rc<RefCell<TTriangleInstance>>,
     triangle_instance_2: Rc<RefCell<TTriangleInstance>>,
-    rgb: TRgb,
 }
 
-impl<TPosition, TRgb, TPoint, TTriangleInstance, TRectangle>
-    RectangleInstance<TPosition, TPoint, TTriangleInstance, TRgb, TRectangle>
+impl<TPosition, TPoint, TTriangleInstance, TRectangle>
+    RectangleInstance<TPosition, TPoint, TTriangleInstance, TRectangle>
 {
     pub fn new(
         name: String,
         rectangle: Rc<RefCell<TRectangle>>,
         scale: f32,
         position: TPosition,
-        width: f32,
-        height: f32,
-        rgb: TRgb,
         point_1: TPoint,
         point_2: TPoint,
         point_3: TPoint,
@@ -119,8 +131,6 @@ impl<TPosition, TRgb, TPoint, TTriangleInstance, TRectangle>
             rectangle,
             scale,
             position,
-            width,
-            height,
             vertex_data,
             number_of_vertices,
             point_1,
@@ -129,33 +139,31 @@ impl<TPosition, TRgb, TPoint, TTriangleInstance, TRectangle>
             point_4,
             triangle_instance_1,
             triangle_instance_2,
-            rgb,
         }
     }
 }
 
-impl<TPosition, TPoint, TTrianglePoint, TRgb, TRectangle> GetName
-    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb, TRectangle>
+impl<TPosition, TPoint, TTrianglePoint, TRectangle> GetName
+    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRectangle>
 {
     fn get_name(&self) -> &str {
         &self.name
     }
 }
 
-impl<TPosition, TPoint, TTrianglePoint, TRgb, TRectangle> GetContentName
-    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb, TRectangle>
+impl<TPosition, TPoint, TTrianglePoint, TRectangle> GetContentName
+    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRectangle>
 {
     fn get_content_name(&self) -> &str {
         &self.name
     }
 }
 
-impl<TPosition, TPoint, TRgb, TRectangle> GetVertexData
+impl<TPosition, TPoint, TRectangle> GetVertexData
     for RectangleInstance<
         TPosition,
         TPoint,
         TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-        TRgb,
         TRectangle,
     >
 {
@@ -164,12 +172,11 @@ impl<TPosition, TPoint, TRgb, TRectangle> GetVertexData
     }
 }
 
-impl<TPosition, TPoint, TRgb, TRectangle> GetNumberOfVertices
+impl<TPosition, TPoint, TRectangle> GetNumberOfVertices
     for RectangleInstance<
         TPosition,
         TPoint,
         TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-        TRgb,
         TRectangle,
     >
 {
@@ -178,12 +185,11 @@ impl<TPosition, TPoint, TRgb, TRectangle> GetNumberOfVertices
     }
 }
 
-impl<TPosition, TRgb, TRectangle> GetNumberOfObjects
+impl<TPosition, TRectangle> GetNumberOfObjects
     for RectangleInstance<
         TPosition,
         TrianglePoint<TwoDPoint, Rgb>,
         TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-        TRgb,
         TRectangle,
     >
 {
@@ -192,95 +198,86 @@ impl<TPosition, TRgb, TRectangle> GetNumberOfObjects
     }
 }
 
-impl<TPosition, TRgb, TRectangle> GetContentInstanceData
+impl<TPosition, TRectangle> GetContentInstanceData
     for RectangleInstance<
         TPosition,
         TrianglePoint<TwoDPoint, Rgb>,
         TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-        TRgb,
         TRectangle,
     >
 {
 }
 
-impl<TPosition, TPoint, TTrianglePoint, TRgb, TRectangle> GetScale
-    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb, TRectangle>
+impl<TPosition, TPoint, TTrianglePoint, TRectangle> GetScale
+    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRectangle>
 {
     fn get_scale(&self) -> f32 {
         self.scale
     }
 }
 
-impl<TPosition, TPoint, TTrianglePoint, TRgb, TRectangle> GetWidth
-    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb, TRectangle>
+impl<TPosition, TPoint, TTrianglePoint, TRectangle: GetWidth> GetWidth
+    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRectangle>
 {
     fn get_width(&self) -> f32 {
-        self.width
+        self.rectangle.borrow().get_width()
     }
 }
 
-impl<TPosition, TPoint, TTrianglePoint, TRgb, TRectangle> GetHeight
-    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb, TRectangle>
+impl<TPosition, TPoint, TTrianglePoint, TRectangle: GetHeight> GetHeight
+    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRectangle>
 {
     fn get_height(&self) -> f32 {
-        self.height
+        self.rectangle.borrow().get_height()
     }
 }
 
-impl<TPosition, TPoint, TTrianglePoint, TRgb, TRectangle> GetPosition<TPosition>
-    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb, TRectangle>
+impl<TPosition, TPoint, TTrianglePoint, TRectangle> GetPosition<TPosition>
+    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRectangle>
 {
     fn get_position(&self) -> &TPosition {
         &self.position
     }
 }
 
-impl<TPosition, TPoint, TTrianglePoint, TRgb, TRectangle> GetRgb<TRgb>
-    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb, TRectangle>
-{
-    fn get_rgb(&self) -> &TRgb {
-        &self.rgb
-    }
-}
-
-impl<TPosition, TPoint, TTrianglePoint, TRgb: GetR, TRectangle> GetR
-    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb, TRectangle>
+impl<TPosition, TPoint, TTrianglePoint, TRectangle: GetRgb<Rgb>> GetR
+    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRectangle>
 {
     fn get_r(&self) -> f32 {
-        self.get_rgb().get_r()
+        self.rectangle.borrow().get_rgb().get_r()
     }
 }
 
-impl<TPosition, TPoint, TTrianglePoint, TRgb: GetG, TRectangle> GetG
-    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb, TRectangle>
+impl<TPosition, TPoint, TTrianglePoint, TRectangle: GetRgb<Rgb>> GetG
+    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRectangle>
 {
     fn get_g(&self) -> f32 {
-        self.get_rgb().get_g()
+        self.rectangle.borrow().get_rgb().get_g()
     }
 }
 
-impl<TPosition, TPoint, TTrianglePoint, TRgb: GetB, TRectangle> GetB
-    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb, TRectangle>
+impl<TPosition, TPoint, TTrianglePoint, TRectangle: GetRgb<Rgb>> GetB
+    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRectangle>
 {
     fn get_b(&self) -> f32 {
-        self.get_rgb().get_b()
+        self.rectangle.borrow().get_rgb().get_b()
     }
 }
 
-impl<TPosition, TPoint, TTrianglePoint, TRgb: GetRgbValues, TRectangle> GetRgbValues
-    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb, TRectangle>
+impl<TPosition, TPoint, TTrianglePoint, TRectangle: GetRgb<Rgb>> GetRgbValues
+    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRectangle>
 {
 }
 
-impl<TPosition, TPoint, TTrianglePoint, TRgb: GetRgbValues, TRectangle> GetRectangle<TRectangle>
-    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRgb, TRectangle>
+impl<TPosition, TPoint, TTrianglePoint, TRectangle> GetRectangle<TRectangle>
+    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRectangle>
 {
     fn get_rectangle(&self) -> Rc<RefCell<TRectangle>> {
         Rc::clone(&self.rectangle)
     }
 }
 
-pub trait CreateRectangleInstance<TPosition, TRgb, TRectangleInstance, TRectangle> {
+pub trait CreateRectangleInstance<TPosition, TRectangleInstance, TRectangle> {
     fn create_rectangle_instance(
         &self,
         name: String,
@@ -289,7 +286,6 @@ pub trait CreateRectangleInstance<TPosition, TRgb, TRectangleInstance, TRectangl
         position: TPosition,
         width: f32,
         height: f32,
-        rgb: TRgb,
     ) -> Rc<RefCell<TRectangleInstance>>;
 }
 
@@ -324,15 +320,13 @@ impl<
         TTrianglePointCreator: CreateTrianglePoint<TPoint>,
         TTwoDPointCreator: CreateTwoDPoint<TPosition>,
         TPosition: Get2DCoordiantes,
-        TPoint: Get2DCoordiantes + GetRgb<TRgb> + GetRgbValues,
-        TRgb: GetRgbValues,
+        TPoint: Get2DCoordiantes + GetRgbValues,
         TTriangleInstance: GetContentInstanceData,
-        TRectangle,
+        TRectangle: GetWidth + GetHeight + GetRgb<Rgb>,
     >
     CreateRectangleInstance<
         TPosition,
-        TRgb,
-        RectangleInstance<TPosition, TPoint, TTriangleInstance, TRgb, TRectangle>,
+        RectangleInstance<TPosition, TPoint, TTriangleInstance, TRectangle>,
         TRectangle,
     >
     for RectangleInstanceCreator<TTriangleInstanceCreator, TTrianglePointCreator, TTwoDPointCreator>
@@ -345,9 +339,7 @@ impl<
         position: TPosition,
         width: f32,
         height: f32,
-        rgb: TRgb,
-    ) -> Rc<RefCell<RectangleInstance<TPosition, TPoint, TTriangleInstance, TRgb, TRectangle>>>
-    {
+    ) -> Rc<RefCell<RectangleInstance<TPosition, TPoint, TTriangleInstance, TRectangle>>> {
         let mut vertex_data = vec![];
 
         let x = width / 2.0;
@@ -356,57 +348,57 @@ impl<
         let point_1 = self.triangle_point_creator.create_triangle_point(
             position.get_x() + x,
             position.get_y() + y,
-            rgb.get_r(),
-            rgb.get_g(),
-            rgb.get_b(),
+            rectangle.borrow().get_rgb().get_r(),
+            rectangle.borrow().get_rgb().get_g(),
+            rectangle.borrow().get_rgb().get_b(),
         );
 
         let point_2 = self.triangle_point_creator.create_triangle_point(
             position.get_x() - x,
             position.get_y() + y,
-            rgb.get_r(),
-            rgb.get_g(),
-            rgb.get_b(),
+            rectangle.borrow().get_rgb().get_r(),
+            rectangle.borrow().get_rgb().get_g(),
+            rectangle.borrow().get_rgb().get_b(),
         );
 
         let point_3 = self.triangle_point_creator.create_triangle_point(
             position.get_x() - x,
             position.get_y() - y,
-            rgb.get_r(),
-            rgb.get_g(),
-            rgb.get_b(),
+            rectangle.borrow().get_rgb().get_r(),
+            rectangle.borrow().get_rgb().get_g(),
+            rectangle.borrow().get_rgb().get_b(),
         );
 
         let point_4 = self.triangle_point_creator.create_triangle_point(
             position.get_x() + x,
             position.get_y() - y,
-            rgb.get_r(),
-            rgb.get_g(),
-            rgb.get_b(),
+            rectangle.borrow().get_rgb().get_r(),
+            rectangle.borrow().get_rgb().get_g(),
+            rectangle.borrow().get_rgb().get_b(),
         );
 
         let triangle_instance_1_point_1 = self.triangle_point_creator.create_triangle_point(
             point_1.get_x(),
             point_1.get_y(),
-            point_1.get_rgb().get_r(),
-            point_1.get_rgb().get_g(),
-            point_1.get_rgb().get_b(),
+            point_1.get_r(),
+            point_1.get_g(),
+            point_1.get_b(),
         );
 
         let triangle_instance_1_point_2 = self.triangle_point_creator.create_triangle_point(
             point_2.get_x(),
             point_2.get_y(),
-            point_2.get_rgb().get_r(),
-            point_2.get_rgb().get_g(),
-            point_2.get_rgb().get_b(),
+            point_2.get_r(),
+            point_2.get_g(),
+            point_2.get_b(),
         );
 
         let triangle_instance_1_point_3 = self.triangle_point_creator.create_triangle_point(
             point_3.get_x(),
             point_3.get_y(),
-            point_3.get_rgb().get_r(),
-            point_3.get_rgb().get_g(),
-            point_3.get_rgb().get_b(),
+            point_3.get_r(),
+            point_3.get_g(),
+            point_3.get_b(),
         );
 
         let triangle_instance_1 = self.triangle_instance_creator.create_triangle_instance(
@@ -422,25 +414,25 @@ impl<
         let triangle_instance_2_point_1 = self.triangle_point_creator.create_triangle_point(
             point_1.get_x(),
             point_1.get_y(),
-            point_1.get_rgb().get_r(),
-            point_1.get_rgb().get_g(),
-            point_1.get_rgb().get_b(),
+            point_1.get_r(),
+            point_1.get_g(),
+            point_1.get_b(),
         );
 
         let triangle_instance_2_point_2 = self.triangle_point_creator.create_triangle_point(
             point_3.get_x(),
             point_3.get_y(),
-            point_3.get_rgb().get_r(),
-            point_3.get_rgb().get_g(),
-            point_3.get_rgb().get_b(),
+            point_3.get_r(),
+            point_3.get_g(),
+            point_3.get_b(),
         );
 
         let triangle_instance_2_point_3 = self.triangle_point_creator.create_triangle_point(
             point_4.get_x(),
             point_4.get_y(),
-            point_4.get_rgb().get_r(),
-            point_4.get_rgb().get_g(),
-            point_4.get_rgb().get_b(),
+            point_4.get_r(),
+            point_4.get_g(),
+            point_4.get_b(),
         );
 
         let triangle_instance_2 = self.triangle_instance_creator.create_triangle_instance(
@@ -464,9 +456,6 @@ impl<
             rectangle,
             scale,
             position,
-            width,
-            height,
-            rgb,
             point_1,
             point_2,
             point_3,
@@ -479,24 +468,21 @@ impl<
     }
 }
 
-pub struct RectangleInstanceScaler<TRectangleInstanceCreator, TTwoDPointCreator, TRgbCreator> {
+pub struct RectangleInstanceScaler<TRectangleInstanceCreator, TTwoDPointCreator> {
     rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
     two_d_point_creator: Rc<TTwoDPointCreator>,
-    rgb_creator: Rc<TRgbCreator>,
 }
 
-impl<TRectangleInstanceCreator, TTwoDPointCreator, TRgbCreator>
-    RectangleInstanceScaler<TRectangleInstanceCreator, TTwoDPointCreator, TRgbCreator>
+impl<TRectangleInstanceCreator, TTwoDPointCreator>
+    RectangleInstanceScaler<TRectangleInstanceCreator, TTwoDPointCreator>
 {
     pub fn new(
         rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
         two_d_point_creator: Rc<TTwoDPointCreator>,
-        rgb_creator: Rc<TRgbCreator>,
     ) -> Self {
         Self {
             rectangle_instance_creator,
             two_d_point_creator,
-            rgb_creator,
         }
     }
 }
@@ -512,11 +498,10 @@ impl<
             + GetHeight
             + GetRgbValues
             + GetRectangle<Rectangle<Rgb>>,
-        TRectangleInstanceCreator: CreateRectangleInstance<TwoDPoint, Rgb, TRectangleInstance, Rectangle<Rgb>>,
+        TRectangleInstanceCreator: CreateRectangleInstance<TwoDPoint, TRectangleInstance, Rectangle<Rgb>>,
         TTwoDPointCreator: CreateTwoDPoint<TwoDPoint>,
-        TRgbCreator: CreateRgb<Rgb>,
     > ScaleObjectInstance<TRectangleInstance>
-    for RectangleInstanceScaler<TRectangleInstanceCreator, TTwoDPointCreator, TRgbCreator>
+    for RectangleInstanceScaler<TRectangleInstanceCreator, TTwoDPointCreator>
 {
     fn scale_object_instance(
         &self,
@@ -534,11 +519,6 @@ impl<
             ),
             rectangle_instance.borrow().get_width() / x,
             rectangle_instance.borrow().get_height() / y,
-            self.rgb_creator.create_rgb(
-                rectangle_instance.borrow().get_r(),
-                rectangle_instance.borrow().get_g(),
-                rectangle_instance.borrow().get_b(),
-            ),
         )
     }
 }
@@ -587,9 +567,9 @@ mod tests {
     use garden::GetName;
     use mockall::mock;
 
-    use crate::{AddContent, Get2DCoordiantes, GetB, GetG, GetNumberOfVertices, GetR, GetX, GetY};
+    use crate::{AddContent, Get2DCoordiantes, GetB, GetG, GetR, GetX, GetY};
 
-    use crate::rectangles::{Rectangle, RectangleInstance, RectangleInstanceCreator};
+    use crate::rectangles::{Rectangle, RectangleInstance};
 
     use super::{CreateRectangle, RectangleCreator};
 
@@ -645,12 +625,6 @@ mod tests {
 
         let position = MockRectanglePosition::new();
 
-        let width = 0.0;
-
-        let height = 0.0;
-
-        let rgb = MockRectangleRgb::new();
-
         let point_1 = MockRectanglePoint::new();
 
         let point_2 = MockRectanglePoint::new();
@@ -672,9 +646,6 @@ mod tests {
             rectangle,
             scale,
             position,
-            width,
-            height,
-            rgb,
             point_1,
             point_2,
             point_3,

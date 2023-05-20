@@ -1,4 +1,4 @@
-use garden::GetName;
+use garden::{GetHeight, GetName, GetWidth};
 use garden_content::{
     rectangles::{
         ContentProvider, CreateRectangle, CreateRectangleInstance, GetRectangle, Rectangle,
@@ -581,12 +581,10 @@ impl<
         TJsonToRgbConverter: ConvertJsonToValue<Rgb>,
         TRectangleInstanceCreator: CreateRectangleInstance<
             TwoDPoint,
-            Rgb,
             RectangleInstance<
                 TwoDPoint,
                 TrianglePoint<TwoDPoint, Rgb>,
                 TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-                Rgb,
                 Rectangle<Rgb>,
             >,
             Rectangle<Rgb>,
@@ -600,7 +598,6 @@ impl<
                     TwoDPoint,
                     TrianglePoint<TwoDPoint, Rgb>,
                     TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-                    Rgb,
                     Rectangle<Rgb>,
                 >,
             >,
@@ -624,7 +621,6 @@ impl<
                 TwoDPoint,
                 TrianglePoint<TwoDPoint, Rgb>,
                 TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-                Rgb,
                 Rectangle<Rgb>,
             >,
         >,
@@ -645,82 +641,45 @@ impl<
             .json_to_position_converter
             .convert_json_to_value(&json["position"]);
 
-        let width = self
-            .json_to_f32_converter
-            .convert_json_to_value(&json["width"]);
-
-        let height = self
-            .json_to_f32_converter
-            .convert_json_to_value(&json["height"]);
-
-        let rgb = self
-            .json_to_rgb_converter
-            .convert_json_to_value(&json["rgb"]);
-
         let rectangle = self
             .rectangle_provider
             .borrow_mut()
             .get_content(content_name);
 
+        let width = rectangle.borrow().get_width();
+        let height = rectangle.borrow().get_height();
+
         self.rectangle_instance_creator
-            .create_rectangle_instance(name, rectangle, scale, position, width, height, rgb)
+            .create_rectangle_instance(name, rectangle, scale, position, width, height /*rgb*/)
     }
 }
 
 pub struct JsonToRectangleInstanceRunnerConverter<
     TJsonToRectangleInstanceConverter,
-    TTrianglePointCreator,
-    TTriangleInstanceCreator,
     TRectangleInstanceCreator,
     TTwoDPointCreator,
-    TRgbCreator,
-    TRectangleProvider,
 > {
     json_to_rectangle_instance_converter: TJsonToRectangleInstanceConverter,
-    triangle_point_creator: Rc<TTrianglePointCreator>,
-    triangle_instance_creator: Rc<TTriangleInstanceCreator>,
     rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
     two_d_point_creator: Rc<TTwoDPointCreator>,
-    rgb_creator: Rc<TRgbCreator>,
-    rectangle_provider: Rc<TRectangleProvider>,
 }
 
-impl<
-        TJsonToRectangleInstanceConverter,
-        TTrianglePointCreator,
-        TTriangleInstanceCreator,
-        TRectangleInstanceCreator,
-        TTwoDPointCreator,
-        TRgbCreator,
-        TRectangleProvider,
-    >
+impl<TJsonToRectangleInstanceConverter, TRectangleInstanceCreator, TTwoDPointCreator>
     JsonToRectangleInstanceRunnerConverter<
         TJsonToRectangleInstanceConverter,
-        TTrianglePointCreator,
-        TTriangleInstanceCreator,
         TRectangleInstanceCreator,
         TTwoDPointCreator,
-        TRgbCreator,
-        TRectangleProvider,
     >
 {
     fn new(
         json_to_rectangle_instance_converter: TJsonToRectangleInstanceConverter,
-        triangle_point_creator: Rc<TTrianglePointCreator>,
-        triangle_instance_creator: Rc<TTriangleInstanceCreator>,
         rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
         two_d_point_creator: Rc<TTwoDPointCreator>,
-        rgb_creator: Rc<TRgbCreator>,
-        rectangle_provider: Rc<TRectangleProvider>,
     ) -> Self {
         Self {
             json_to_rectangle_instance_converter,
-            triangle_point_creator,
-            triangle_instance_creator,
             rectangle_instance_creator,
             two_d_point_creator,
-            rgb_creator,
-            rectangle_provider,
         }
     }
 }
@@ -734,14 +693,11 @@ impl<
                         TwoDPoint,
                         TrianglePoint<TwoDPoint, Rgb>,
                         TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-                        Rgb,
                         Rectangle<Rgb>,
                     >,
                 >,
             >,
         >,
-        TRgbCreator,
-        TRectangleProvider,
     >
     ConvertJsonToValue<
         ObjectInstanceRunner<
@@ -749,7 +705,6 @@ impl<
                 TwoDPoint,
                 TrianglePoint<TwoDPoint, Rgb>,
                 TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-                Rgb,
                 Rectangle<Rgb>,
             >,
             RectangleInstanceScaler<
@@ -759,22 +714,17 @@ impl<
                     TwoDPointCreator,
                 >,
                 TwoDPointCreator,
-                TRgbCreator,
             >,
         >,
     >
     for JsonToRectangleInstanceRunnerConverter<
         TJsonToRectangleInstanceConverter,
-        TrianglePointCreator<TwoDPointCreator, RgbCreator>,
-        TriangleInstanceCreator,
         RectangleInstanceCreator<
             TriangleInstanceCreator,
             TrianglePointCreator<TwoDPointCreator, RgbCreator>,
             TwoDPointCreator,
         >,
         TwoDPointCreator,
-        TRgbCreator,
-        TRectangleProvider,
     >
 {
     fn convert_json_to_value(
@@ -785,7 +735,6 @@ impl<
             TwoDPoint,
             TrianglePoint<TwoDPoint, Rgb>,
             TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-            Rgb,
             Rectangle<Rgb>,
         >,
         RectangleInstanceScaler<
@@ -795,7 +744,6 @@ impl<
                 TwoDPointCreator,
             >,
             TwoDPointCreator,
-            TRgbCreator,
         >,
     > {
         ObjectInstanceRunner::new(
@@ -804,7 +752,6 @@ impl<
             RectangleInstanceScaler::new(
                 Rc::clone(&self.rectangle_instance_creator),
                 Rc::clone(&self.two_d_point_creator),
-                Rc::clone(&self.rgb_creator),
             ),
         )
     }
@@ -834,7 +781,6 @@ impl<
                     TwoDPoint,
                     TrianglePoint<TwoDPoint, Rgb>,
                     TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
-                    Rgb,
                     Rectangle<Rgb>,
                 >,
                 RectangleInstanceScaler<
@@ -844,7 +790,6 @@ impl<
                         TwoDPointCreator,
                     >,
                     TwoDPointCreator,
-                    RgbCreator,
                 >,
             >,
         >,
@@ -1078,12 +1023,8 @@ pub fn compose_json_to_content_converter(
 
     let json_to_rectangle_instance_runner_converter = JsonToRectangleInstanceRunnerConverter::new(
         json_to_rectangle_instance_converter,
-        Rc::clone(&triangle_point_creator),
-        Rc::clone(&triangle_instance_creator),
         Rc::clone(&rectangle_instance_creator),
         Rc::clone(&two_d_point_creator),
-        Rc::clone(&rgb_creator),
-        Rc::clone(&rectangle_provider_ref_cell),
     );
 
     let json_to_boxed_rectangle_instance_runner_converter =
@@ -1327,16 +1268,9 @@ mod tests {
                     "contentName": "Rectangle1",
                     "type": "rectangle",
                     "scale": 1.0,
-                    "width": 2.5,
-                    "height": 5.0,
                     "position": {
                         "x": -5.0,
                         "y": 5.0
-                    },
-                    "rgb": {
-                        "r": 0.0,
-                        "g": 0.0,
-                        "b": 1.0
                     }
                 },
                 {
@@ -1344,16 +1278,9 @@ mod tests {
                     "contentName": "Rectangle2",
                     "type": "rectangle",
                     "scale": 1.0,
-                    "width": 3.0,
-                    "height": 2.0,
                     "position": {
                         "x": 5.0,
                         "y": -5.0
-                    },
-                    "rgb": {
-                        "r": 1.0,
-                        "g": 0.0,
-                        "b": 0.0
                     }
                 }
             ]
@@ -1490,9 +1417,6 @@ mod tests {
                         ))),
                         1.0,
                         TwoDPoint::new(-5.0, 5.0),
-                        2.5,
-                        5.0,
-                        Rgb::new(0.0, 0.0, 1.0),
                         TrianglePoint::new(
                             TwoDPoint::new(0.0, 0.0),
                             Rgb::new(1.0, 0.0, 0.0),
@@ -1519,8 +1443,8 @@ mod tests {
                         ),
                         30,
                         vec![
-                            -3.75, 7.5, 0.0, 0.0, 1.0, -6.25, 7.5, 0.0, 0.0, 1.0, -6.25, 2.5, 0.0,
-                            0.0, 1.0, -3.75, 7.5, 0.0, 0.0, 1.0, -6.25, 2.5, 0.0, 0.0, 1.0, -3.75,
+                            -4.0, 7.5, 0.0, 0.0, 1.0, -6.0, 7.5, 0.0, 0.0, 1.0, -6.0, 2.5, 0.0,
+                            0.0, 1.0, -4.0, 7.5, 0.0, 0.0, 1.0, -6.0, 2.5, 0.0, 0.0, 1.0, -4.0,
                             2.5, 0.0, 0.0, 1.0,
                         ],
                         Rc::new(RefCell::new(TriangleInstance::new(
@@ -1586,7 +1510,6 @@ mod tests {
                             Rc::new(TwoDPointCreator::new()),
                         )),
                         Rc::new(TwoDPointCreator::new()),
-                        Rc::new(RgbCreator::new()),
                     ),
                 )),
                 Box::new(ObjectInstanceRunner::new(
@@ -1600,9 +1523,6 @@ mod tests {
                         ))),
                         1.0,
                         TwoDPoint::new(5.0, -5.0),
-                        3.0,
-                        2.0,
-                        Rgb::new(1.0, 0.0, 0.0),
                         TrianglePoint::new(
                             TwoDPoint::new(0.0, 0.0),
                             Rgb::new(1.0, 0.0, 0.0),
@@ -1696,7 +1616,6 @@ mod tests {
                             Rc::new(TwoDPointCreator::new()),
                         )),
                         Rc::new(TwoDPointCreator::new()),
-                        Rc::new(RgbCreator::new()),
                     ),
                 )),
             ],
