@@ -99,7 +99,6 @@ impl<TPosition, TRgb, TPoint, TTriangleInstance, TRectangle>
 {
     pub fn new(
         name: String,
-        //content_name: String,
         rectangle: Rc<RefCell<TRectangle>>,
         scale: f32,
         position: TPosition,
@@ -117,7 +116,6 @@ impl<TPosition, TRgb, TPoint, TTriangleInstance, TRectangle>
     ) -> Self {
         Self {
             name,
-            //content_name,
             rectangle,
             scale,
             position,
@@ -583,14 +581,15 @@ impl<TContent> AddContent<TContent> for ContentProvider<TContent> {
 
 #[cfg(test)]
 mod tests {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
     use garden::GetName;
     use mockall::mock;
 
-    use crate::{Get2DCoordiantes, GetB, GetG, GetNumberOfVertices, GetR, GetX, GetY};
+    use crate::{AddContent, Get2DCoordiantes, GetB, GetG, GetNumberOfVertices, GetR, GetX, GetY};
 
-    use crate::rectangles::{
-        CreateRectangleInstance, Rectangle, RectangleInstance, RectangleInstanceCreator,
-    };
+    use crate::rectangles::{Rectangle, RectangleInstance, RectangleInstanceCreator};
 
     use super::{CreateRectangle, RectangleCreator};
 
@@ -617,18 +616,30 @@ mod tests {
 
         let rgb = MockRectangleRgb::new();
 
-        let rectangle_creator = RectangleCreator::new();
+        let rectangle_provider = Rc::new(RefCell::new(MockRectangleProvider::new()));
+        rectangle_provider
+            .borrow_mut()
+            .expect_add_content()
+            .times(1)
+            .returning(move |_| {});
+
+        let rectangle_creator = RectangleCreator::new(rectangle_provider);
 
         let rectangle = rectangle_creator.create_rectangle(name.to_string(), width, height, rgb);
 
-        assert_eq!(name, rectangle.get_name());
+        assert_eq!(name, rectangle.borrow().get_name());
     }
 
     #[test]
     fn when_a_rectangle_instance_gets_its_name_then_the_name_is_returned() {
         let name = "RectangleInstanceName";
 
-        let content_name = "";
+        let rectangle = Rc::new(RefCell::new(Rectangle::new(
+            "Rectangle".to_string(),
+            1.0,
+            2.0,
+            MockRectangleRgb::new(),
+        )));
 
         let scale = 0.0;
 
@@ -652,13 +663,13 @@ mod tests {
 
         let vertex_data = vec![];
 
-        let triangle_instance_1 = MockRectangleTriangleInstance::new();
+        let triangle_instance_1 = Rc::new(RefCell::new(MockRectangleTriangleInstance::new()));
 
-        let triangle_instance_2 = MockRectangleTriangleInstance::new();
+        let triangle_instance_2 = Rc::new(RefCell::new(MockRectangleTriangleInstance::new()));
 
         let rectangle_instance = RectangleInstance::new(
             name.to_string(),
-            content_name.to_string(),
+            rectangle,
             scale,
             position,
             width,
@@ -708,6 +719,13 @@ mod tests {
     }
 
     mock! {
-        RectangleTriangleInstance{}
+        RectangleTriangleInstance {}
+    }
+
+    mock! {
+        RectangleProvider {}
+        impl AddContent<Rectangle<MockRectangleRgb>> for RectangleProvider {
+            fn add_content(&mut self, content: Rc<RefCell<Rectangle<MockRectangleRgb>>>);
+        }
     }
 }

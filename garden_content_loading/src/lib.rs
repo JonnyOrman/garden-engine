@@ -1149,15 +1149,15 @@ pub fn compose_content_loader(
 
 #[cfg(test)]
 mod tests {
-    use std::rc::Rc;
+    use std::{cell::RefCell, rc::Rc};
 
     use garden_content::{
         rectangles::{
             Rectangle, RectangleInstance, RectangleInstanceCreator, RectangleInstanceScaler,
         },
         triangles::{Triangle, TriangleInstance, TriangleInstanceCreator, TriangleInstanceScaler},
-        Content, GetContentInstanceData, GetVertexData, ObjectInstanceRunner, Rgb, RgbCreator,
-        TrianglePoint, TrianglePointCreator, TwoDPoint, TwoDPointCreator,
+        Content, GetVertexData, ObjectInstanceRunner, Rgb, RgbCreator, TrianglePoint,
+        TrianglePointCreator, TwoDPoint, TwoDPointCreator,
     };
     use garden_json::{ConvertJsonToValue, JsonToF32Converter, JsonToStringConverter};
     use serde_json::json;
@@ -1361,7 +1361,9 @@ mod tests {
 
         let expected_result = Content::new(
             vec![
-                Rc::new(Box::new(Triangle::<TrianglePoint<TwoDPoint, Rgb>>::new(
+                Box::new(Rc::new(RefCell::new(Triangle::<
+                    TrianglePoint<TwoDPoint, Rgb>,
+                >::new(
                     "Triangle1".to_string(),
                     TrianglePoint::<TwoDPoint, Rgb>::new(
                         TwoDPoint::new(-1.0, -1.0),
@@ -1383,23 +1385,26 @@ mod tests {
                     ),
                     vec![],
                     15,
-                ))),
-                Rc::new(Box::new(Rectangle::new(
+                )))),
+                Box::new(Rc::new(RefCell::new(Rectangle::new(
                     "Rectangle1".to_string(),
                     2.0,
                     5.0,
                     Rgb::new(0.0, 0.0, 0.1),
-                ))),
-                Rc::new(Box::new(Rectangle::new(
+                )))),
+                Box::new(Rc::new(RefCell::new(Rectangle::new(
                     "Rectangle2".to_string(),
                     3.0,
                     2.0,
                     Rgb::new(1.0, 0.0, 0.0),
-                ))),
+                )))),
             ],
             vec![
                 Box::new(ObjectInstanceRunner::new(
-                    TriangleInstance::<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>::new(
+                    Rc::new(RefCell::new(TriangleInstance::<
+                        TwoDPoint,
+                        TrianglePoint<TwoDPoint, Rgb>,
+                    >::new(
                         "Triangle1-a".to_string(),
                         "Triangle1".to_string(),
                         0.5,
@@ -1427,7 +1432,7 @@ mod tests {
                             -5.5, -5.5, 1.0, 0.0, 0.0, -5.0, -4.5, 0.0, 1.0, 0.0, -4.5, -5.5, 0.0,
                             0.0, 1.0,
                         ],
-                    ),
+                    ))),
                     TriangleInstanceScaler::new(
                         Rc::new(TriangleInstanceCreator::new()),
                         Rc::new(TrianglePointCreator::new(
@@ -1437,7 +1442,7 @@ mod tests {
                     ),
                 )),
                 Box::new(ObjectInstanceRunner::new(
-                    TriangleInstance::<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>::new(
+                    Rc::new(RefCell::new(TriangleInstance::new(
                         "Triangle1-b".to_string(),
                         "Triangle1".to_string(),
                         0.5,
@@ -1465,7 +1470,7 @@ mod tests {
                             2.0, 2.0, 1.0, 0.0, 0.0, 5.0, 8.0, 0.0, 1.0, 0.0, 8.0, 2.0, 0.0, 0.0,
                             1.0,
                         ],
-                    ),
+                    ))),
                     TriangleInstanceScaler::new(
                         Rc::new(TriangleInstanceCreator::new()),
                         Rc::new(TrianglePointCreator::new(
@@ -1475,9 +1480,14 @@ mod tests {
                     ),
                 )),
                 Box::new(ObjectInstanceRunner::new(
-                    RectangleInstance::new(
+                    Rc::new(RefCell::new(RectangleInstance::new(
                         "Rectangle1-a".to_string(),
-                        "Rectangle1".to_string(),
+                        Rc::new(RefCell::new(Rectangle::new(
+                            "Rectangle1".to_string(),
+                            2.5,
+                            5.0,
+                            Rgb::new(0.0, 0.0, 1.0),
+                        ))),
                         1.0,
                         TwoDPoint::new(-5.0, 5.0),
                         2.5,
@@ -1513,7 +1523,7 @@ mod tests {
                             0.0, 1.0, -3.75, 7.5, 0.0, 0.0, 1.0, -6.25, 2.5, 0.0, 0.0, 1.0, -3.75,
                             2.5, 0.0, 0.0, 1.0,
                         ],
-                        TriangleInstance::new(
+                        Rc::new(RefCell::new(TriangleInstance::new(
                             "".to_string(),
                             "".to_string(),
                             0.0,
@@ -1538,8 +1548,8 @@ mod tests {
                             ),
                             15,
                             vec![],
-                        ),
-                        TriangleInstance::new(
+                        ))),
+                        Rc::new(RefCell::new(TriangleInstance::new(
                             "".to_string(),
                             "".to_string(),
                             0.0,
@@ -1564,8 +1574,8 @@ mod tests {
                             ),
                             15,
                             vec![],
-                        ),
-                    ),
+                        ))),
+                    ))),
                     RectangleInstanceScaler::new(
                         Rc::new(RectangleInstanceCreator::new(
                             Rc::new(TriangleInstanceCreator::new()),
@@ -1580,9 +1590,14 @@ mod tests {
                     ),
                 )),
                 Box::new(ObjectInstanceRunner::new(
-                    RectangleInstance::new(
+                    Rc::new(RefCell::new(RectangleInstance::new(
                         "Rectangle2-a".to_string(),
-                        "Rectangle2".to_string(),
+                        Rc::new(RefCell::new(Rectangle::new(
+                            "Rectangle1".to_string(),
+                            3.0,
+                            2.0,
+                            Rgb::new(1.0, 0.0, 0.0),
+                        ))),
                         1.0,
                         TwoDPoint::new(5.0, -5.0),
                         3.0,
@@ -1618,7 +1633,7 @@ mod tests {
                             0.0, 0.0, 6.5, -4.0, 1.0, 0.0, 0.0, 3.5, -6.0, 1.0, 0.0, 0.0, 6.5,
                             -6.0, 1.0, 0.0, 0.0,
                         ],
-                        TriangleInstance::new(
+                        Rc::new(RefCell::new(TriangleInstance::new(
                             "".to_string(),
                             "".to_string(),
                             0.0,
@@ -1643,8 +1658,8 @@ mod tests {
                             ),
                             15,
                             vec![],
-                        ),
-                        TriangleInstance::new(
+                        ))),
+                        Rc::new(RefCell::new(TriangleInstance::new(
                             "".to_string(),
                             "".to_string(),
                             0.0,
@@ -1669,8 +1684,8 @@ mod tests {
                             ),
                             15,
                             vec![],
-                        ),
-                    ),
+                        ))),
+                    ))),
                     RectangleInstanceScaler::new(
                         Rc::new(RectangleInstanceCreator::new(
                             Rc::new(TriangleInstanceCreator::new()),

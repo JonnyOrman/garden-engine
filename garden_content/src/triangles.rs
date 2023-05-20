@@ -750,10 +750,13 @@ mod tests {
             point_3,
         );
 
-        assert_eq!(name, triangle_instance.get_name());
-        assert_eq!(content_name, triangle_instance.get_content_name());
-        assert_eq!(expected_vertex_data, triangle_instance.get_vertex_data());
-        assert_eq!(15, triangle_instance.get_number_of_vertices());
+        assert_eq!(name, triangle_instance.borrow().get_name());
+        assert_eq!(content_name, triangle_instance.borrow().get_content_name());
+        assert_eq!(
+            expected_vertex_data,
+            triangle_instance.borrow().get_vertex_data()
+        );
+        assert_eq!(15, triangle_instance.borrow().get_number_of_vertices());
     }
 
     mock! {
