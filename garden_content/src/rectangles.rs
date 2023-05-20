@@ -4,10 +4,10 @@ use garden::{GetHeight, GetName, GetWidth};
 
 use crate::{
     triangles::{CreateTriangleInstance, TriangleInstance},
-    AddContent, CreateRgb, CreateTrianglePoint, CreateTwoDPoint, Get2DCoordiantes, GetB,
-    GetContent, GetContentInstanceData, GetContentName, GetG, GetNumberOfObjects,
-    GetNumberOfVertices, GetPosition, GetR, GetRgb, GetRgbValues, GetScale, GetVertexData, GetX,
-    GetY, Rgb, ScaleObjectInstance, TrianglePoint, TwoDPoint,
+    AddContent, CreateTrianglePoint, CreateTwoDPoint, Get2DCoordiantes, GetB, GetContent,
+    GetContentInstanceData, GetContentName, GetG, GetNumberOfObjects, GetNumberOfVertices,
+    GetPosition, GetR, GetRgb, GetRgbValues, GetScale, GetVertexData, GetX, GetY, Rgb,
+    ScaleObjectInstance, TrianglePoint, TwoDPoint,
 };
 
 pub struct Rectangle<TRgb> {

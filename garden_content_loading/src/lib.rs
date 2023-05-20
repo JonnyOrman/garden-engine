@@ -1,8 +1,8 @@
 use garden::{GetHeight, GetName, GetWidth};
 use garden_content::{
     rectangles::{
-        ContentProvider, CreateRectangle, CreateRectangleInstance, GetRectangle, Rectangle,
-        RectangleCreator, RectangleInstance, RectangleInstanceCreator, RectangleInstanceScaler,
+        ContentProvider, CreateRectangle, CreateRectangleInstance, Rectangle, RectangleCreator,
+        RectangleInstance, RectangleInstanceCreator, RectangleInstanceScaler,
     },
     triangles::{
         CreateTriangle, CreateTriangleInstance, Triangle, TriangleCreator, TriangleInstance,
@@ -525,14 +525,12 @@ pub struct JsonToRectangleInstanceConverter<
     TJsonToStringConverter,
     TJsonToF32Converter,
     TJsonToPositionConverter,
-    TJsonToRgbConverter,
     TRectangleInstanceCreator,
     TRectangleProvider,
 > {
     json_to_string_converter: Rc<TJsonToStringConverter>,
     json_to_f32_converter: Rc<TJsonToF32Converter>,
     json_to_position_converter: Rc<TJsonToPositionConverter>,
-    json_to_rgb_converter: Rc<TJsonToRgbConverter>,
     rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
     rectangle_provider: Rc<RefCell<TRectangleProvider>>,
 }
@@ -542,7 +540,6 @@ impl<
         TJsonToStringConverter,
         TJsonToF32Converter,
         TJsonToPositionConverter,
-        TJsonToRgbConverter,
         TRectangleInstanceCreator,
         TRectangleProvider,
     >
@@ -550,7 +547,6 @@ impl<
         TJsonToStringConverter,
         TJsonToF32Converter,
         TJsonToPositionConverter,
-        TJsonToRgbConverter,
         TRectangleInstanceCreator,
         TRectangleProvider,
     >
@@ -559,7 +555,6 @@ impl<
         json_to_string_converter: Rc<TJsonToStringConverter>,
         json_to_f32_converter: Rc<TJsonToF32Converter>,
         json_to_position_converter: Rc<TJsonToPositionConverter>,
-        json_to_rgb_converter: Rc<TJsonToRgbConverter>,
         rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
         rectangle_provider: Rc<RefCell<TRectangleProvider>>,
     ) -> Self {
@@ -567,7 +562,6 @@ impl<
             json_to_string_converter,
             json_to_f32_converter,
             json_to_position_converter,
-            json_to_rgb_converter,
             rectangle_instance_creator,
             rectangle_provider,
         }
@@ -578,7 +572,6 @@ impl<
         TJsonToStringConverter: ConvertJsonToValue<String>,
         TJsonToF32Converter: ConvertJsonToValue<f32>,
         TJsonToPositionConverter: ConvertJsonToValue<TwoDPoint>,
-        TJsonToRgbConverter: ConvertJsonToValue<Rgb>,
         TRectangleInstanceCreator: CreateRectangleInstance<
             TwoDPoint,
             RectangleInstance<
@@ -607,7 +600,6 @@ impl<
         TJsonToStringConverter,
         TJsonToF32Converter,
         TJsonToPositionConverter,
-        TJsonToRgbConverter,
         TRectangleInstanceCreator,
         TRectangleProvider,
     >
@@ -1016,7 +1008,6 @@ pub fn compose_json_to_content_converter(
         Rc::clone(&json_to_string_converter),
         Rc::clone(&json_to_f32_converter),
         Rc::clone(&json_to_two_d_point_converter),
-        Rc::clone(&json_to_rgb_converter),
         Rc::clone(&rectangle_instance_creator),
         Rc::clone(&rectangle_provider_ref_cell),
     );
