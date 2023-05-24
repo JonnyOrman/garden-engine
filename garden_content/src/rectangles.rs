@@ -3,11 +3,11 @@ use std::{cell::RefCell, rc::Rc};
 use garden::{GetHeight, GetName, GetWidth};
 
 use crate::{
-    triangles::{CreateTriangleInstance, TriangleInstance},
+    triangles::{CreateTriangleInstance, Triangle, TriangleInstance},
     AddContent, CreateTrianglePoint, CreateTwoDPoint, Get2DCoordiantes, GetB, GetContent,
-    GetContentInstanceData, GetContentName, GetG, GetNumberOfObjects, GetNumberOfVertices,
-    GetPosition, GetR, GetRgb, GetRgbValues, GetScale, GetVertexData, GetX, GetY, Rgb,
-    ScaleObjectInstance, TrianglePoint, TwoDPoint,
+    GetContentInstanceData, GetG, GetNumberOfObjects, GetNumberOfVertices, GetPosition, GetR,
+    GetRgb, GetRgbValues, GetScale, GetVertexData, GetX, GetY, Rgb, ScaleObjectInstance,
+    TrianglePoint, TwoDPoint,
 };
 
 pub struct Rectangle<TRgb> {
@@ -84,7 +84,7 @@ impl<TRectangleProvider: AddContent<Rectangle<TRgb>>, TRgb> CreateRectangle<TRgb
     ) -> Rc<RefCell<Rectangle<TRgb>>> {
         let rectangle = Rc::new(RefCell::new(Rectangle::new(name, width, height, rgb)));
 
-        let r = rectangle.borrow();
+        let rectangle_ref: std::cell::Ref<Rectangle<TRgb>> = rectangle.borrow();
 
         self.rectangle_provider
             .borrow_mut()
@@ -151,19 +151,15 @@ impl<TPosition, TPoint, TTrianglePoint, TRectangle> GetName
     }
 }
 
-impl<TPosition, TPoint, TTrianglePoint, TRectangle> GetContentName
-    for RectangleInstance<TPosition, TPoint, TTrianglePoint, TRectangle>
-{
-    fn get_content_name(&self) -> &str {
-        &self.name
-    }
-}
-
 impl<TPosition, TPoint, TRectangle> GetVertexData
     for RectangleInstance<
         TPosition,
         TPoint,
-        TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+        TriangleInstance<
+            TwoDPoint,
+            TrianglePoint<TwoDPoint, Rgb>,
+            Triangle<TrianglePoint<TwoDPoint, Rgb>>,
+        >,
         TRectangle,
     >
 {
@@ -176,7 +172,11 @@ impl<TPosition, TPoint, TRectangle> GetNumberOfVertices
     for RectangleInstance<
         TPosition,
         TPoint,
-        TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+        TriangleInstance<
+            TwoDPoint,
+            TrianglePoint<TwoDPoint, Rgb>,
+            Triangle<TrianglePoint<TwoDPoint, Rgb>>,
+        >,
         TRectangle,
     >
 {
@@ -189,7 +189,11 @@ impl<TPosition, TRectangle> GetNumberOfObjects
     for RectangleInstance<
         TPosition,
         TrianglePoint<TwoDPoint, Rgb>,
-        TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+        TriangleInstance<
+            TwoDPoint,
+            TrianglePoint<TwoDPoint, Rgb>,
+            Triangle<TrianglePoint<TwoDPoint, Rgb>>,
+        >,
         TRectangle,
     >
 {
@@ -202,7 +206,11 @@ impl<TPosition, TRectangle> GetContentInstanceData
     for RectangleInstance<
         TPosition,
         TrianglePoint<TwoDPoint, Rgb>,
-        TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+        TriangleInstance<
+            TwoDPoint,
+            TrianglePoint<TwoDPoint, Rgb>,
+            Triangle<TrianglePoint<TwoDPoint, Rgb>>,
+        >,
         TRectangle,
     >
 {
@@ -316,17 +324,21 @@ impl<TTriangleInstanceCreator, TTrianglePointCreator, TTwoDPointCreator>
 }
 
 impl<
-        TTriangleInstanceCreator: CreateTriangleInstance<TPosition, TPoint, TTriangleInstance>,
-        TTrianglePointCreator: CreateTrianglePoint<TPoint>,
+        TTriangleInstanceCreator: CreateTriangleInstance<
+            TPosition,
+            TrianglePoint<TwoDPoint, Rgb>,
+            TTriangleInstance,
+            Triangle<TrianglePoint<TwoDPoint, Rgb>>,
+        >,
+        TTrianglePointCreator: CreateTrianglePoint<TrianglePoint<TwoDPoint, Rgb>>,
         TTwoDPointCreator: CreateTwoDPoint<TPosition>,
         TPosition: Get2DCoordiantes,
-        TPoint: Get2DCoordiantes + GetRgbValues,
         TTriangleInstance: GetContentInstanceData,
         TRectangle: GetWidth + GetHeight + GetRgb<Rgb>,
     >
     CreateRectangleInstance<
         TPosition,
-        RectangleInstance<TPosition, TPoint, TTriangleInstance, TRectangle>,
+        RectangleInstance<TPosition, TrianglePoint<TwoDPoint, Rgb>, TTriangleInstance, TRectangle>,
         TRectangle,
     >
     for RectangleInstanceCreator<TTriangleInstanceCreator, TTrianglePointCreator, TTwoDPointCreator>
@@ -339,7 +351,16 @@ impl<
         position: TPosition,
         width: f32,
         height: f32,
-    ) -> Rc<RefCell<RectangleInstance<TPosition, TPoint, TTriangleInstance, TRectangle>>> {
+    ) -> Rc<
+        RefCell<
+            RectangleInstance<
+                TPosition,
+                TrianglePoint<TwoDPoint, Rgb>,
+                TTriangleInstance,
+                TRectangle,
+            >,
+        >,
+    > {
         let mut vertex_data = vec![];
 
         let x = width / 2.0;
@@ -403,7 +424,31 @@ impl<
 
         let triangle_instance_1 = self.triangle_instance_creator.create_triangle_instance(
             name.clone() + "-triangle-1",
-            "".to_string(),
+            Rc::new(RefCell::new(
+                Triangle::<TrianglePoint<TwoDPoint, Rgb>>::new(
+                    "TEMP".to_string(),
+                    TrianglePoint::<TwoDPoint, Rgb>::new(
+                        TwoDPoint::new(0.0, 0.0),
+                        Rgb::new(0.0, 0.0, 0.0),
+                        0,
+                        vec![],
+                    ),
+                    TrianglePoint::<TwoDPoint, Rgb>::new(
+                        TwoDPoint::new(0.0, 0.0),
+                        Rgb::new(0.0, 0.0, 0.0),
+                        0,
+                        vec![],
+                    ),
+                    TrianglePoint::<TwoDPoint, Rgb>::new(
+                        TwoDPoint::new(0.0, 0.0),
+                        Rgb::new(0.0, 0.0, 0.0),
+                        0,
+                        vec![],
+                    ),
+                    vec![],
+                    0,
+                ),
+            )),
             scale,
             self.two_d_point_creator.create_two_d_point(0.0, 0.0),
             triangle_instance_1_point_1,
@@ -437,7 +482,31 @@ impl<
 
         let triangle_instance_2 = self.triangle_instance_creator.create_triangle_instance(
             name.clone() + "-triangle-2",
-            "".to_string(),
+            Rc::new(RefCell::new(
+                Triangle::<TrianglePoint<TwoDPoint, Rgb>>::new(
+                    "TEMP".to_string(),
+                    TrianglePoint::<TwoDPoint, Rgb>::new(
+                        TwoDPoint::new(0.0, 0.0),
+                        Rgb::new(0.0, 0.0, 0.0),
+                        0,
+                        vec![],
+                    ),
+                    TrianglePoint::<TwoDPoint, Rgb>::new(
+                        TwoDPoint::new(0.0, 0.0),
+                        Rgb::new(0.0, 0.0, 0.0),
+                        0,
+                        vec![],
+                    ),
+                    TrianglePoint::<TwoDPoint, Rgb>::new(
+                        TwoDPoint::new(0.0, 0.0),
+                        Rgb::new(0.0, 0.0, 0.0),
+                        0,
+                        vec![],
+                    ),
+                    vec![],
+                    0,
+                ),
+            )),
             scale,
             self.two_d_point_creator.create_two_d_point(0.0, 0.0),
             triangle_instance_2_point_1,
@@ -491,7 +560,6 @@ impl<
         'ri,
         'r,
         TRectangleInstance: GetName
-            + GetContentName
             + GetScale
             + GetPosition<TwoDPoint>
             + GetWidth
