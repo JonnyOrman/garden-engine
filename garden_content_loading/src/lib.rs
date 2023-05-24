@@ -154,10 +154,8 @@ impl<
             .json_to_triangle_point_converter
             .convert_json_to_value(&json["point3"]);
 
-        Rc::new(RefCell::new(
-            self.triangle_creator
-                .create_triangle(name, point_1, point_2, point_3),
-        ))
+        self.triangle_creator
+            .create_triangle(name, point_1, point_2, point_3)
     }
 }
 
@@ -180,7 +178,6 @@ impl<
 {
     fn convert_json_to_value(&self, json: &Value) -> Box<Rc<RefCell<dyn GetName>>> {
         Box::new(self.json_to_triangle_converter.convert_json_to_value(json))
-        //todo!()
     }
 }
 
@@ -279,51 +276,51 @@ impl<TJsonToRectangleConverter: ConvertJsonToValue<Rc<RefCell<Rectangle<Rgb>>>>>
 pub struct JsonToTriangleInstanceConverter<
     TJsonToStringConverter,
     TJsonToTwoDPointConverter,
-    TJsonToTrianglePointConverter,
     TJsonToF32Converter,
     TTriangleInstanceCreator,
     TTrianglePointCreator,
+    TTriangleProvider,
 > {
     json_to_string_converter: Rc<TJsonToStringConverter>,
     json_to_two_d_point_converter: Rc<TJsonToTwoDPointConverter>,
-    json_to_triangle_point_converter: Rc<TJsonToTrianglePointConverter>,
     json_to_f32_converter: Rc<TJsonToF32Converter>,
     triangle_instance_creator: Rc<TTriangleInstanceCreator>,
     triangle_point_creator: Rc<TTrianglePointCreator>,
+    triangle_provider: Rc<RefCell<TTriangleProvider>>,
 }
 
 impl<
         TJsonToStringConverter,
         TJsonToTwoDPointConverter,
-        TJsonToTrianglePointConverter,
         TJsonToF32Converter,
         TTriangleInstanceCreator,
         TTrianglePointCreator,
+        TTriangleProvider,
     >
     JsonToTriangleInstanceConverter<
         TJsonToStringConverter,
         TJsonToTwoDPointConverter,
-        TJsonToTrianglePointConverter,
         TJsonToF32Converter,
         TTriangleInstanceCreator,
         TTrianglePointCreator,
+        TTriangleProvider,
     >
 {
     fn new(
         json_to_string_converter: Rc<TJsonToStringConverter>,
         json_to_two_d_point_converter: Rc<TJsonToTwoDPointConverter>,
-        json_to_triangle_point_converter: Rc<TJsonToTrianglePointConverter>,
         json_to_f32_converter: Rc<TJsonToF32Converter>,
         triangle_instance_creator: Rc<TTriangleInstanceCreator>,
         triangle_point_creator: Rc<TTrianglePointCreator>,
+        triangle_provider: Rc<RefCell<TTriangleProvider>>,
     ) -> Self {
         Self {
             json_to_string_converter,
             json_to_two_d_point_converter,
-            json_to_triangle_point_converter,
             json_to_f32_converter,
             triangle_instance_creator,
             triangle_point_creator,
+            triangle_provider,
         }
     }
 }
@@ -331,22 +328,36 @@ impl<
 impl<
         TJsonToStringConverter: ConvertJsonToValue<String>,
         TJsonToTwoDPointConverter: ConvertJsonToValue<TwoDPoint>,
-        TJsonToTrianglePointConverter: ConvertJsonToValue<TrianglePoint<TwoDPoint, Rgb>>,
         TJsonToF32Converter: ConvertJsonToValue<f32>,
-        TTriangleInstanceCreator: CreateTriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>, TTriangleInstance>,
+        TTriangleInstanceCreator: CreateTriangleInstance<
+            TwoDPoint,
+            TrianglePoint<TwoDPoint, Rgb>,
+            TTriangleInstance,
+            Triangle<TrianglePoint<TwoDPoint, Rgb>>,
+        >,
         TTrianglePointCreator: CreateTrianglePoint<TrianglePoint<TwoDPoint, Rgb>>,
         TTriangleInstance,
+        TTriangleProvider: GetContent<Triangle<TrianglePoint<TwoDPoint, Rgb>>>,
     > ConvertJsonToValue<Rc<RefCell<TTriangleInstance>>>
     for JsonToTriangleInstanceConverter<
         TJsonToStringConverter,
         TJsonToTwoDPointConverter,
-        TJsonToTrianglePointConverter,
         TJsonToF32Converter,
         TTriangleInstanceCreator,
         TTrianglePointCreator,
+        TTriangleProvider,
     >
 {
     fn convert_json_to_value(&self, json: &Value) -> Rc<RefCell<TTriangleInstance>> {
+        let content_name = self
+            .json_to_string_converter
+            .convert_json_to_value(&json["contentName"]);
+
+        let triangle = self
+            .triangle_provider
+            .borrow_mut()
+            .get_content(content_name);
+
         let scale = self
             .json_to_f32_converter
             .convert_json_to_value(&json["scale"]);
@@ -356,48 +367,44 @@ impl<
             .convert_json_to_value(&json["position"]);
 
         let point_1 = self
-            .json_to_triangle_point_converter
+            .json_to_two_d_point_converter
             .convert_json_to_value(&json["point1"]);
 
         let point_1_translated = self.triangle_point_creator.create_triangle_point(
             point_1.get_x() * scale + position.get_x(),
             point_1.get_y() * scale + position.get_y(),
-            point_1.get_rgb().get_r(),
-            point_1.get_rgb().get_g(),
-            point_1.get_rgb().get_b(),
+            triangle.borrow().get_point_1().get_r(),
+            triangle.borrow().get_point_1().get_g(),
+            triangle.borrow().get_point_1().get_b(),
         );
 
         let point_2 = self
-            .json_to_triangle_point_converter
+            .json_to_two_d_point_converter
             .convert_json_to_value(&json["point2"]);
 
         let point_2_translated = self.triangle_point_creator.create_triangle_point(
             point_2.get_x() * scale + position.get_x(),
             point_2.get_y() * scale + position.get_y(),
-            point_2.get_rgb().get_r(),
-            point_2.get_rgb().get_g(),
-            point_2.get_rgb().get_b(),
+            triangle.borrow().get_point_2().get_r(),
+            triangle.borrow().get_point_2().get_g(),
+            triangle.borrow().get_point_2().get_b(),
         );
 
         let point_3 = self
-            .json_to_triangle_point_converter
+            .json_to_two_d_point_converter
             .convert_json_to_value(&json["point3"]);
 
         let point_3_translated = self.triangle_point_creator.create_triangle_point(
             point_3.get_x() * scale + position.get_x(),
             point_3.get_y() * scale + position.get_y(),
-            point_3.get_rgb().get_r(),
-            point_3.get_rgb().get_g(),
-            point_3.get_rgb().get_b(),
+            triangle.borrow().get_point_3().get_r(),
+            triangle.borrow().get_point_3().get_g(),
+            triangle.borrow().get_point_3().get_b(),
         );
 
         let name = self
             .json_to_string_converter
             .convert_json_to_value(&json["name"]);
-
-        let content_name = self
-            .json_to_string_converter
-            .convert_json_to_value(&json["contentName"]);
 
         let position = self
             .json_to_two_d_point_converter
@@ -405,7 +412,7 @@ impl<
 
         self.triangle_instance_creator.create_triangle_instance(
             name,
-            content_name,
+            triangle,
             scale,
             position,
             point_1_translated,
@@ -446,11 +453,25 @@ impl<TJsonToTriangleInstanceConverter, TTrianglePointCreator, TTriangleInstanceC
 }
 
 impl<
-        TJsonToTriangleInstanceConverter: ConvertJsonToValue<Rc<RefCell<TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>>>>,
+        TJsonToTriangleInstanceConverter: ConvertJsonToValue<
+            Rc<
+                RefCell<
+                    TriangleInstance<
+                        TwoDPoint,
+                        TrianglePoint<TwoDPoint, Rgb>,
+                        Triangle<TrianglePoint<TwoDPoint, Rgb>>,
+                    >,
+                >,
+            >,
+        >,
     >
     ConvertJsonToValue<
         ObjectInstanceRunner<
-            TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+            TriangleInstance<
+                TwoDPoint,
+                TrianglePoint<TwoDPoint, Rgb>,
+                Triangle<TrianglePoint<TwoDPoint, Rgb>>,
+            >,
             TriangleInstanceScaler<
                 TriangleInstanceCreator,
                 TrianglePointCreator<TwoDPointCreator, RgbCreator>,
@@ -467,7 +488,11 @@ impl<
         &self,
         json: &Value,
     ) -> ObjectInstanceRunner<
-        TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+        TriangleInstance<
+            TwoDPoint,
+            TrianglePoint<TwoDPoint, Rgb>,
+            Triangle<TrianglePoint<TwoDPoint, Rgb>>,
+        >,
         TriangleInstanceScaler<
             TriangleInstanceCreator,
             TrianglePointCreator<TwoDPointCreator, RgbCreator>,
@@ -503,7 +528,11 @@ impl<TJsonToTriangleInstanceRunnerConverter>
 impl<
         TJsonToTriangleInstanceRunnerConverter: ConvertJsonToValue<
             ObjectInstanceRunner<
-                TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+                TriangleInstance<
+                    TwoDPoint,
+                    TrianglePoint<TwoDPoint, Rgb>,
+                    Triangle<TrianglePoint<TwoDPoint, Rgb>>,
+                >,
                 TriangleInstanceScaler<
                     TriangleInstanceCreator,
                     TrianglePointCreator<TwoDPointCreator, RgbCreator>,
@@ -577,7 +606,11 @@ impl<
             RectangleInstance<
                 TwoDPoint,
                 TrianglePoint<TwoDPoint, Rgb>,
-                TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+                TriangleInstance<
+                    TwoDPoint,
+                    TrianglePoint<TwoDPoint, Rgb>,
+                    Triangle<TrianglePoint<TwoDPoint, Rgb>>,
+                >,
                 Rectangle<Rgb>,
             >,
             Rectangle<Rgb>,
@@ -590,7 +623,11 @@ impl<
                 RectangleInstance<
                     TwoDPoint,
                     TrianglePoint<TwoDPoint, Rgb>,
-                    TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+                    TriangleInstance<
+                        TwoDPoint,
+                        TrianglePoint<TwoDPoint, Rgb>,
+                        Triangle<TrianglePoint<TwoDPoint, Rgb>>,
+                    >,
                     Rectangle<Rgb>,
                 >,
             >,
@@ -612,7 +649,11 @@ impl<
             RectangleInstance<
                 TwoDPoint,
                 TrianglePoint<TwoDPoint, Rgb>,
-                TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+                TriangleInstance<
+                    TwoDPoint,
+                    TrianglePoint<TwoDPoint, Rgb>,
+                    Triangle<TrianglePoint<TwoDPoint, Rgb>>,
+                >,
                 Rectangle<Rgb>,
             >,
         >,
@@ -684,7 +725,11 @@ impl<
                     RectangleInstance<
                         TwoDPoint,
                         TrianglePoint<TwoDPoint, Rgb>,
-                        TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+                        TriangleInstance<
+                            TwoDPoint,
+                            TrianglePoint<TwoDPoint, Rgb>,
+                            Triangle<TrianglePoint<TwoDPoint, Rgb>>,
+                        >,
                         Rectangle<Rgb>,
                     >,
                 >,
@@ -696,7 +741,11 @@ impl<
             RectangleInstance<
                 TwoDPoint,
                 TrianglePoint<TwoDPoint, Rgb>,
-                TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+                TriangleInstance<
+                    TwoDPoint,
+                    TrianglePoint<TwoDPoint, Rgb>,
+                    Triangle<TrianglePoint<TwoDPoint, Rgb>>,
+                >,
                 Rectangle<Rgb>,
             >,
             RectangleInstanceScaler<
@@ -726,7 +775,11 @@ impl<
         RectangleInstance<
             TwoDPoint,
             TrianglePoint<TwoDPoint, Rgb>,
-            TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+            TriangleInstance<
+                TwoDPoint,
+                TrianglePoint<TwoDPoint, Rgb>,
+                Triangle<TrianglePoint<TwoDPoint, Rgb>>,
+            >,
             Rectangle<Rgb>,
         >,
         RectangleInstanceScaler<
@@ -772,7 +825,11 @@ impl<
                 RectangleInstance<
                     TwoDPoint,
                     TrianglePoint<TwoDPoint, Rgb>,
-                    TriangleInstance<TwoDPoint, TrianglePoint<TwoDPoint, Rgb>>,
+                    TriangleInstance<
+                        TwoDPoint,
+                        TrianglePoint<TwoDPoint, Rgb>,
+                        Triangle<TrianglePoint<TwoDPoint, Rgb>>,
+                    >,
                     Rectangle<Rgb>,
                 >,
                 RectangleInstanceScaler<
@@ -940,7 +997,11 @@ pub fn compose_json_to_content_converter(
         Rc::clone(&json_to_rgb_converter),
     ));
 
-    let triangle_creator = TriangleCreator::new();
+    let triangle_provider = ContentProvider::<Triangle<TrianglePoint<TwoDPoint, Rgb>>>::new(vec![]);
+
+    let triangle_provider_ref_cell = Rc::new(RefCell::new(triangle_provider));
+
+    let triangle_creator = TriangleCreator::new(Rc::clone(&triangle_provider_ref_cell));
 
     let json_to_triangle_converter = JsonToTriangleConverter::new(
         Rc::clone(&json_to_string_converter),
@@ -965,10 +1026,10 @@ pub fn compose_json_to_content_converter(
     let json_to_triangle_instance_converter = JsonToTriangleInstanceConverter::new(
         Rc::clone(&json_to_string_converter),
         Rc::clone(&json_to_two_d_point_converter),
-        Rc::clone(&json_to_triangle_point_converter),
         Rc::clone(&json_to_f32_converter),
         Rc::clone(&triangle_instance_creator),
         Rc::clone(&triangle_point_creator),
+        Rc::clone(&triangle_provider_ref_cell),
     );
 
     let json_to_triangle_instance_runner_converter = JsonToTriangleInstanceRunnerConverter::new(
@@ -1178,37 +1239,16 @@ mod tests {
                         "y": -5.0
                     },
                     "point1": {
-                        "twoDPoint": {
-                            "x": -1.0,
-                            "y": -1.0
-                        },
-                        "rgb": {
-                            "r": 1.0,
-                            "g": 0.0,
-                            "b": 0.0
-                        }
+                        "x": -1.0,
+                        "y": -1.0
                     },
                     "point2": {
-                        "twoDPoint": {
-                            "x": 0.0,
-                            "y": 1.0
-                        },
-                        "rgb": {
-                            "r": 0.0,
-                            "g": 1.0,
-                            "b": 0.0
-                        }
+                        "x": 0.0,
+                        "y": 1.0
                     },
                     "point3": {
-                        "twoDPoint": {
-                            "x": 1.0,
-                            "y": -1.0
-                        },
-                        "rgb": {
-                            "r": 0.0,
-                            "g": 0.0,
-                            "b": 1.0
-                        }
+                        "x": 1.0,
+                        "y": -1.0
                     }
                 },
                 {
@@ -1221,37 +1261,16 @@ mod tests {
                         "y": 5.0
                     },
                     "point1": {
-                        "twoDPoint": {
-                            "x": -1.0,
-                            "y": -1.0
-                        },
-                        "rgb": {
-                            "r": 1.0,
-                            "g": 0.0,
-                            "b": 0.0
-                        }
+                        "x": -1.0,
+                        "y": -1.0
                     },
                     "point2": {
-                        "twoDPoint": {
-                            "x": 0.0,
-                            "y": 1.0
-                        },
-                        "rgb": {
-                            "r": 0.0,
-                            "g": 1.0,
-                            "b": 0.0
-                        }
+                        "x": 0.0,
+                        "y": 1.0
                     },
                     "point3": {
-                        "twoDPoint": {
-                            "x": 1.0,
-                            "y": -1.0
-                        },
-                        "rgb": {
-                            "r": 0.0,
-                            "g": 0.0,
-                            "b": 1.0
-                        }
+                        "x": 1.0,
+                        "y": -1.0
                     }
                 },
                 {
@@ -1322,9 +1341,32 @@ mod tests {
                     Rc::new(RefCell::new(TriangleInstance::<
                         TwoDPoint,
                         TrianglePoint<TwoDPoint, Rgb>,
+                        Triangle<TrianglePoint<TwoDPoint, Rgb>>,
                     >::new(
                         "Triangle1-a".to_string(),
-                        "Triangle1".to_string(),
+                        Rc::new(RefCell::new(Triangle::new(
+                            "triangle".to_string(),
+                            TrianglePoint::new(
+                                TwoDPoint::new(1.0, 1.0),
+                                Rgb::new(1.0, 1.0, 1.0),
+                                0,
+                                vec![],
+                            ),
+                            TrianglePoint::new(
+                                TwoDPoint::new(1.0, 1.0),
+                                Rgb::new(1.0, 1.0, 1.0),
+                                0,
+                                vec![],
+                            ),
+                            TrianglePoint::new(
+                                TwoDPoint::new(1.0, 1.0),
+                                Rgb::new(1.0, 1.0, 1.0),
+                                0,
+                                vec![],
+                            ),
+                            vec![],
+                            0,
+                        ))),
                         0.5,
                         TwoDPoint::new(-5.0, -5.0),
                         TrianglePoint::<TwoDPoint, Rgb>::new(
@@ -1362,7 +1404,29 @@ mod tests {
                 Box::new(ObjectInstanceRunner::new(
                     Rc::new(RefCell::new(TriangleInstance::new(
                         "Triangle1-b".to_string(),
-                        "Triangle1".to_string(),
+                        Rc::new(RefCell::new(Triangle::new(
+                            "triangle".to_string(),
+                            TrianglePoint::new(
+                                TwoDPoint::new(1.0, 1.0),
+                                Rgb::new(1.0, 1.0, 1.0),
+                                0,
+                                vec![],
+                            ),
+                            TrianglePoint::new(
+                                TwoDPoint::new(1.0, 1.0),
+                                Rgb::new(1.0, 1.0, 1.0),
+                                0,
+                                vec![],
+                            ),
+                            TrianglePoint::new(
+                                TwoDPoint::new(1.0, 1.0),
+                                Rgb::new(1.0, 1.0, 1.0),
+                                0,
+                                vec![],
+                            ),
+                            vec![],
+                            0,
+                        ))),
                         0.5,
                         TwoDPoint::new(0.5, 0.5),
                         TrianglePoint::<TwoDPoint, Rgb>::new(
@@ -1440,7 +1504,29 @@ mod tests {
                         ],
                         Rc::new(RefCell::new(TriangleInstance::new(
                             "".to_string(),
-                            "".to_string(),
+                            Rc::new(RefCell::new(Triangle::new(
+                                "triangle".to_string(),
+                                TrianglePoint::new(
+                                    TwoDPoint::new(1.0, 1.0),
+                                    Rgb::new(1.0, 1.0, 1.0),
+                                    0,
+                                    vec![],
+                                ),
+                                TrianglePoint::new(
+                                    TwoDPoint::new(1.0, 1.0),
+                                    Rgb::new(1.0, 1.0, 1.0),
+                                    0,
+                                    vec![],
+                                ),
+                                TrianglePoint::new(
+                                    TwoDPoint::new(1.0, 1.0),
+                                    Rgb::new(1.0, 1.0, 1.0),
+                                    0,
+                                    vec![],
+                                ),
+                                vec![],
+                                0,
+                            ))),
                             0.0,
                             TwoDPoint::new(0.0, 0.0),
                             TrianglePoint::new(
@@ -1466,7 +1552,29 @@ mod tests {
                         ))),
                         Rc::new(RefCell::new(TriangleInstance::new(
                             "".to_string(),
-                            "".to_string(),
+                            Rc::new(RefCell::new(Triangle::new(
+                                "triangle".to_string(),
+                                TrianglePoint::new(
+                                    TwoDPoint::new(1.0, 1.0),
+                                    Rgb::new(1.0, 1.0, 1.0),
+                                    0,
+                                    vec![],
+                                ),
+                                TrianglePoint::new(
+                                    TwoDPoint::new(1.0, 1.0),
+                                    Rgb::new(1.0, 1.0, 1.0),
+                                    0,
+                                    vec![],
+                                ),
+                                TrianglePoint::new(
+                                    TwoDPoint::new(1.0, 1.0),
+                                    Rgb::new(1.0, 1.0, 1.0),
+                                    0,
+                                    vec![],
+                                ),
+                                vec![],
+                                0,
+                            ))),
                             0.0,
                             TwoDPoint::new(0.0, 0.0),
                             TrianglePoint::new(
@@ -1546,7 +1654,29 @@ mod tests {
                         ],
                         Rc::new(RefCell::new(TriangleInstance::new(
                             "".to_string(),
-                            "".to_string(),
+                            Rc::new(RefCell::new(Triangle::new(
+                                "triangle".to_string(),
+                                TrianglePoint::new(
+                                    TwoDPoint::new(1.0, 1.0),
+                                    Rgb::new(1.0, 1.0, 1.0),
+                                    0,
+                                    vec![],
+                                ),
+                                TrianglePoint::new(
+                                    TwoDPoint::new(1.0, 1.0),
+                                    Rgb::new(1.0, 1.0, 1.0),
+                                    0,
+                                    vec![],
+                                ),
+                                TrianglePoint::new(
+                                    TwoDPoint::new(1.0, 1.0),
+                                    Rgb::new(1.0, 1.0, 1.0),
+                                    0,
+                                    vec![],
+                                ),
+                                vec![],
+                                0,
+                            ))),
                             0.0,
                             TwoDPoint::new(0.0, 0.0),
                             TrianglePoint::new(
@@ -1572,7 +1702,29 @@ mod tests {
                         ))),
                         Rc::new(RefCell::new(TriangleInstance::new(
                             "".to_string(),
-                            "".to_string(),
+                            Rc::new(RefCell::new(Triangle::new(
+                                "triangle".to_string(),
+                                TrianglePoint::new(
+                                    TwoDPoint::new(1.0, 1.0),
+                                    Rgb::new(1.0, 1.0, 1.0),
+                                    0,
+                                    vec![],
+                                ),
+                                TrianglePoint::new(
+                                    TwoDPoint::new(1.0, 1.0),
+                                    Rgb::new(1.0, 1.0, 1.0),
+                                    0,
+                                    vec![],
+                                ),
+                                TrianglePoint::new(
+                                    TwoDPoint::new(1.0, 1.0),
+                                    Rgb::new(1.0, 1.0, 1.0),
+                                    0,
+                                    vec![],
+                                ),
+                                vec![],
+                                0,
+                            ))),
                             0.0,
                             TwoDPoint::new(0.0, 0.0),
                             TrianglePoint::new(

@@ -5,10 +5,6 @@ use std::{cell::RefCell, rc::Rc};
 
 use garden::GetName;
 
-pub trait GetContentName {
-    fn get_content_name(&self) -> &str;
-}
-
 pub trait GetVertexData {
     fn get_vertex_data(&self) -> Vec<f32>;
 }
@@ -993,23 +989,6 @@ mod tests {
         impl GetVertexData for ObjectInstanceRunner {
             fn get_vertex_data(&self) -> Vec<f32>;
         }
-    }
-
-    fn create_mock_vertex_object(
-        vertex_data: Vec<f32>,
-        number_of_vertices: i32,
-    ) -> MockVertexObject {
-        let mut triangle_point = MockVertexObject::new();
-        triangle_point
-            .expect_get_vertex_data()
-            .times(1)
-            .returning(move || vertex_data.clone());
-        triangle_point
-            .expect_get_number_of_vertices()
-            .times(1)
-            .returning(move || number_of_vertices);
-
-        triangle_point
     }
 
     fn create_mock_object_instance_runner(
