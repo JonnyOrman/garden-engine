@@ -6,11 +6,12 @@ use garden_content::{
     },
     triangles::{
         CreateTriangle, CreateTriangleInstance, Triangle, TriangleCreator, TriangleInstance,
-        TriangleInstanceCreator, TriangleInstanceScaler,
+        TriangleInstanceCreator, TriangleInstancePointCreator, TriangleInstanceScaler,
+        TriangleInstanceVertexCounter, TriangleInstanceVertexDataGenerator,
     },
-    Content, CreateTrianglePoint, GetB, GetContent, GetG, GetNumberOfVertices, GetR, GetRgb,
-    GetVertexData, GetX, GetY, ObjectInstanceRunner, Rgb, RgbCreator, RunObjectInstance,
-    TrianglePoint, TrianglePointCreator, TwoDPoint, TwoDPointCreator,
+    Content, CreateTrianglePoint, GetB, GetContent, GetG, GetNumberOfVertices, GetR, GetVertexData,
+    GetX, GetY, ObjectInstanceRunner, Rgb, RgbCreator, RunObjectInstance, TrianglePoint,
+    TrianglePointCreator, TwoDPoint, TwoDPointCreator,
 };
 use garden_json::{ConvertJsonToValue, JsonToF32Converter, JsonToStringConverter};
 use garden_loading::Load;
@@ -424,29 +425,29 @@ impl<
 
 pub struct JsonToTriangleInstanceRunnerConverter<
     TJsonToTriangleInstanceConverter,
-    TTrianglePointCreator,
+    TTriangleInstancePointCreator,
     TTriangleInstanceCreator,
 > {
     json_to_triangle_instance_converter: TJsonToTriangleInstanceConverter,
-    triangle_point_creator: Rc<TTrianglePointCreator>,
+    triangle_instance_point_creator: Rc<TTriangleInstancePointCreator>,
     triangle_instance_creator: Rc<TTriangleInstanceCreator>,
 }
 
-impl<TJsonToTriangleInstanceConverter, TTrianglePointCreator, TTriangleInstanceCreator>
+impl<TJsonToTriangleInstanceConverter, TTriangleInstancePointCreator, TTriangleInstanceCreator>
     JsonToTriangleInstanceRunnerConverter<
         TJsonToTriangleInstanceConverter,
-        TTrianglePointCreator,
+        TTriangleInstancePointCreator,
         TTriangleInstanceCreator,
     >
 {
     fn new(
         json_to_triangle_instance_converter: TJsonToTriangleInstanceConverter,
-        triangle_point_creator: Rc<TTrianglePointCreator>,
+        triangle_instance_point_creator: Rc<TTriangleInstancePointCreator>,
         triangle_instance_creator: Rc<TTriangleInstanceCreator>,
     ) -> Self {
         Self {
             json_to_triangle_instance_converter,
-            triangle_point_creator,
+            triangle_instance_point_creator,
             triangle_instance_creator,
         }
     }
@@ -473,15 +474,18 @@ impl<
                 Triangle<TrianglePoint<TwoDPoint, Rgb>>,
             >,
             TriangleInstanceScaler<
-                TriangleInstanceCreator,
-                TrianglePointCreator<TwoDPointCreator, RgbCreator>,
+                TriangleInstanceCreator<
+                    TriangleInstanceVertexDataGenerator,
+                    TriangleInstanceVertexCounter,
+                >,
+                TriangleInstancePointCreator<TrianglePointCreator<TwoDPointCreator, RgbCreator>>,
             >,
         >,
     >
     for JsonToTriangleInstanceRunnerConverter<
         TJsonToTriangleInstanceConverter,
-        TrianglePointCreator<TwoDPointCreator, RgbCreator>,
-        TriangleInstanceCreator,
+        TriangleInstancePointCreator<TrianglePointCreator<TwoDPointCreator, RgbCreator>>,
+        TriangleInstanceCreator<TriangleInstanceVertexDataGenerator, TriangleInstanceVertexCounter>,
     >
 {
     fn convert_json_to_value(
@@ -494,8 +498,11 @@ impl<
             Triangle<TrianglePoint<TwoDPoint, Rgb>>,
         >,
         TriangleInstanceScaler<
-            TriangleInstanceCreator,
-            TrianglePointCreator<TwoDPointCreator, RgbCreator>,
+            TriangleInstanceCreator<
+                TriangleInstanceVertexDataGenerator,
+                TriangleInstanceVertexCounter,
+            >,
+            TriangleInstancePointCreator<TrianglePointCreator<TwoDPointCreator, RgbCreator>>,
         >,
     > {
         ObjectInstanceRunner::new(
@@ -503,7 +510,7 @@ impl<
                 .convert_json_to_value(json),
             TriangleInstanceScaler::new(
                 Rc::clone(&self.triangle_instance_creator),
-                Rc::clone(&self.triangle_point_creator),
+                Rc::clone(&self.triangle_instance_point_creator),
             ),
         )
     }
@@ -534,8 +541,13 @@ impl<
                     Triangle<TrianglePoint<TwoDPoint, Rgb>>,
                 >,
                 TriangleInstanceScaler<
-                    TriangleInstanceCreator,
-                    TrianglePointCreator<TwoDPointCreator, RgbCreator>,
+                    TriangleInstanceCreator<
+                        TriangleInstanceVertexDataGenerator,
+                        TriangleInstanceVertexCounter,
+                    >,
+                    TriangleInstancePointCreator<
+                        TrianglePointCreator<TwoDPointCreator, RgbCreator>,
+                    >,
                 >,
             >,
         >,
@@ -750,7 +762,10 @@ impl<
             >,
             RectangleInstanceScaler<
                 RectangleInstanceCreator<
-                    TriangleInstanceCreator,
+                    TriangleInstanceCreator<
+                        TriangleInstanceVertexDataGenerator,
+                        TriangleInstanceVertexCounter,
+                    >,
                     TrianglePointCreator<TwoDPointCreator, RgbCreator>,
                     TwoDPointCreator,
                 >,
@@ -761,7 +776,10 @@ impl<
     for JsonToRectangleInstanceRunnerConverter<
         TJsonToRectangleInstanceConverter,
         RectangleInstanceCreator<
-            TriangleInstanceCreator,
+            TriangleInstanceCreator<
+                TriangleInstanceVertexDataGenerator,
+                TriangleInstanceVertexCounter,
+            >,
             TrianglePointCreator<TwoDPointCreator, RgbCreator>,
             TwoDPointCreator,
         >,
@@ -784,7 +802,10 @@ impl<
         >,
         RectangleInstanceScaler<
             RectangleInstanceCreator<
-                TriangleInstanceCreator,
+                TriangleInstanceCreator<
+                    TriangleInstanceVertexDataGenerator,
+                    TriangleInstanceVertexCounter,
+                >,
                 TrianglePointCreator<TwoDPointCreator, RgbCreator>,
                 TwoDPointCreator,
             >,
@@ -834,7 +855,10 @@ impl<
                 >,
                 RectangleInstanceScaler<
                     RectangleInstanceCreator<
-                        TriangleInstanceCreator,
+                        TriangleInstanceCreator<
+                            TriangleInstanceVertexDataGenerator,
+                            TriangleInstanceVertexCounter,
+                        >,
                         TrianglePointCreator<TwoDPointCreator, RgbCreator>,
                         TwoDPointCreator,
                     >,
@@ -1012,7 +1036,15 @@ pub fn compose_json_to_content_converter(
     let json_to_boxed_triangle_converter =
         JsonToBoxedTriangleConverter::new(json_to_triangle_converter);
 
-    let triangle_instance_creator = Rc::new(TriangleInstanceCreator::new());
+    let triangle_instance_vertex_data_generator =
+        Rc::new(TriangleInstanceVertexDataGenerator::new());
+
+    let triangle_instance_vertex_counter = Rc::new(TriangleInstanceVertexCounter::new());
+
+    let triangle_instance_creator = Rc::new(TriangleInstanceCreator::new(
+        Rc::clone(&triangle_instance_vertex_data_generator),
+        Rc::clone(&triangle_instance_vertex_counter),
+    ));
 
     let two_d_point_creator = Rc::new(TwoDPointCreator::new());
 
@@ -1022,6 +1054,10 @@ pub fn compose_json_to_content_converter(
         Rc::clone(&two_d_point_creator),
         Rc::clone(&rgb_creator),
     ));
+
+    let triangle_instance_point_creator = Rc::new(TriangleInstancePointCreator::new(Rc::clone(
+        &triangle_point_creator,
+    )));
 
     let json_to_triangle_instance_converter = JsonToTriangleInstanceConverter::new(
         Rc::clone(&json_to_string_converter),
@@ -1034,7 +1070,7 @@ pub fn compose_json_to_content_converter(
 
     let json_to_triangle_instance_runner_converter = JsonToTriangleInstanceRunnerConverter::new(
         json_to_triangle_instance_converter,
-        Rc::clone(&triangle_point_creator),
+        Rc::clone(&triangle_instance_point_creator),
         Rc::clone(&triangle_instance_creator),
     );
 
@@ -1148,7 +1184,11 @@ mod tests {
         rectangles::{
             Rectangle, RectangleInstance, RectangleInstanceCreator, RectangleInstanceScaler,
         },
-        triangles::{Triangle, TriangleInstance, TriangleInstanceCreator, TriangleInstanceScaler},
+        triangles::{
+            Triangle, TriangleInstance, TriangleInstanceCreator, TriangleInstancePointCreator,
+            TriangleInstanceScaler, TriangleInstanceVertexCounter,
+            TriangleInstanceVertexDataGenerator,
+        },
         Content, GetVertexData, ObjectInstanceRunner, Rgb, RgbCreator, TrianglePoint,
         TrianglePointCreator, TwoDPoint, TwoDPointCreator,
     };
@@ -1394,11 +1434,16 @@ mod tests {
                         ],
                     ))),
                     TriangleInstanceScaler::new(
-                        Rc::new(TriangleInstanceCreator::new()),
-                        Rc::new(TrianglePointCreator::new(
-                            Rc::new(TwoDPointCreator::new()),
-                            Rc::new(RgbCreator::new()),
+                        Rc::new(TriangleInstanceCreator::new(
+                            Rc::new(TriangleInstanceVertexDataGenerator::new()),
+                            Rc::new(TriangleInstanceVertexCounter::new()),
                         )),
+                        Rc::new(TriangleInstancePointCreator::new(Rc::new(
+                            TrianglePointCreator::new(
+                                Rc::new(TwoDPointCreator::new()),
+                                Rc::new(RgbCreator::new()),
+                            ),
+                        ))),
                     ),
                 )),
                 Box::new(ObjectInstanceRunner::new(
@@ -1454,11 +1499,16 @@ mod tests {
                         ],
                     ))),
                     TriangleInstanceScaler::new(
-                        Rc::new(TriangleInstanceCreator::new()),
-                        Rc::new(TrianglePointCreator::new(
-                            Rc::new(TwoDPointCreator::new()),
-                            Rc::new(RgbCreator::new()),
+                        Rc::new(TriangleInstanceCreator::new(
+                            Rc::new(TriangleInstanceVertexDataGenerator::new()),
+                            Rc::new(TriangleInstanceVertexCounter::new()),
                         )),
+                        Rc::new(TriangleInstancePointCreator::new(Rc::new(
+                            TrianglePointCreator::new(
+                                Rc::new(TwoDPointCreator::new()),
+                                Rc::new(RgbCreator::new()),
+                            ),
+                        ))),
                     ),
                 )),
                 Box::new(ObjectInstanceRunner::new(
@@ -1601,7 +1651,10 @@ mod tests {
                     ))),
                     RectangleInstanceScaler::new(
                         Rc::new(RectangleInstanceCreator::new(
-                            Rc::new(TriangleInstanceCreator::new()),
+                            Rc::new(TriangleInstanceCreator::new(
+                                Rc::new(TriangleInstanceVertexDataGenerator::new()),
+                                Rc::new(TriangleInstanceVertexCounter::new()),
+                            )),
                             Rc::new(TrianglePointCreator::new(
                                 Rc::new(TwoDPointCreator::new()),
                                 Rc::new(RgbCreator::new()),
@@ -1751,7 +1804,10 @@ mod tests {
                     ))),
                     RectangleInstanceScaler::new(
                         Rc::new(RectangleInstanceCreator::new(
-                            Rc::new(TriangleInstanceCreator::new()),
+                            Rc::new(TriangleInstanceCreator::new(
+                                Rc::new(TriangleInstanceVertexDataGenerator::new()),
+                                Rc::new(TriangleInstanceVertexCounter::new()),
+                            )),
                             Rc::new(TrianglePointCreator::new(
                                 Rc::new(TwoDPointCreator::new()),
                                 Rc::new(RgbCreator::new()),

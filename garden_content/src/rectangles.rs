@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use garden::{GetHeight, GetName, GetWidth};
 
 use crate::{
-    triangles::{CreateTriangleInstance, Triangle, TriangleInstance},
+    triangles::{CreateTriangleInstance, Triangle},
     AddContent, CreateTrianglePoint, CreateTwoDPoint, Get2DCoordiantes, GetB, GetContent,
     GetContentInstanceData, GetG, GetNumberOfObjects, GetNumberOfVertices, GetPosition, GetR,
     GetRgb, GetRgbValues, GetScale, GetVertexData, GetX, GetY, Rgb, ScaleObjectInstance,
@@ -151,68 +151,32 @@ impl<TPosition, TPoint, TTrianglePoint, TRectangle> GetName
     }
 }
 
-impl<TPosition, TPoint, TRectangle> GetVertexData
-    for RectangleInstance<
-        TPosition,
-        TPoint,
-        TriangleInstance<
-            TwoDPoint,
-            TrianglePoint<TwoDPoint, Rgb>,
-            Triangle<TrianglePoint<TwoDPoint, Rgb>>,
-        >,
-        TRectangle,
-    >
+impl<TPosition, TPoint, TRectangle, TTriangleInstance> GetVertexData
+    for RectangleInstance<TPosition, TPoint, TTriangleInstance, TRectangle>
 {
     fn get_vertex_data(&self) -> Vec<f32> {
         self.vertex_data.clone()
     }
 }
 
-impl<TPosition, TPoint, TRectangle> GetNumberOfVertices
-    for RectangleInstance<
-        TPosition,
-        TPoint,
-        TriangleInstance<
-            TwoDPoint,
-            TrianglePoint<TwoDPoint, Rgb>,
-            Triangle<TrianglePoint<TwoDPoint, Rgb>>,
-        >,
-        TRectangle,
-    >
+impl<TPosition, TPoint, TRectangle, TTriangleInstance> GetNumberOfVertices
+    for RectangleInstance<TPosition, TPoint, TTriangleInstance, TRectangle>
 {
     fn get_number_of_vertices(&self) -> i32 {
         self.number_of_vertices
     }
 }
 
-impl<TPosition, TRectangle> GetNumberOfObjects
-    for RectangleInstance<
-        TPosition,
-        TrianglePoint<TwoDPoint, Rgb>,
-        TriangleInstance<
-            TwoDPoint,
-            TrianglePoint<TwoDPoint, Rgb>,
-            Triangle<TrianglePoint<TwoDPoint, Rgb>>,
-        >,
-        TRectangle,
-    >
+impl<TPosition, TPoint, TRectangle, TTriangleInstance> GetNumberOfObjects
+    for RectangleInstance<TPosition, TPoint, TRectangle, TTriangleInstance>
 {
     fn get_number_of_objects(&self) -> i32 {
         2
     }
 }
 
-impl<TPosition, TRectangle> GetContentInstanceData
-    for RectangleInstance<
-        TPosition,
-        TrianglePoint<TwoDPoint, Rgb>,
-        TriangleInstance<
-            TwoDPoint,
-            TrianglePoint<TwoDPoint, Rgb>,
-            Triangle<TrianglePoint<TwoDPoint, Rgb>>,
-        >,
-        TRectangle,
-    >
+impl<TPosition, TPoint, TRectangle, TTriangleInstance> GetContentInstanceData
+    for RectangleInstance<TPosition, TPoint, TRectangle, TTriangleInstance>
 {
 }
 

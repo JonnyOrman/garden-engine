@@ -199,6 +199,8 @@ pub trait GetRgb<TRgb> {
     fn get_rgb(&self) -> &TRgb;
 }
 
+pub trait GetTrianglePointProperties: Get2DCoordiantes + GetRgbValues {}
+
 pub struct TrianglePoint<TTwoDPoint, TRgb> {
     point: TTwoDPoint,
     rgb: TRgb,
@@ -277,6 +279,11 @@ impl<TTwoDPoint, TRgb: GetB> GetB for TrianglePoint<TTwoDPoint, TRgb> {
 }
 
 impl<TTwoDPoint, TRgb: GetRgbValues> GetRgbValues for TrianglePoint<TTwoDPoint, TRgb> {}
+
+impl<TTwoDPoint: Get2DCoordiantes, TRgb: GetRgbValues> GetTrianglePointProperties
+    for TrianglePoint<TTwoDPoint, TRgb>
+{
+}
 
 pub trait CreateTrianglePoint<TTrianglePoint> {
     fn create_triangle_point(&self, x: f32, y: f32, r: f32, g: f32, b: f32) -> TTrianglePoint;

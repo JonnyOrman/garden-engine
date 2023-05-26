@@ -3,9 +3,9 @@ use std::{cell::RefCell, rc::Rc};
 use garden::GetName;
 
 use crate::{
-    AddContent, CreateTrianglePoint, GetB, GetContentInstanceData, GetG, GetNumberOfObjects,
-    GetNumberOfVertices, GetPosition, GetR, GetRgb, GetScale, GetVertexData, GetX, GetY, Rgb,
-    ScaleObjectInstance, TrianglePoint, TwoDPoint,
+    AddContent, CreateTrianglePoint, GetContentInstanceData, GetNumberOfObjects,
+    GetNumberOfVertices, GetPosition, GetScale, GetTrianglePointProperties, GetVertexData, GetX,
+    GetY, Rgb, ScaleObjectInstance, TrianglePoint, TwoDPoint,
 };
 
 pub trait GetPoint1<TPoint> {
@@ -285,6 +285,117 @@ impl GetTriangle<Triangle<TrianglePoint<TwoDPoint, Rgb>>>
     }
 }
 
+pub trait GenerateTriangleInstanceVertexData<TTrianglePoint> {
+    fn generate_triangle_instance_vertex_data(
+        &self,
+        triangle_point_1: &TTrianglePoint,
+        triangle_point_2: &TTrianglePoint,
+        triangle_point_3: &TTrianglePoint,
+    ) -> Vec<f32>;
+}
+
+pub struct TriangleInstanceVertexDataGenerator {}
+
+impl TriangleInstanceVertexDataGenerator {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl<TTrianglePoint: GetVertexData> GenerateTriangleInstanceVertexData<TTrianglePoint>
+    for TriangleInstanceVertexDataGenerator
+{
+    fn generate_triangle_instance_vertex_data(
+        &self,
+        triangle_point_1: &TTrianglePoint,
+        triangle_point_2: &TTrianglePoint,
+        triangle_point_3: &TTrianglePoint,
+    ) -> Vec<f32> {
+        let mut vertex_data = vec![];
+
+        vertex_data.append(&mut triangle_point_1.get_vertex_data().clone());
+        vertex_data.append(&mut triangle_point_2.get_vertex_data().clone());
+        vertex_data.append(&mut triangle_point_3.get_vertex_data().clone());
+
+        return vertex_data;
+    }
+}
+
+pub trait CountTriangleInstanceVertices<TTrianglePoint> {
+    fn count_triangle_instance_vertices(
+        &self,
+        triangle_point_1: &TTrianglePoint,
+        triangle_point_2: &TTrianglePoint,
+        triangle_point_3: &TTrianglePoint,
+    ) -> i32;
+}
+
+pub struct TriangleInstanceVertexCounter {}
+
+impl TriangleInstanceVertexCounter {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl<TTrianglePoint: GetNumberOfVertices> CountTriangleInstanceVertices<TTrianglePoint>
+    for TriangleInstanceVertexCounter
+{
+    fn count_triangle_instance_vertices(
+        &self,
+        triangle_point_1: &TTrianglePoint,
+        triangle_point_2: &TTrianglePoint,
+        triangle_point_3: &TTrianglePoint,
+    ) -> i32 {
+        triangle_point_1.get_number_of_vertices()
+            + triangle_point_2.get_number_of_vertices()
+            + triangle_point_3.get_number_of_vertices()
+    }
+}
+
+pub trait CreateTriangleInstancePoint<TTrianglePoint> {
+    fn create_triangle_instance_point(
+        &self,
+        triangle_point: &TTrianglePoint,
+        x: f32,
+        y: f32,
+    ) -> TTrianglePoint;
+}
+
+pub struct TriangleInstancePointCreator<TTrianglePointCreator> {
+    triangle_point_creator: Rc<TTrianglePointCreator>,
+}
+
+impl<TTrianglePointCreator> TriangleInstancePointCreator<TTrianglePointCreator> {
+    pub fn new(triangle_point_creator: Rc<TTrianglePointCreator>) -> Self {
+        Self {
+            triangle_point_creator,
+        }
+    }
+}
+
+impl<
+        TTrianglePoint: GetTrianglePointProperties,
+        TTrianglePointCreator: CreateTrianglePoint<TTrianglePoint>,
+    > CreateTriangleInstancePoint<TTrianglePoint>
+    for TriangleInstancePointCreator<TTrianglePointCreator>
+{
+    fn create_triangle_instance_point(
+        &self,
+        triangle_point: &TTrianglePoint,
+        x: f32,
+        y: f32,
+    ) -> TTrianglePoint {
+        self.triangle_point_creator.create_triangle_point(
+            triangle_point.get_x() / x,
+            triangle_point.get_y() / y,
+            triangle_point.get_r(),
+            triangle_point.get_g(),
+            triangle_point.get_b(),
+        )
+    }
+}
+
 pub trait CreateTriangleInstance<TPosition, TTrianglePoint, TTriangleInstance, TTriangle> {
     fn create_triangle_instance(
         &self,
@@ -298,21 +409,45 @@ pub trait CreateTriangleInstance<TPosition, TTrianglePoint, TTriangleInstance, T
     ) -> Rc<RefCell<TTriangleInstance>>;
 }
 
-pub struct TriangleInstanceCreator {}
+pub struct TriangleInstanceCreator<
+    TTriangleInstanceVertexDataGenerator,
+    TTriangleInstanceVertexCounter,
+> {
+    triangle_instance_vertex_data_generator: Rc<TTriangleInstanceVertexDataGenerator>,
+    triangle_instance_vertex_counter: Rc<TTriangleInstanceVertexCounter>,
+}
 
-impl TriangleInstanceCreator {
-    pub fn new() -> Self {
-        Self {}
+impl<TTriangleInstanceVertexDataGenerator, TTriangleInstanceVertexCounter>
+    TriangleInstanceCreator<TTriangleInstanceVertexDataGenerator, TTriangleInstanceVertexCounter>
+{
+    pub fn new(
+        triangle_instance_vertex_data_generator: Rc<TTriangleInstanceVertexDataGenerator>,
+        triangle_instance_vertex_counter: Rc<TTriangleInstanceVertexCounter>,
+    ) -> Self {
+        Self {
+            triangle_instance_vertex_data_generator,
+            triangle_instance_vertex_counter,
+        }
     }
 }
 
-impl<TPosition, TTrianglePoint: GetVertexData + GetNumberOfVertices, TTriangle>
+impl<
+        TPosition,
+        TTrianglePoint: GetVertexData + GetNumberOfVertices,
+        TTriangle,
+        TTriangleInstanceVertexDataGenerator: GenerateTriangleInstanceVertexData<TTrianglePoint>,
+        TTriangleInstanceVertexCounter: CountTriangleInstanceVertices<TTrianglePoint>,
+    >
     CreateTriangleInstance<
         TPosition,
         TTrianglePoint,
         TriangleInstance<TPosition, TTrianglePoint, TTriangle>,
         TTriangle,
-    > for TriangleInstanceCreator
+    >
+    for TriangleInstanceCreator<
+        TTriangleInstanceVertexDataGenerator,
+        TTriangleInstanceVertexCounter,
+    >
 {
     fn create_triangle_instance(
         &self,
@@ -324,15 +459,13 @@ impl<TPosition, TTrianglePoint: GetVertexData + GetNumberOfVertices, TTriangle>
         point_2: TTrianglePoint,
         point_3: TTrianglePoint,
     ) -> Rc<RefCell<TriangleInstance<TPosition, TTrianglePoint, TTriangle>>> {
-        let mut vertex_data = vec![];
+        let vertex_data = self
+            .triangle_instance_vertex_data_generator
+            .generate_triangle_instance_vertex_data(&point_1, &point_2, &point_3);
 
-        vertex_data.append(&mut point_1.get_vertex_data().clone());
-        vertex_data.append(&mut point_2.get_vertex_data().clone());
-        vertex_data.append(&mut point_3.get_vertex_data().clone());
-
-        let number_of_vertices = point_1.get_number_of_vertices()
-            + point_2.get_number_of_vertices()
-            + point_3.get_number_of_vertices();
+        let number_of_vertices = self
+            .triangle_instance_vertex_counter
+            .count_triangle_instance_vertices(&point_1, &point_2, &point_3);
 
         Rc::new(RefCell::new(TriangleInstance::new(
             name,
@@ -348,21 +481,21 @@ impl<TPosition, TTrianglePoint: GetVertexData + GetNumberOfVertices, TTriangle>
     }
 }
 
-pub struct TriangleInstanceScaler<TTriangleInstanceCreator, TTrianglePointCreator> {
+pub struct TriangleInstanceScaler<TTriangleInstanceCreator, TTriangleInstancePointCreator> {
     triangle_instance_creator: Rc<TTriangleInstanceCreator>,
-    triangle_point_creator: Rc<TTrianglePointCreator>,
+    triangle_instance_point_creator: Rc<TTriangleInstancePointCreator>,
 }
 
-impl<TTriangleInstanceCreator, TTrianglePointCreator>
-    TriangleInstanceScaler<TTriangleInstanceCreator, TTrianglePointCreator>
+impl<TTriangleInstanceCreator, TTriangleInstancePointCreator>
+    TriangleInstanceScaler<TTriangleInstanceCreator, TTriangleInstancePointCreator>
 {
     pub fn new(
         triangle_instance_creator: Rc<TTriangleInstanceCreator>,
-        triangle_point_creator: Rc<TTrianglePointCreator>,
+        triangle_instance_point_creator: Rc<TTriangleInstancePointCreator>,
     ) -> Self {
         Self {
             triangle_instance_creator,
-            triangle_point_creator,
+            triangle_instance_point_creator,
         }
     }
 }
@@ -374,15 +507,15 @@ impl<
             TTriangleInstance,
             Triangle<TrianglePoint<TwoDPoint, Rgb>>,
         >,
-        TTrianglePointCreator: CreateTrianglePoint<TrianglePoint<TwoDPoint, Rgb>>,
         TTriangleInstance: GetContentInstanceData
             + GetPosition<TwoDPoint>
             + GetTrianglePoints<TrianglePoint<TwoDPoint, Rgb>>
             + GetName
             + GetScale
             + GetTriangle<Triangle<TrianglePoint<TwoDPoint, Rgb>>>,
+        TTriangleInstancePointCreator: CreateTriangleInstancePoint<TrianglePoint<TwoDPoint, Rgb>>,
     > ScaleObjectInstance<TTriangleInstance>
-    for TriangleInstanceScaler<TTriangleInstanceCreator, TTrianglePointCreator>
+    for TriangleInstanceScaler<TTriangleInstanceCreator, TTriangleInstancePointCreator>
 {
     fn scale_object_instance(
         &self,
@@ -395,29 +528,17 @@ impl<
             triangle_instance.borrow().get_position().get_y() / y,
         );
 
-        let new_point_1 = self.triangle_point_creator.create_triangle_point(
-            triangle_instance.borrow().get_point_1().get_x() / x,
-            triangle_instance.borrow().get_point_1().get_y() / y,
-            triangle_instance.borrow().get_point_1().get_rgb().get_r(),
-            triangle_instance.borrow().get_point_1().get_rgb().get_g(),
-            triangle_instance.borrow().get_point_1().get_rgb().get_b(),
-        );
+        let new_point_1 = self
+            .triangle_instance_point_creator
+            .create_triangle_instance_point(triangle_instance.borrow().get_point_1(), x, y);
 
-        let new_point_2 = self.triangle_point_creator.create_triangle_point(
-            triangle_instance.borrow().get_point_2().get_x() / x,
-            triangle_instance.borrow().get_point_2().get_y() / y,
-            triangle_instance.borrow().get_point_2().get_rgb().get_r(),
-            triangle_instance.borrow().get_point_2().get_rgb().get_g(),
-            triangle_instance.borrow().get_point_2().get_rgb().get_b(),
-        );
+        let new_point_2 = self
+            .triangle_instance_point_creator
+            .create_triangle_instance_point(triangle_instance.borrow().get_point_2(), x, y);
 
-        let new_point_3 = self.triangle_point_creator.create_triangle_point(
-            triangle_instance.borrow().get_point_3().get_x() / x,
-            triangle_instance.borrow().get_point_3().get_y() / y,
-            triangle_instance.borrow().get_point_3().get_rgb().get_r(),
-            triangle_instance.borrow().get_point_3().get_rgb().get_g(),
-            triangle_instance.borrow().get_point_3().get_rgb().get_b(),
-        );
+        let new_point_3 = self
+            .triangle_instance_point_creator
+            .create_triangle_instance_point(triangle_instance.borrow().get_point_3(), x, y);
 
         self.triangle_instance_creator.create_triangle_instance(
             triangle_instance.borrow().get_name().to_string(),
@@ -443,7 +564,10 @@ mod tests {
     use garden::GetName;
     use mockall::mock;
 
-    use crate::triangles::{Triangle, TriangleInstance};
+    use crate::triangles::{
+        Triangle, TriangleInstance, TriangleInstanceVertexCounter,
+        TriangleInstanceVertexDataGenerator,
+    };
     use crate::{AddContent, GetX, GetY};
     use crate::{
         GetContentInstanceData, GetNumberOfObjects, GetNumberOfVertices, GetVertexData, Scale,
@@ -814,7 +938,14 @@ mod tests {
             0.0, 0.5, 1.0, 0.0, 0.0, 0.5, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0,
         ];
 
-        let triangle_instance_creator = TriangleInstanceCreator::new();
+        let triangle_instance_vertex_data_generator = TriangleInstanceVertexDataGenerator::new();
+
+        let triangle_instance_vertex_counter = TriangleInstanceVertexCounter::new();
+
+        let triangle_instance_creator = TriangleInstanceCreator::new(
+            Rc::new(triangle_instance_vertex_data_generator),
+            Rc::new(triangle_instance_vertex_counter),
+        );
 
         let triangle_instance = triangle_instance_creator.create_triangle_instance(
             name.to_string(),
