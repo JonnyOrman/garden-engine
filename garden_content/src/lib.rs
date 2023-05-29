@@ -428,7 +428,7 @@ pub trait RunObjectInstance: GetContentInstanceData + Scale {}
 
 pub struct ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler> {
     object_instance: Rc<RefCell<TObjectInstance>>,
-    object_instance_scaler: TObjectInstanceScaler,
+    object_instance_scaler: Rc<TObjectInstanceScaler>,
 }
 
 impl<TObjectInstance, TObjectInstanceScaler>
@@ -436,7 +436,7 @@ impl<TObjectInstance, TObjectInstanceScaler>
 {
     pub fn new(
         object_instance: Rc<RefCell<TObjectInstance>>,
-        object_instance_scaler: TObjectInstanceScaler,
+        object_instance_scaler: Rc<TObjectInstanceScaler>,
     ) -> Self {
         Self {
             object_instance,

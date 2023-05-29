@@ -423,99 +423,6 @@ impl<
     }
 }
 
-pub struct JsonToTriangleInstanceRunnerConverter<
-    TJsonToTriangleInstanceConverter,
-    TTriangleInstancePointCreator,
-    TTriangleInstanceCreator,
-> {
-    json_to_triangle_instance_converter: TJsonToTriangleInstanceConverter,
-    triangle_instance_point_creator: Rc<TTriangleInstancePointCreator>,
-    triangle_instance_creator: Rc<TTriangleInstanceCreator>,
-}
-
-impl<TJsonToTriangleInstanceConverter, TTriangleInstancePointCreator, TTriangleInstanceCreator>
-    JsonToTriangleInstanceRunnerConverter<
-        TJsonToTriangleInstanceConverter,
-        TTriangleInstancePointCreator,
-        TTriangleInstanceCreator,
-    >
-{
-    fn new(
-        json_to_triangle_instance_converter: TJsonToTriangleInstanceConverter,
-        triangle_instance_point_creator: Rc<TTriangleInstancePointCreator>,
-        triangle_instance_creator: Rc<TTriangleInstanceCreator>,
-    ) -> Self {
-        Self {
-            json_to_triangle_instance_converter,
-            triangle_instance_point_creator,
-            triangle_instance_creator,
-        }
-    }
-}
-
-impl<
-        TJsonToTriangleInstanceConverter: ConvertJsonToValue<
-            Rc<
-                RefCell<
-                    TriangleInstance<
-                        TwoDPoint,
-                        TrianglePoint<TwoDPoint, Rgb>,
-                        Triangle<TrianglePoint<TwoDPoint, Rgb>>,
-                    >,
-                >,
-            >,
-        >,
-    >
-    ConvertJsonToValue<
-        ObjectInstanceRunner<
-            TriangleInstance<
-                TwoDPoint,
-                TrianglePoint<TwoDPoint, Rgb>,
-                Triangle<TrianglePoint<TwoDPoint, Rgb>>,
-            >,
-            TriangleInstanceScaler<
-                TriangleInstanceCreator<
-                    TriangleInstanceVertexDataGenerator,
-                    TriangleInstanceVertexCounter,
-                >,
-                TriangleInstancePointCreator<TrianglePointCreator<TwoDPointCreator, RgbCreator>>,
-            >,
-        >,
-    >
-    for JsonToTriangleInstanceRunnerConverter<
-        TJsonToTriangleInstanceConverter,
-        TriangleInstancePointCreator<TrianglePointCreator<TwoDPointCreator, RgbCreator>>,
-        TriangleInstanceCreator<TriangleInstanceVertexDataGenerator, TriangleInstanceVertexCounter>,
-    >
-{
-    fn convert_json_to_value(
-        &self,
-        json: &Value,
-    ) -> ObjectInstanceRunner<
-        TriangleInstance<
-            TwoDPoint,
-            TrianglePoint<TwoDPoint, Rgb>,
-            Triangle<TrianglePoint<TwoDPoint, Rgb>>,
-        >,
-        TriangleInstanceScaler<
-            TriangleInstanceCreator<
-                TriangleInstanceVertexDataGenerator,
-                TriangleInstanceVertexCounter,
-            >,
-            TriangleInstancePointCreator<TrianglePointCreator<TwoDPointCreator, RgbCreator>>,
-        >,
-    > {
-        ObjectInstanceRunner::new(
-            self.json_to_triangle_instance_converter
-                .convert_json_to_value(json),
-            TriangleInstanceScaler::new(
-                Rc::clone(&self.triangle_instance_creator),
-                Rc::clone(&self.triangle_instance_point_creator),
-            ),
-        )
-    }
-}
-
 pub struct JsonToBoxedTriangleInstanceRunnerConverter<TJsonToTriangleInstanceRunnerConverter> {
     json_to_triangle_instance_runner_converter: TJsonToTriangleInstanceRunnerConverter,
 }
@@ -699,126 +606,43 @@ impl<
     }
 }
 
-pub struct JsonToRectangleInstanceRunnerConverter<
-    TJsonToRectangleInstanceConverter,
-    TRectangleInstanceCreator,
-    TTwoDPointCreator,
+pub struct JsonToObjectInstanceRunnerConverter<
+    TJsonToObjectInstanceConverter,
+    TObjectInstanceScaler,
 > {
-    json_to_rectangle_instance_converter: TJsonToRectangleInstanceConverter,
-    rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
-    two_d_point_creator: Rc<TTwoDPointCreator>,
+    json_to_object_instance_converter: TJsonToObjectInstanceConverter,
+    object_instance_scaler: Rc<TObjectInstanceScaler>,
 }
 
-impl<TJsonToRectangleInstanceConverter, TRectangleInstanceCreator, TTwoDPointCreator>
-    JsonToRectangleInstanceRunnerConverter<
-        TJsonToRectangleInstanceConverter,
-        TRectangleInstanceCreator,
-        TTwoDPointCreator,
-    >
+impl<TJsonToObjectInstanceConverter, TObjectInstanceScaler>
+    JsonToObjectInstanceRunnerConverter<TJsonToObjectInstanceConverter, TObjectInstanceScaler>
 {
     fn new(
-        json_to_rectangle_instance_converter: TJsonToRectangleInstanceConverter,
-        rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
-        two_d_point_creator: Rc<TTwoDPointCreator>,
+        json_to_object_instance_converter: TJsonToObjectInstanceConverter,
+        object_instance_scaler: Rc<TObjectInstanceScaler>,
     ) -> Self {
         Self {
-            json_to_rectangle_instance_converter,
-            rectangle_instance_creator,
-            two_d_point_creator,
+            json_to_object_instance_converter,
+            object_instance_scaler,
         }
     }
 }
 
 impl<
-        'r,
-        TJsonToRectangleInstanceConverter: ConvertJsonToValue<
-            Rc<
-                RefCell<
-                    RectangleInstance<
-                        TwoDPoint,
-                        TrianglePoint<TwoDPoint, Rgb>,
-                        TriangleInstance<
-                            TwoDPoint,
-                            TrianglePoint<TwoDPoint, Rgb>,
-                            Triangle<TrianglePoint<TwoDPoint, Rgb>>,
-                        >,
-                        Rectangle<Rgb>,
-                    >,
-                >,
-            >,
-        >,
-    >
-    ConvertJsonToValue<
-        ObjectInstanceRunner<
-            RectangleInstance<
-                TwoDPoint,
-                TrianglePoint<TwoDPoint, Rgb>,
-                TriangleInstance<
-                    TwoDPoint,
-                    TrianglePoint<TwoDPoint, Rgb>,
-                    Triangle<TrianglePoint<TwoDPoint, Rgb>>,
-                >,
-                Rectangle<Rgb>,
-            >,
-            RectangleInstanceScaler<
-                RectangleInstanceCreator<
-                    TriangleInstanceCreator<
-                        TriangleInstanceVertexDataGenerator,
-                        TriangleInstanceVertexCounter,
-                    >,
-                    TrianglePointCreator<TwoDPointCreator, RgbCreator>,
-                    TwoDPointCreator,
-                >,
-                TwoDPointCreator,
-            >,
-        >,
-    >
-    for JsonToRectangleInstanceRunnerConverter<
-        TJsonToRectangleInstanceConverter,
-        RectangleInstanceCreator<
-            TriangleInstanceCreator<
-                TriangleInstanceVertexDataGenerator,
-                TriangleInstanceVertexCounter,
-            >,
-            TrianglePointCreator<TwoDPointCreator, RgbCreator>,
-            TwoDPointCreator,
-        >,
-        TwoDPointCreator,
-    >
+        TJsonToObjectInstanceConverter: ConvertJsonToValue<Rc<RefCell<TObjectInstance>>>,
+        TObjectInstanceScaler,
+        TObjectInstance,
+    > ConvertJsonToValue<ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler>>
+    for JsonToObjectInstanceRunnerConverter<TJsonToObjectInstanceConverter, TObjectInstanceScaler>
 {
     fn convert_json_to_value(
         &self,
         json: &Value,
-    ) -> ObjectInstanceRunner<
-        RectangleInstance<
-            TwoDPoint,
-            TrianglePoint<TwoDPoint, Rgb>,
-            TriangleInstance<
-                TwoDPoint,
-                TrianglePoint<TwoDPoint, Rgb>,
-                Triangle<TrianglePoint<TwoDPoint, Rgb>>,
-            >,
-            Rectangle<Rgb>,
-        >,
-        RectangleInstanceScaler<
-            RectangleInstanceCreator<
-                TriangleInstanceCreator<
-                    TriangleInstanceVertexDataGenerator,
-                    TriangleInstanceVertexCounter,
-                >,
-                TrianglePointCreator<TwoDPointCreator, RgbCreator>,
-                TwoDPointCreator,
-            >,
-            TwoDPointCreator,
-        >,
-    > {
+    ) -> ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler> {
         ObjectInstanceRunner::new(
-            self.json_to_rectangle_instance_converter
+            self.json_to_object_instance_converter
                 .convert_json_to_value(json),
-            RectangleInstanceScaler::new(
-                Rc::clone(&self.rectangle_instance_creator),
-                Rc::clone(&self.two_d_point_creator),
-            ),
+            Rc::clone(&self.object_instance_scaler),
         )
     }
 }
@@ -1068,10 +892,14 @@ pub fn compose_json_to_content_converter(
         Rc::clone(&triangle_provider_ref_cell),
     );
 
-    let json_to_triangle_instance_runner_converter = JsonToTriangleInstanceRunnerConverter::new(
-        json_to_triangle_instance_converter,
-        Rc::clone(&triangle_instance_point_creator),
+    let triangle_instance_scaler = Rc::new(TriangleInstanceScaler::new(
         Rc::clone(&triangle_instance_creator),
+        Rc::clone(&triangle_instance_point_creator),
+    ));
+
+    let json_to_triangle_instance_runner_converter = JsonToObjectInstanceRunnerConverter::new(
+        json_to_triangle_instance_converter,
+        Rc::clone(&triangle_instance_scaler),
     );
 
     let json_to_boxed_triangle_instance_runner_converter =
@@ -1109,10 +937,14 @@ pub fn compose_json_to_content_converter(
         Rc::clone(&rectangle_provider_ref_cell),
     );
 
-    let json_to_rectangle_instance_runner_converter = JsonToRectangleInstanceRunnerConverter::new(
-        json_to_rectangle_instance_converter,
+    let rectangle_instance_scaler = Rc::new(RectangleInstanceScaler::new(
         Rc::clone(&rectangle_instance_creator),
         Rc::clone(&two_d_point_creator),
+    ));
+
+    let json_to_rectangle_instance_runner_converter = JsonToObjectInstanceRunnerConverter::new(
+        json_to_rectangle_instance_converter,
+        Rc::clone(&rectangle_instance_scaler),
     );
 
     let json_to_boxed_rectangle_instance_runner_converter =
@@ -1433,7 +1265,7 @@ mod tests {
                             0.0, 1.0,
                         ],
                     ))),
-                    TriangleInstanceScaler::new(
+                    Rc::new(TriangleInstanceScaler::new(
                         Rc::new(TriangleInstanceCreator::new(
                             Rc::new(TriangleInstanceVertexDataGenerator::new()),
                             Rc::new(TriangleInstanceVertexCounter::new()),
@@ -1444,7 +1276,7 @@ mod tests {
                                 Rc::new(RgbCreator::new()),
                             ),
                         ))),
-                    ),
+                    )),
                 )),
                 Box::new(ObjectInstanceRunner::new(
                     Rc::new(RefCell::new(TriangleInstance::new(
@@ -1498,7 +1330,7 @@ mod tests {
                             1.0,
                         ],
                     ))),
-                    TriangleInstanceScaler::new(
+                    Rc::new(TriangleInstanceScaler::new(
                         Rc::new(TriangleInstanceCreator::new(
                             Rc::new(TriangleInstanceVertexDataGenerator::new()),
                             Rc::new(TriangleInstanceVertexCounter::new()),
@@ -1509,7 +1341,7 @@ mod tests {
                                 Rc::new(RgbCreator::new()),
                             ),
                         ))),
-                    ),
+                    )),
                 )),
                 Box::new(ObjectInstanceRunner::new(
                     Rc::new(RefCell::new(RectangleInstance::new(
@@ -1649,7 +1481,7 @@ mod tests {
                             vec![],
                         ))),
                     ))),
-                    RectangleInstanceScaler::new(
+                    Rc::new(RectangleInstanceScaler::new(
                         Rc::new(RectangleInstanceCreator::new(
                             Rc::new(TriangleInstanceCreator::new(
                                 Rc::new(TriangleInstanceVertexDataGenerator::new()),
@@ -1662,7 +1494,7 @@ mod tests {
                             Rc::new(TwoDPointCreator::new()),
                         )),
                         Rc::new(TwoDPointCreator::new()),
-                    ),
+                    )),
                 )),
                 Box::new(ObjectInstanceRunner::new(
                     Rc::new(RefCell::new(RectangleInstance::new(
@@ -1802,7 +1634,7 @@ mod tests {
                             vec![],
                         ))),
                     ))),
-                    RectangleInstanceScaler::new(
+                    Rc::new(RectangleInstanceScaler::new(
                         Rc::new(RectangleInstanceCreator::new(
                             Rc::new(TriangleInstanceCreator::new(
                                 Rc::new(TriangleInstanceVertexDataGenerator::new()),
@@ -1815,7 +1647,7 @@ mod tests {
                             Rc::new(TwoDPointCreator::new()),
                         )),
                         Rc::new(TwoDPointCreator::new()),
-                    ),
+                    )),
                 )),
             ],
         );
