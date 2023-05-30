@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
 use garden::{GetHeight, GetName, GetWidth};
 
@@ -501,21 +501,30 @@ impl<
     }
 }
 
-pub struct RectangleInstanceScaler<TRectangleInstanceCreator, TTwoDPointCreator> {
+pub struct RectangleInstanceScaler<
+    TRectangleInstanceCreator,
+    TTwoDPointCreator,
+    TTwoDPoint,
+    TRectangle,
+> {
     rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
     two_d_point_creator: Rc<TTwoDPointCreator>,
+    two_d_point_type: PhantomData<TTwoDPoint>,
+    rectangle_type: PhantomData<TRectangle>,
 }
 
-impl<TRectangleInstanceCreator, TTwoDPointCreator>
-    RectangleInstanceScaler<TRectangleInstanceCreator, TTwoDPointCreator>
+impl<TRectangleInstanceCreator, TTwoDPointCreator, TTwoDPoint, TRectangle>
+    RectangleInstanceScaler<TRectangleInstanceCreator, TTwoDPointCreator, TTwoDPoint, TRectangle>
 {
     pub fn new(
         rectangle_instance_creator: Rc<TRectangleInstanceCreator>,
         two_d_point_creator: Rc<TTwoDPointCreator>,
     ) -> Self {
         Self {
-            rectangle_instance_creator,
-            two_d_point_creator,
+            rectangle_instance_creator: rectangle_instance_creator,
+            two_d_point_creator: two_d_point_creator,
+            two_d_point_type: PhantomData,
+            rectangle_type: PhantomData,
         }
     }
 }
@@ -525,15 +534,22 @@ impl<
         'r,
         TRectangleInstance: GetName
             + GetScale
-            + GetPosition<TwoDPoint>
+            + GetPosition<TTwoDPoint>
             + GetWidth
             + GetHeight
             + GetRgbValues
-            + GetRectangle<Rectangle<Rgb>>,
-        TRectangleInstanceCreator: CreateRectangleInstance<TwoDPoint, TRectangleInstance, Rectangle<Rgb>>,
-        TTwoDPointCreator: CreateTwoDPoint<TwoDPoint>,
+            + GetRectangle<TRectangle>,
+        TRectangleInstanceCreator: CreateRectangleInstance<TTwoDPoint, TRectangleInstance, TRectangle>,
+        TTwoDPointCreator: CreateTwoDPoint<TTwoDPoint>,
+        TTwoDPoint: Get2DCoordiantes,
+        TRectangle,
     > ScaleObjectInstance<TRectangleInstance>
-    for RectangleInstanceScaler<TRectangleInstanceCreator, TTwoDPointCreator>
+    for RectangleInstanceScaler<
+        TRectangleInstanceCreator,
+        TTwoDPointCreator,
+        TTwoDPoint,
+        TRectangle,
+    >
 {
     fn scale_object_instance(
         &self,
@@ -571,11 +587,7 @@ impl<TContent> ContentProvider<TContent> {
 
 impl<'c, TContent: GetName> GetContent<TContent> for ContentProvider<TContent> {
     fn get_content(&self, content_name: String) -> Rc<RefCell<TContent>> {
-        println!("LOOKING FOR CONTENT WITH NAME {}", content_name);
-
         for content in self.content.iter() {
-            println!("CHECKING CONTENT WITH NAME {}", content.borrow().get_name());
-
             if content.borrow().get_name() == content_name {
                 return Rc::clone(&content);
             }

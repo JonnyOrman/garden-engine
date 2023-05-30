@@ -1,11 +1,11 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
 use garden::GetName;
 
 use crate::{
     AddContent, CreateTrianglePoint, GetContentInstanceData, GetNumberOfObjects,
-    GetNumberOfVertices, GetPosition, GetScale, GetTrianglePointProperties, GetVertexData, GetX,
-    GetY, Rgb, ScaleObjectInstance, TrianglePoint, TwoDPoint,
+    GetNumberOfVertices, GetPosition, GetScale, GetTrianglePointProperties, GetVertexData, Rgb,
+    ScaleObjectInstance, TranslateTwoDPoint, TrianglePoint, TwoDPoint,
 };
 
 pub trait GetPoint1<TPoint> {
@@ -84,14 +84,14 @@ impl<TTrianglePoint> GetNumberOfVertices for Triangle<TTrianglePoint> {
     }
 }
 
-pub trait CreateTriangle<TTrianglePoint> {
+pub trait CreateTriangle<TTriangle, TTrianglePoint> {
     fn create_triangle(
         &self,
         name: String,
         point_1: TTrianglePoint,
         point_2: TTrianglePoint,
         point_3: TTrianglePoint,
-    ) -> Rc<RefCell<Triangle<TTrianglePoint>>>;
+    ) -> Rc<RefCell<TTriangle>>;
 }
 
 pub struct TriangleCreator<TTriangleProvider> {
@@ -107,7 +107,8 @@ impl<TTriangleProvider> TriangleCreator<TTriangleProvider> {
 impl<
         TTriangleProvider: AddContent<Triangle<TTrianglePoint>>,
         TTrianglePoint: GetVertexData + GetNumberOfVertices,
-    > CreateTriangle<TTrianglePoint> for TriangleCreator<TTriangleProvider>
+    > CreateTriangle<Triangle<TTrianglePoint>, TTrianglePoint>
+    for TriangleCreator<TTriangleProvider>
 {
     fn create_triangle(
         &self,
@@ -252,24 +253,16 @@ impl<TPosition, TTrianglePoint, TTriangle> GetNumberOfVertices
     }
 }
 
-impl GetNumberOfObjects
-    for TriangleInstance<
-        TwoDPoint,
-        TrianglePoint<TwoDPoint, Rgb>,
-        Triangle<TrianglePoint<TwoDPoint, Rgb>>,
-    >
+impl<TPosition, TTrianglePoint, TTriangle> GetNumberOfObjects
+    for TriangleInstance<TPosition, TTrianglePoint, TTriangle>
 {
     fn get_number_of_objects(&self) -> i32 {
         1
     }
 }
 
-impl GetContentInstanceData
-    for TriangleInstance<
-        TwoDPoint,
-        TrianglePoint<TwoDPoint, Rgb>,
-        Triangle<TrianglePoint<TwoDPoint, Rgb>>,
-    >
+impl<TPosition, TTrianglePoint, TTriangle> GetContentInstanceData
+    for TriangleInstance<TPosition, TTrianglePoint, TTriangle>
 {
 }
 
@@ -481,41 +474,77 @@ impl<
     }
 }
 
-pub struct TriangleInstanceScaler<TTriangleInstanceCreator, TTriangleInstancePointCreator> {
+pub struct TriangleInstanceScaler<
+    TTriangleInstanceCreator,
+    TTriangleInstancePointCreator,
+    TTwoDPointTranslator,
+    TTwoDPoint,
+    TTrianglePoint,
+    TTriangle,
+> {
     triangle_instance_creator: Rc<TTriangleInstanceCreator>,
     triangle_instance_point_creator: Rc<TTriangleInstancePointCreator>,
+    two_d_point_translator: Rc<TTwoDPointTranslator>,
+    two_d_point_type: PhantomData<TTwoDPoint>,
+    triangle_point_type: PhantomData<TTrianglePoint>,
+    triangle_type: PhantomData<TTriangle>,
 }
 
-impl<TTriangleInstanceCreator, TTriangleInstancePointCreator>
-    TriangleInstanceScaler<TTriangleInstanceCreator, TTriangleInstancePointCreator>
+impl<
+        TTriangleInstanceCreator,
+        TTriangleInstancePointCreator,
+        TTwoDPointTranslator,
+        TTwoDPoint,
+        TTrianglePoint,
+        TTriangle,
+    >
+    TriangleInstanceScaler<
+        TTriangleInstanceCreator,
+        TTriangleInstancePointCreator,
+        TTwoDPointTranslator,
+        TTwoDPoint,
+        TTrianglePoint,
+        TTriangle,
+    >
 {
     pub fn new(
         triangle_instance_creator: Rc<TTriangleInstanceCreator>,
         triangle_instance_point_creator: Rc<TTriangleInstancePointCreator>,
+        two_d_point_translator: Rc<TTwoDPointTranslator>,
     ) -> Self {
         Self {
-            triangle_instance_creator,
-            triangle_instance_point_creator,
+            triangle_instance_creator: triangle_instance_creator,
+            triangle_instance_point_creator: triangle_instance_point_creator,
+            two_d_point_translator: two_d_point_translator,
+            two_d_point_type: PhantomData,
+            triangle_point_type: PhantomData,
+            triangle_type: PhantomData,
         }
     }
 }
 
 impl<
-        TTriangleInstanceCreator: CreateTriangleInstance<
-            TwoDPoint,
-            TrianglePoint<TwoDPoint, Rgb>,
-            TTriangleInstance,
-            Triangle<TrianglePoint<TwoDPoint, Rgb>>,
-        >,
+        TTriangleInstanceCreator: CreateTriangleInstance<TTwoDPoint, TTrianglePoint, TTriangleInstance, TTriangle>,
         TTriangleInstance: GetContentInstanceData
-            + GetPosition<TwoDPoint>
-            + GetTrianglePoints<TrianglePoint<TwoDPoint, Rgb>>
+            + GetPosition<TTwoDPoint>
+            + GetTrianglePoints<TTrianglePoint>
             + GetName
             + GetScale
-            + GetTriangle<Triangle<TrianglePoint<TwoDPoint, Rgb>>>,
-        TTriangleInstancePointCreator: CreateTriangleInstancePoint<TrianglePoint<TwoDPoint, Rgb>>,
+            + GetTriangle<TTriangle>,
+        TTriangleInstancePointCreator: CreateTriangleInstancePoint<TTrianglePoint>,
+        TPositionTranslator: TranslateTwoDPoint<TTwoDPoint>,
+        TTwoDPoint,
+        TTrianglePoint,
+        TTriangle,
     > ScaleObjectInstance<TTriangleInstance>
-    for TriangleInstanceScaler<TTriangleInstanceCreator, TTriangleInstancePointCreator>
+    for TriangleInstanceScaler<
+        TTriangleInstanceCreator,
+        TTriangleInstancePointCreator,
+        TPositionTranslator,
+        TTwoDPoint,
+        TTrianglePoint,
+        TTriangle,
+    >
 {
     fn scale_object_instance(
         &self,
@@ -523,9 +552,10 @@ impl<
         x: f32,
         y: f32,
     ) -> Rc<RefCell<TTriangleInstance>> {
-        let new_position = TwoDPoint::new(
-            triangle_instance.borrow().get_position().get_x() / x,
-            triangle_instance.borrow().get_position().get_y() / y,
+        let new_position = self.two_d_point_translator.translate_two_d_point(
+            triangle_instance.borrow().get_position(),
+            x,
+            y,
         );
 
         let new_point_1 = self

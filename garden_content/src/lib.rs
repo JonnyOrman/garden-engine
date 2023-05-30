@@ -113,6 +113,24 @@ impl CreateTwoDPoint<TwoDPoint> for TwoDPointCreator {
     }
 }
 
+pub trait TranslateTwoDPoint<TTwoDPoint> {
+    fn translate_two_d_point(&self, position: &TTwoDPoint, x: f32, y: f32) -> TTwoDPoint;
+}
+
+pub struct TwoDPointTranslator {}
+
+impl TwoDPointTranslator {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl TranslateTwoDPoint<TwoDPoint> for TwoDPointTranslator {
+    fn translate_two_d_point(&self, position: &TwoDPoint, x: f32, y: f32) -> TwoDPoint {
+        TwoDPoint::new(position.get_x() / x, position.get_y() / y)
+    }
+}
+
 pub trait GetR {
     fn get_r(&self) -> f32;
 }
