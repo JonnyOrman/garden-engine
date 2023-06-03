@@ -1,7 +1,7 @@
 pub mod rectangles;
 pub mod triangles;
 
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
 use garden::GetName;
 
@@ -303,20 +303,90 @@ impl<TTwoDPoint: Get2DCoordiantes, TRgb: GetRgbValues> GetTrianglePointPropertie
 {
 }
 
+pub trait ConstructTrianglePoint<TTwoDPoint, TRgb, TTrianglePoint> {
+    fn construct_triangle_point(
+        &self,
+        point: TTwoDPoint,
+        rgb: TRgb,
+        number_of_vertices: i32,
+        vertex_data: Vec<f32>,
+    ) -> TTrianglePoint;
+}
+
+pub struct TrianglePointConstructor {}
+
+impl TrianglePointConstructor {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl<
+        TTwoDPoint: GetVertexData + GetNumberOfVertices,
+        TRgb: GetVertexData + GetNumberOfVertices,
+    > ConstructTrianglePoint<TTwoDPoint, TRgb, TrianglePoint<TTwoDPoint, TRgb>>
+    for TrianglePointConstructor
+{
+    fn construct_triangle_point(
+        &self,
+        point: TTwoDPoint,
+        rgb: TRgb,
+        number_of_vertices: i32,
+        vertex_data: Vec<f32>,
+    ) -> TrianglePoint<TTwoDPoint, TRgb> {
+        TrianglePoint::new(point, rgb, number_of_vertices, vertex_data)
+    }
+}
+
 pub trait CreateTrianglePoint<TTrianglePoint> {
     fn create_triangle_point(&self, x: f32, y: f32, r: f32, g: f32, b: f32) -> TTrianglePoint;
 }
 
-pub struct TrianglePointCreator<TTwoDPointCreator, TRgbCreator> {
+pub struct TrianglePointCreator<
+    TTwoDPointCreator,
+    TRgbCreator,
+    TTrianglePoint,
+    TTrianglePointConstructor,
+    TTwoDPoint,
+    TRgb,
+> {
     two_d_point_creator: Rc<TTwoDPointCreator>,
     rgb_creator: Rc<TRgbCreator>,
+    triangle_point_constructor: Rc<TTrianglePointConstructor>,
+    triangle_point_type: PhantomData<TTrianglePoint>,
+    two_d_point_type: PhantomData<TTwoDPoint>,
+    rgb_type: PhantomData<TRgb>,
 }
 
-impl<TTwoDPointCreator, TRgbCreator> TrianglePointCreator<TTwoDPointCreator, TRgbCreator> {
-    pub fn new(two_d_point_creator: Rc<TTwoDPointCreator>, rgb_creator: Rc<TRgbCreator>) -> Self {
+impl<
+        TTwoDPointCreator,
+        TRgbCreator,
+        TTrianglePoint,
+        TTrianglePointConstructor,
+        TTwoDPoint,
+        TRgb,
+    >
+    TrianglePointCreator<
+        TTwoDPointCreator,
+        TRgbCreator,
+        TTrianglePoint,
+        TTrianglePointConstructor,
+        TTwoDPoint,
+        TRgb,
+    >
+{
+    pub fn new(
+        two_d_point_creator: Rc<TTwoDPointCreator>,
+        rgb_creator: Rc<TRgbCreator>,
+        triangle_point_constructor: Rc<TTrianglePointConstructor>,
+    ) -> Self {
         Self {
-            two_d_point_creator,
-            rgb_creator,
+            two_d_point_creator: two_d_point_creator,
+            rgb_creator: rgb_creator,
+            triangle_point_constructor: triangle_point_constructor,
+            triangle_point_type: PhantomData,
+            two_d_point_type: PhantomData,
+            rgb_type: PhantomData,
         }
     }
 }
@@ -326,17 +396,19 @@ impl<
         TRgbCreator: CreateRgb<TRgb>,
         TTwoDPoint: GetTwoDPointProperties,
         TRgb: GetRgbProperties,
-    > CreateTrianglePoint<TrianglePoint<TTwoDPoint, TRgb>>
-    for TrianglePointCreator<TTwoDPointCreator, TRgbCreator>
+        TTrianglePointConstructor: ConstructTrianglePoint<TTwoDPoint, TRgb, TTrianglePoint>,
+        TTrianglePoint,
+    > CreateTrianglePoint<TTrianglePoint>
+    for TrianglePointCreator<
+        TTwoDPointCreator,
+        TRgbCreator,
+        TTrianglePoint,
+        TTrianglePointConstructor,
+        TTwoDPoint,
+        TRgb,
+    >
 {
-    fn create_triangle_point(
-        &self,
-        x: f32,
-        y: f32,
-        r: f32,
-        g: f32,
-        b: f32,
-    ) -> TrianglePoint<TTwoDPoint, TRgb> {
+    fn create_triangle_point(&self, x: f32, y: f32, r: f32, g: f32, b: f32) -> TTrianglePoint {
         let two_d_point = self.two_d_point_creator.create_two_d_point(x, y);
 
         let rgb = self.rgb_creator.create_rgb(r, g, b);
@@ -349,7 +421,12 @@ impl<
         let number_of_vertices =
             two_d_point.get_number_of_vertices() + rgb.get_number_of_vertices();
 
-        TrianglePoint::new(two_d_point, rgb, number_of_vertices, vertex_data)
+        self.triangle_point_constructor.construct_triangle_point(
+            two_d_point,
+            rgb,
+            number_of_vertices,
+            vertex_data,
+        )
     }
 }
 
