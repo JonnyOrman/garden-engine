@@ -1,20 +1,20 @@
 use garden::{GetHeight, GetName, GetWidth};
 use garden_content::{
     rectangles::{
-        ContentProvider, CreateRectangle, CreateRectangleInstance, Rectangle, RectangleConstructor,
-        RectangleCreator, RectangleInstanceConstructor, RectangleInstanceCreator,
-        RectangleInstanceScaler,
+        ContentProvider, CreateRectangleInstance, Rectangle, RectangleConstructor,
+        RectangleInstanceConstructor, RectangleInstanceCreator, RectangleInstanceScaler,
+        RectangleParameters,
     },
     triangles::{
-        CreateTriangle, CreateTriangleInstance, GetTrianglePoints, Triangle, TriangleConstructor,
-        TriangleCreator, TriangleInstanceConstructor, TriangleInstanceCreator,
-        TriangleInstancePointCreator, TriangleInstanceScaler, TriangleInstanceVertexCounter,
-        TriangleInstanceVertexDataGenerator,
+        CreateTriangleInstance, GetTrianglePoints, Triangle, TriangleConstructor,
+        TriangleInstanceConstructor, TriangleInstanceCreator, TriangleInstancePointCreator,
+        TriangleInstanceScaler, TriangleInstanceVertexCounter, TriangleInstanceVertexDataGenerator,
+        TriangleParameters,
     },
-    Content, CreateTrianglePoint, Get2DCoordiantes, GetContent, GetNumberOfVertices, GetRgbValues,
-    GetVertexData, ObjectInstanceRunner, Rgb, RgbCreator, RunObjectInstance, TrianglePoint,
-    TrianglePointConstructor, TrianglePointCreator, TwoDPoint, TwoDPointCreator,
-    TwoDPointTranslator,
+    Content, CreateObject, CreateTrianglePoint, Get2DCoordiantes, GetContent, GetNumberOfVertices,
+    GetRgbValues, GetVertexData, ObjectCreator, ObjectInstanceRunner, Rgb, RgbCreator,
+    RunObjectInstance, TrianglePoint, TrianglePointConstructor, TrianglePointCreator, TwoDPoint,
+    TwoDPointCreator, TwoDPointTranslator,
 };
 use garden_json::{ConvertJsonToValue, JsonToF32Converter, JsonToStringConverter};
 use garden_loading::Load;
@@ -148,7 +148,7 @@ impl<
 impl<
         TJsonToStringConverter: ConvertJsonToValue<String>,
         TJsonToTrianglePointConverter: ConvertJsonToValue<TTrianglePoint>,
-        TTriangleCreator: CreateTriangle<TTriangle, TTrianglePoint>,
+        TTriangleCreator: CreateObject<TTriangle, TriangleParameters<TTrianglePoint>>,
         TTrianglePoint,
         TTriangle,
     > ConvertJsonToValue<Rc<RefCell<TTriangle>>>
@@ -177,8 +177,9 @@ impl<
             .json_to_triangle_point_converter
             .convert_json_to_value(&json["point3"]);
 
-        self.triangle_creator
-            .create_triangle(name, point_1, point_2, point_3)
+        let parameters = TriangleParameters::new(name, point_1, point_2, point_3);
+
+        self.triangle_creator.create_object(parameters)
     }
 }
 
@@ -248,7 +249,7 @@ impl<
         TJsonToF32Converter: ConvertJsonToValue<f32>,
         TJsonToRgbConverter: ConvertJsonToValue<TRgb>,
         TRgb,
-        TRectangleCreator: CreateRectangle<TRectangle, TRgb>,
+        TRectangleCreator: CreateObject<TRectangle, RectangleParameters<TRgb>>,
         TRectangle,
     > ConvertJsonToValue<Rc<RefCell<TRectangle>>>
     for JsonToRectangleConverter<
@@ -276,8 +277,9 @@ impl<
             .json_to_rgb_converter
             .convert_json_to_value(&json["rgb"]);
 
-        self.rectangle_creator
-            .create_rectangle(name, width, height, rgb)
+        let parameters = RectangleParameters::new(name, width, height, rgb);
+
+        self.rectangle_creator.create_object(parameters)
     }
 }
 
@@ -811,9 +813,9 @@ pub fn compose_json_to_content_converter(
 
     let triangle_constructor = Rc::new(TriangleConstructor::new());
 
-    let triangle_creator = TriangleCreator::new(
-        Rc::clone(&triangle_provider_ref_cell),
+    let triangle_creator = ObjectCreator::new(
         Rc::clone(&triangle_constructor),
+        Rc::clone(&triangle_provider_ref_cell),
     );
 
     let json_to_triangle_converter = JsonToTriangleConverter::new(
@@ -885,9 +887,9 @@ pub fn compose_json_to_content_converter(
 
     let rectangle_constructor = Rc::new(RectangleConstructor::new());
 
-    let rectangle_creator = Rc::new(RectangleCreator::new(
-        Rc::clone(&rectangle_provider_ref_cell),
+    let rectangle_creator = Rc::new(ObjectCreator::new(
         Rc::clone(&rectangle_constructor),
+        Rc::clone(&rectangle_provider_ref_cell),
     ));
 
     let json_to_rectangle_converter = JsonToRectangleConverter::new(

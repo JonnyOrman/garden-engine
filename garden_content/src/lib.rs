@@ -592,8 +592,60 @@ pub trait GetContent<TContent> {
     fn get_content(&self, content_name: String) -> Rc<RefCell<TContent>>;
 }
 
-pub trait AddContent<TContent> {
-    fn add_content(&mut self, content: Rc<RefCell<TContent>>);
+pub trait ConstructObject<TObject, TParameters> {
+    fn construct_object(&self, parameters: TParameters) -> TObject;
+}
+
+pub trait StoreObject<TObject> {
+    fn store_object(&mut self, object: Rc<RefCell<TObject>>);
+}
+
+pub trait CreateObject<TObject, TParameters> {
+    fn create_object(&self, parameters: TParameters) -> Rc<RefCell<TObject>>;
+}
+
+pub struct ObjectCreator<TObjectConstructor, TObjectStore, TObject, TParameters> {
+    object_constructor: Rc<TObjectConstructor>,
+    object_store: Rc<RefCell<TObjectStore>>,
+    object_type: PhantomData<TObject>,
+    parameters_type: PhantomData<TParameters>,
+}
+
+impl<TObjectConstructor, TObjectStore, TObject, TParameters>
+    ObjectCreator<TObjectConstructor, TObjectStore, TObject, TParameters>
+{
+    pub fn new(
+        object_constructor: Rc<TObjectConstructor>,
+        object_store: Rc<RefCell<TObjectStore>>,
+    ) -> Self {
+        Self {
+            object_constructor: object_constructor,
+            object_store: object_store,
+            object_type: PhantomData,
+            parameters_type: PhantomData,
+        }
+    }
+}
+
+impl<
+        TObjectConstructor: ConstructObject<TObject, TParameters>,
+        TObjectStore: StoreObject<TObject>,
+        TObject,
+        TParameters,
+    > CreateObject<TObject, TParameters>
+    for ObjectCreator<TObjectConstructor, TObjectStore, TObject, TParameters>
+{
+    fn create_object(&self, parameters: TParameters) -> Rc<RefCell<TObject>> {
+        let object = Rc::new(RefCell::new(
+            self.object_constructor.construct_object(parameters),
+        ));
+
+        self.object_store
+            .borrow_mut()
+            .store_object(Rc::clone(&object));
+
+        Rc::clone(&object)
+    }
 }
 
 #[cfg(test)]

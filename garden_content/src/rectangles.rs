@@ -4,10 +4,10 @@ use garden::{GetHeight, GetName, GetWidth};
 
 use crate::{
     triangles::{CreateTriangleInstance, Triangle},
-    AddContent, CreateTrianglePoint, CreateTwoDPoint, Get2DCoordiantes, GetB, GetContent,
+    ConstructObject, CreateTrianglePoint, CreateTwoDPoint, Get2DCoordiantes, GetB, GetContent,
     GetContentInstanceData, GetG, GetNumberOfObjects, GetNumberOfVertices, GetPosition, GetR,
     GetRgb, GetRgbValues, GetScale, GetVertexData, GetX, GetY, Rgb, ScaleObjectInstance,
-    TrianglePoint, TwoDPoint,
+    StoreObject, TrianglePoint, TwoDPoint,
 };
 
 pub struct Rectangle<TRgb> {
@@ -52,8 +52,22 @@ impl<TRgb> GetRgb<TRgb> for Rectangle<TRgb> {
     }
 }
 
-pub trait ConstructRectangle<TRectangle, TRgb> {
-    fn construct_rectangle(&self, name: String, width: f32, height: f32, rgb: TRgb) -> TRectangle;
+pub struct RectangleParameters<TRgb> {
+    name: String,
+    width: f32,
+    height: f32,
+    rgb: TRgb,
+}
+
+impl<TRgb> RectangleParameters<TRgb> {
+    pub fn new(name: String, width: f32, height: f32, rgb: TRgb) -> Self {
+        Self {
+            name,
+            width,
+            height,
+            rgb,
+        }
+    }
 }
 
 pub struct RectangleConstructor {}
@@ -64,74 +78,14 @@ impl RectangleConstructor {
     }
 }
 
-impl<TRgb> ConstructRectangle<Rectangle<TRgb>, TRgb> for RectangleConstructor {
-    fn construct_rectangle(
-        &self,
-        name: String,
-        width: f32,
-        height: f32,
-        rgb: TRgb,
-    ) -> Rectangle<TRgb> {
-        Rectangle::new(name, width, height, rgb)
-    }
-}
-
-pub trait CreateRectangle<TRectangle, TRgb> {
-    fn create_rectangle(
-        &self,
-        name: String,
-        width: f32,
-        height: f32,
-        rgb: TRgb,
-    ) -> Rc<RefCell<TRectangle>>;
-}
-
-pub struct RectangleCreator<TRectangleProvider, TRectangle, TRectangleConstructor> {
-    rectangle_provider: Rc<RefCell<TRectangleProvider>>,
-    rectangle_constructor: Rc<TRectangleConstructor>,
-    rectangle_type: PhantomData<TRectangle>,
-}
-
-impl<TRectangleProvider, TRectangle, TRectangleConstructor>
-    RectangleCreator<TRectangleProvider, TRectangle, TRectangleConstructor>
-{
-    pub fn new(
-        rectangle_provider: Rc<RefCell<TRectangleProvider>>,
-        rectangle_constructor: Rc<TRectangleConstructor>,
-    ) -> Self {
-        Self {
-            rectangle_provider: rectangle_provider,
-            rectangle_constructor: rectangle_constructor,
-            rectangle_type: PhantomData,
-        }
-    }
-}
-
-impl<
-        TRectangleProvider: AddContent<TRectangle>,
-        TRgb,
-        TRectangle,
-        TRectangleConstructor: ConstructRectangle<TRectangle, TRgb>,
-    > CreateRectangle<TRectangle, TRgb>
-    for RectangleCreator<TRectangleProvider, TRectangle, TRectangleConstructor>
-{
-    fn create_rectangle(
-        &self,
-        name: String,
-        width: f32,
-        height: f32,
-        rgb: TRgb,
-    ) -> Rc<RefCell<TRectangle>> {
-        let rectangle = Rc::new(RefCell::new(
-            self.rectangle_constructor
-                .construct_rectangle(name, width, height, rgb),
-        ));
-
-        self.rectangle_provider
-            .borrow_mut()
-            .add_content(Rc::clone(&rectangle));
-
-        Rc::clone(&rectangle)
+impl<TRgb> ConstructObject<Rectangle<TRgb>, RectangleParameters<TRgb>> for RectangleConstructor {
+    fn construct_object(&self, parameters: RectangleParameters<TRgb>) -> Rectangle<TRgb> {
+        Rectangle::new(
+            parameters.name,
+            parameters.width,
+            parameters.height,
+            parameters.rgb,
+        )
     }
 }
 
@@ -723,8 +677,8 @@ impl<'c, TContent: GetName> GetContent<TContent> for ContentProvider<TContent> {
     }
 }
 
-impl<TContent> AddContent<TContent> for ContentProvider<TContent> {
-    fn add_content(&mut self, content: Rc<RefCell<TContent>>) {
+impl<TObject> StoreObject<TObject> for ContentProvider<TObject> {
+    fn store_object(&mut self, content: Rc<RefCell<TObject>>) {
         self.content.push(content)
     }
 }
@@ -737,11 +691,12 @@ mod tests {
     use garden::GetName;
     use mockall::mock;
 
-    use crate::{AddContent, Get2DCoordiantes, GetB, GetG, GetR, GetX, GetY};
+    use crate::{
+        ConstructObject, CreateObject, Get2DCoordiantes, GetB, GetG, GetR, GetX, GetY,
+        ObjectCreator, StoreObject,
+    };
 
-    use crate::rectangles::{ConstructRectangle, Rectangle, RectangleInstance};
-
-    use super::{CreateRectangle, RectangleCreator};
+    use crate::rectangles::{Rectangle, RectangleInstance, RectangleParameters};
 
     #[test]
     fn when_a_rectangle_gets_its_name_then_the_name_is_returned() {
@@ -769,22 +724,24 @@ mod tests {
         let rectangle_provider = Rc::new(RefCell::new(MockRectangleProvider::new()));
         rectangle_provider
             .borrow_mut()
-            .expect_add_content()
+            .expect_store_object()
             .times(1)
             .returning(move |_| {});
 
         let mut rectangle_constructor = MockRectangleConstructor::new();
         rectangle_constructor
-            .expect_construct_rectangle()
+            .expect_construct_object()
             .times(1)
-            .returning(move |_, _, _, _| {
+            .returning(move |_| {
                 Rectangle::new(name.to_string(), 0.0, 0.0, MockRectangleRgb::new())
             });
 
         let rectangle_creator =
-            RectangleCreator::new(rectangle_provider, Rc::new(rectangle_constructor));
+            ObjectCreator::new(Rc::new(rectangle_constructor), rectangle_provider);
 
-        let result = rectangle_creator.create_rectangle(name.to_string(), width, height, rgb);
+        let parameters = RectangleParameters::new(name.to_string(), width, height, rgb);
+
+        let result = rectangle_creator.create_object(parameters);
 
         assert_eq!(name, result.borrow().get_name());
     }
@@ -874,15 +831,15 @@ mod tests {
 
     mock! {
         RectangleProvider {}
-        impl AddContent<Rectangle<MockRectangleRgb>> for RectangleProvider {
-            fn add_content(&mut self, content: Rc<RefCell<Rectangle<MockRectangleRgb>>>);
+        impl StoreObject<Rectangle<MockRectangleRgb>> for RectangleProvider {
+            fn store_object(&mut self, content: Rc<RefCell<Rectangle<MockRectangleRgb>>>);
         }
     }
 
     mock! {
         RectangleConstructor {}
-        impl ConstructRectangle<Rectangle<MockRectangleRgb>, MockRectangleRgb> for RectangleConstructor {
-            fn construct_rectangle(&self, name: String, width: f32, height: f32, rgb: MockRectangleRgb) -> Rectangle<MockRectangleRgb>;
+        impl ConstructObject<Rectangle<MockRectangleRgb>, RectangleParameters<MockRectangleRgb>> for RectangleConstructor {
+            fn construct_object(&self, parameters: RectangleParameters<MockRectangleRgb>) -> Rectangle<MockRectangleRgb>;
         }
     }
 }
