@@ -1,7 +1,7 @@
 pub mod rectangles;
 pub mod triangles;
 
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
 use garden::GetName;
 
@@ -113,6 +113,24 @@ impl CreateTwoDPoint<TwoDPoint> for TwoDPointCreator {
     }
 }
 
+pub trait TranslateTwoDPoint<TTwoDPoint> {
+    fn translate_two_d_point(&self, position: &TTwoDPoint, x: f32, y: f32) -> TTwoDPoint;
+}
+
+pub struct TwoDPointTranslator {}
+
+impl TwoDPointTranslator {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl TranslateTwoDPoint<TwoDPoint> for TwoDPointTranslator {
+    fn translate_two_d_point(&self, position: &TwoDPoint, x: f32, y: f32) -> TwoDPoint {
+        TwoDPoint::new(position.get_x() / x, position.get_y() / y)
+    }
+}
+
 pub trait GetR {
     fn get_r(&self) -> f32;
 }
@@ -199,6 +217,8 @@ pub trait GetRgb<TRgb> {
     fn get_rgb(&self) -> &TRgb;
 }
 
+pub trait GetTrianglePointProperties: Get2DCoordiantes + GetRgbValues {}
+
 pub struct TrianglePoint<TTwoDPoint, TRgb> {
     point: TTwoDPoint,
     rgb: TRgb,
@@ -278,20 +298,95 @@ impl<TTwoDPoint, TRgb: GetB> GetB for TrianglePoint<TTwoDPoint, TRgb> {
 
 impl<TTwoDPoint, TRgb: GetRgbValues> GetRgbValues for TrianglePoint<TTwoDPoint, TRgb> {}
 
+impl<TTwoDPoint: Get2DCoordiantes, TRgb: GetRgbValues> GetTrianglePointProperties
+    for TrianglePoint<TTwoDPoint, TRgb>
+{
+}
+
+pub trait ConstructTrianglePoint<TTwoDPoint, TRgb, TTrianglePoint> {
+    fn construct_triangle_point(
+        &self,
+        point: TTwoDPoint,
+        rgb: TRgb,
+        number_of_vertices: i32,
+        vertex_data: Vec<f32>,
+    ) -> TTrianglePoint;
+}
+
+pub struct TrianglePointConstructor {}
+
+impl TrianglePointConstructor {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl<
+        TTwoDPoint: GetVertexData + GetNumberOfVertices,
+        TRgb: GetVertexData + GetNumberOfVertices,
+    > ConstructTrianglePoint<TTwoDPoint, TRgb, TrianglePoint<TTwoDPoint, TRgb>>
+    for TrianglePointConstructor
+{
+    fn construct_triangle_point(
+        &self,
+        point: TTwoDPoint,
+        rgb: TRgb,
+        number_of_vertices: i32,
+        vertex_data: Vec<f32>,
+    ) -> TrianglePoint<TTwoDPoint, TRgb> {
+        TrianglePoint::new(point, rgb, number_of_vertices, vertex_data)
+    }
+}
+
 pub trait CreateTrianglePoint<TTrianglePoint> {
     fn create_triangle_point(&self, x: f32, y: f32, r: f32, g: f32, b: f32) -> TTrianglePoint;
 }
 
-pub struct TrianglePointCreator<TTwoDPointCreator, TRgbCreator> {
+pub struct TrianglePointCreator<
+    TTwoDPointCreator,
+    TRgbCreator,
+    TTrianglePoint,
+    TTrianglePointConstructor,
+    TTwoDPoint,
+    TRgb,
+> {
     two_d_point_creator: Rc<TTwoDPointCreator>,
     rgb_creator: Rc<TRgbCreator>,
+    triangle_point_constructor: Rc<TTrianglePointConstructor>,
+    triangle_point_type: PhantomData<TTrianglePoint>,
+    two_d_point_type: PhantomData<TTwoDPoint>,
+    rgb_type: PhantomData<TRgb>,
 }
 
-impl<TTwoDPointCreator, TRgbCreator> TrianglePointCreator<TTwoDPointCreator, TRgbCreator> {
-    pub fn new(two_d_point_creator: Rc<TTwoDPointCreator>, rgb_creator: Rc<TRgbCreator>) -> Self {
+impl<
+        TTwoDPointCreator,
+        TRgbCreator,
+        TTrianglePoint,
+        TTrianglePointConstructor,
+        TTwoDPoint,
+        TRgb,
+    >
+    TrianglePointCreator<
+        TTwoDPointCreator,
+        TRgbCreator,
+        TTrianglePoint,
+        TTrianglePointConstructor,
+        TTwoDPoint,
+        TRgb,
+    >
+{
+    pub fn new(
+        two_d_point_creator: Rc<TTwoDPointCreator>,
+        rgb_creator: Rc<TRgbCreator>,
+        triangle_point_constructor: Rc<TTrianglePointConstructor>,
+    ) -> Self {
         Self {
-            two_d_point_creator,
-            rgb_creator,
+            two_d_point_creator: two_d_point_creator,
+            rgb_creator: rgb_creator,
+            triangle_point_constructor: triangle_point_constructor,
+            triangle_point_type: PhantomData,
+            two_d_point_type: PhantomData,
+            rgb_type: PhantomData,
         }
     }
 }
@@ -301,17 +396,19 @@ impl<
         TRgbCreator: CreateRgb<TRgb>,
         TTwoDPoint: GetTwoDPointProperties,
         TRgb: GetRgbProperties,
-    > CreateTrianglePoint<TrianglePoint<TTwoDPoint, TRgb>>
-    for TrianglePointCreator<TTwoDPointCreator, TRgbCreator>
+        TTrianglePointConstructor: ConstructTrianglePoint<TTwoDPoint, TRgb, TTrianglePoint>,
+        TTrianglePoint,
+    > CreateTrianglePoint<TTrianglePoint>
+    for TrianglePointCreator<
+        TTwoDPointCreator,
+        TRgbCreator,
+        TTrianglePoint,
+        TTrianglePointConstructor,
+        TTwoDPoint,
+        TRgb,
+    >
 {
-    fn create_triangle_point(
-        &self,
-        x: f32,
-        y: f32,
-        r: f32,
-        g: f32,
-        b: f32,
-    ) -> TrianglePoint<TTwoDPoint, TRgb> {
+    fn create_triangle_point(&self, x: f32, y: f32, r: f32, g: f32, b: f32) -> TTrianglePoint {
         let two_d_point = self.two_d_point_creator.create_two_d_point(x, y);
 
         let rgb = self.rgb_creator.create_rgb(r, g, b);
@@ -324,7 +421,12 @@ impl<
         let number_of_vertices =
             two_d_point.get_number_of_vertices() + rgb.get_number_of_vertices();
 
-        TrianglePoint::new(two_d_point, rgb, number_of_vertices, vertex_data)
+        self.triangle_point_constructor.construct_triangle_point(
+            two_d_point,
+            rgb,
+            number_of_vertices,
+            vertex_data,
+        )
     }
 }
 
@@ -421,7 +523,7 @@ pub trait RunObjectInstance: GetContentInstanceData + Scale {}
 
 pub struct ObjectInstanceRunner<TObjectInstance, TObjectInstanceScaler> {
     object_instance: Rc<RefCell<TObjectInstance>>,
-    object_instance_scaler: TObjectInstanceScaler,
+    object_instance_scaler: Rc<TObjectInstanceScaler>,
 }
 
 impl<TObjectInstance, TObjectInstanceScaler>
@@ -429,7 +531,7 @@ impl<TObjectInstance, TObjectInstanceScaler>
 {
     pub fn new(
         object_instance: Rc<RefCell<TObjectInstance>>,
-        object_instance_scaler: TObjectInstanceScaler,
+        object_instance_scaler: Rc<TObjectInstanceScaler>,
     ) -> Self {
         Self {
             object_instance,
@@ -490,8 +592,60 @@ pub trait GetContent<TContent> {
     fn get_content(&self, content_name: String) -> Rc<RefCell<TContent>>;
 }
 
-pub trait AddContent<TContent> {
-    fn add_content(&mut self, content: Rc<RefCell<TContent>>);
+pub trait ConstructObject<TObject, TParameters> {
+    fn construct_object(&self, parameters: TParameters) -> TObject;
+}
+
+pub trait StoreObject<TObject> {
+    fn store_object(&mut self, object: Rc<RefCell<TObject>>);
+}
+
+pub trait CreateObject<TObject, TParameters> {
+    fn create_object(&self, parameters: TParameters) -> Rc<RefCell<TObject>>;
+}
+
+pub struct ObjectCreator<TObjectConstructor, TObjectStore, TObject, TParameters> {
+    object_constructor: Rc<TObjectConstructor>,
+    object_store: Rc<RefCell<TObjectStore>>,
+    object_type: PhantomData<TObject>,
+    parameters_type: PhantomData<TParameters>,
+}
+
+impl<TObjectConstructor, TObjectStore, TObject, TParameters>
+    ObjectCreator<TObjectConstructor, TObjectStore, TObject, TParameters>
+{
+    pub fn new(
+        object_constructor: Rc<TObjectConstructor>,
+        object_store: Rc<RefCell<TObjectStore>>,
+    ) -> Self {
+        Self {
+            object_constructor: object_constructor,
+            object_store: object_store,
+            object_type: PhantomData,
+            parameters_type: PhantomData,
+        }
+    }
+}
+
+impl<
+        TObjectConstructor: ConstructObject<TObject, TParameters>,
+        TObjectStore: StoreObject<TObject>,
+        TObject,
+        TParameters,
+    > CreateObject<TObject, TParameters>
+    for ObjectCreator<TObjectConstructor, TObjectStore, TObject, TParameters>
+{
+    fn create_object(&self, parameters: TParameters) -> Rc<RefCell<TObject>> {
+        let object = Rc::new(RefCell::new(
+            self.object_constructor.construct_object(parameters),
+        ));
+
+        self.object_store
+            .borrow_mut()
+            .store_object(Rc::clone(&object));
+
+        Rc::clone(&object)
+    }
 }
 
 #[cfg(test)]
