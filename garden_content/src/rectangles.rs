@@ -4,10 +4,9 @@ use garden::{GetHeight, GetName, GetWidth};
 
 use crate::{
     triangles::{CreateGeometryTriangle, GeometryTriangle},
-    ConstructObject, CreateTrianglePoint, CreateTwoDPoint, Get2DCoordiantes, GetB, GetContent,
-    GetContentInstanceData, GetG, GetNumberOfObjects, GetNumberOfVertices, GetPosition, GetR,
-    GetRgb, GetRgbValues, GetScale, GetVertexData, GetX, GetY, Rgb, ScaleObjectInstance,
-    StoreObject, TrianglePoint, TwoDPoint,
+    ConstructObject, CreateObject, CreateTrianglePoint, CreateTwoDPoint, Get2DCoordiantes, GetB,
+    GetContent, GetContentInstanceData, GetG, GetNumberOfObjects, GetNumberOfVertices, GetPosition,
+    GetR, GetRgb, GetRgbValues, GetScale, GetVertexData, Rgb, ScaleObjectInstance, StoreObject,
 };
 
 pub struct Rectangle<TRgb> {
@@ -119,7 +118,7 @@ pub struct RectangleInstanceParameters<TRectangle, TTwoDPoint> {
 }
 
 impl<TRectangle, TTwoDPoint> RectangleInstanceParameters<TRectangle, TTwoDPoint> {
-    fn new(
+    pub fn new(
         name: String,
         rectangle: Rc<RefCell<TRectangle>>,
         scale: f32,
@@ -442,60 +441,6 @@ impl<
     }
 }
 
-pub trait CreateRectangleInstance<TPosition, TRectangleInstance, TRectangle> {
-    fn create_rectangle_instance(
-        &self,
-        name: String,
-        rectangle: Rc<RefCell<TRectangle>>,
-        scale: f32,
-        position: TPosition,
-        width: f32,
-        height: f32,
-    ) -> Rc<RefCell<TRectangleInstance>>;
-}
-
-pub struct RectangleInstanceCreator<TRectangleInstance, TRectangleInstanceConstructor> {
-    rectangle_instance_type: PhantomData<TRectangleInstance>,
-    rectangle_instance_constructor: Rc<TRectangleInstanceConstructor>,
-}
-
-impl<TRectangleInstance, TRectangleInstanceConstructor>
-    RectangleInstanceCreator<TRectangleInstance, TRectangleInstanceConstructor>
-{
-    pub fn new(rectangle_instance_constructor: Rc<TRectangleInstanceConstructor>) -> Self {
-        Self {
-            rectangle_instance_type: PhantomData,
-            rectangle_instance_constructor: rectangle_instance_constructor,
-        }
-    }
-}
-
-impl<
-        TPosition: Get2DCoordiantes,
-        TRectangle: GetWidth + GetHeight + GetRgb<Rgb>,
-        TRectangleInstance,
-        TRectangleInstanceConstructor: ConstructObject<TRectangleInstance, RectangleInstanceParameters<TRectangle, TPosition>>,
-    > CreateRectangleInstance<TPosition, TRectangleInstance, TRectangle>
-    for RectangleInstanceCreator<TRectangleInstance, TRectangleInstanceConstructor>
-{
-    fn create_rectangle_instance(
-        &self,
-        name: String,
-        rectangle: Rc<RefCell<TRectangle>>,
-        scale: f32,
-        position: TPosition,
-        width: f32,
-        height: f32,
-    ) -> Rc<RefCell<TRectangleInstance>> {
-        Rc::new(RefCell::new(
-            self.rectangle_instance_constructor
-                .construct_object(RectangleInstanceParameters::new(
-                    name, rectangle, scale, position, width, height,
-                )),
-        ))
-    }
-}
-
 pub struct RectangleInstanceScaler<
     TRectangleInstanceCreator,
     TTwoDPointCreator,
@@ -534,7 +479,7 @@ impl<
             + GetHeight
             + GetRgbValues
             + GetRectangle<TRectangle>,
-        TRectangleInstanceCreator: CreateRectangleInstance<TTwoDPoint, TRectangleInstance, TRectangle>,
+        TRectangleInstanceCreator: CreateObject<TRectangleInstance, RectangleInstanceParameters<TRectangle, TTwoDPoint>>,
         TTwoDPointCreator: CreateTwoDPoint<TTwoDPoint>,
         TTwoDPoint: Get2DCoordiantes,
         TRectangle,
@@ -552,17 +497,18 @@ impl<
         x: f32,
         y: f32,
     ) -> Rc<RefCell<TRectangleInstance>> {
-        self.rectangle_instance_creator.create_rectangle_instance(
-            rectangle_instance.borrow().get_name().to_string(),
-            rectangle_instance.borrow().get_rectangle(),
-            rectangle_instance.borrow().get_scale(),
-            self.two_d_point_creator.create_two_d_point(
-                rectangle_instance.borrow().get_position().get_x() / x,
-                rectangle_instance.borrow().get_position().get_y() / y,
-            ),
-            rectangle_instance.borrow().get_width() / x,
-            rectangle_instance.borrow().get_height() / y,
-        )
+        self.rectangle_instance_creator
+            .create_object(RectangleInstanceParameters::new(
+                rectangle_instance.borrow().get_name().to_string(),
+                rectangle_instance.borrow().get_rectangle(),
+                rectangle_instance.borrow().get_scale(),
+                self.two_d_point_creator.create_two_d_point(
+                    rectangle_instance.borrow().get_position().get_x() / x,
+                    rectangle_instance.borrow().get_position().get_y() / y,
+                ),
+                rectangle_instance.borrow().get_width() / x,
+                rectangle_instance.borrow().get_height() / y,
+            ))
     }
 }
 

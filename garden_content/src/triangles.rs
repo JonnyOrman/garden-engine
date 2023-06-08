@@ -3,7 +3,7 @@ use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 use garden::GetName;
 
 use crate::{
-    ConstructObject, CreateTrianglePoint, Get2DCoordiantes, GetContentInstanceData,
+    ConstructObject, CreateObject, CreateTrianglePoint, Get2DCoordiantes, GetContentInstanceData,
     GetNumberOfObjects, GetNumberOfVertices, GetPosition, GetRgbValues, GetScale,
     GetTrianglePointProperties, GetVertexData, ScaleObjectInstance, TranslateTwoDPoint,
 };
@@ -227,7 +227,7 @@ pub struct TriangleInstanceParameters<TTriangle, TPosition, TTrianglePoint> {
 impl<TTriangle, TPosition, TTrianglePoint>
     TriangleInstanceParameters<TTriangle, TPosition, TTrianglePoint>
 {
-    fn new(
+    pub fn new(
         name: String,
         triangle: Rc<RefCell<TTriangle>>,
         scale: f32,
@@ -562,61 +562,61 @@ impl<
     }
 }
 
-pub trait CreateTriangleInstance<TPosition, TTrianglePoint, TTriangleInstance, TTriangle> {
-    fn create_triangle_instance(
-        &self,
-        name: String,
-        triangle: Rc<RefCell<TTriangle>>,
-        scale: f32,
-        position: TPosition,
-        point_1: TTrianglePoint,
-        point_2: TTrianglePoint,
-        point_3: TTrianglePoint,
-    ) -> Rc<RefCell<TTriangleInstance>>;
-}
+// pub trait CreateTriangleInstance<TPosition, TTrianglePoint, TTriangleInstance, TTriangle> {
+//     fn create_triangle_instance(
+//         &self,
+//         name: String,
+//         triangle: Rc<RefCell<TTriangle>>,
+//         scale: f32,
+//         position: TPosition,
+//         point_1: TTrianglePoint,
+//         point_2: TTrianglePoint,
+//         point_3: TTrianglePoint,
+//     ) -> Rc<RefCell<TTriangleInstance>>;
+// }
 
-pub struct TriangleInstanceCreator<TTriangleInstanceConstructor> {
-    triangle_instance_constructor: Rc<TTriangleInstanceConstructor>,
-}
+// pub struct TriangleInstanceCreator<TTriangleInstanceConstructor> {
+//     triangle_instance_constructor: Rc<TTriangleInstanceConstructor>,
+// }
 
-impl<TTriangleInstanceConstructor> TriangleInstanceCreator<TTriangleInstanceConstructor> {
-    pub fn new(triangle_instance_constructor: Rc<TTriangleInstanceConstructor>) -> Self {
-        Self {
-            triangle_instance_constructor,
-        }
-    }
-}
+// impl<TTriangleInstanceConstructor> TriangleInstanceCreator<TTriangleInstanceConstructor> {
+//     pub fn new(triangle_instance_constructor: Rc<TTriangleInstanceConstructor>) -> Self {
+//         Self {
+//             triangle_instance_constructor,
+//         }
+//     }
+// }
 
-impl<
-        TPosition,
-        TTrianglePoint: GetVertexData + GetNumberOfVertices,
-        TTriangle,
-        TTriangleInstance,
-        TTriangleInstanceConstructor: ConstructObject<
-            TTriangleInstance,
-            TriangleInstanceParameters<TTriangle, TPosition, TTrianglePoint>,
-        >,
-    > CreateTriangleInstance<TPosition, TTrianglePoint, TTriangleInstance, TTriangle>
-    for TriangleInstanceCreator<TTriangleInstanceConstructor>
-{
-    fn create_triangle_instance(
-        &self,
-        name: String,
-        triangle: Rc<RefCell<TTriangle>>,
-        scale: f32,
-        position: TPosition,
-        point_1: TTrianglePoint,
-        point_2: TTrianglePoint,
-        point_3: TTrianglePoint,
-    ) -> Rc<RefCell<TTriangleInstance>> {
-        Rc::new(RefCell::new(
-            self.triangle_instance_constructor
-                .construct_object(TriangleInstanceParameters::new(
-                    name, triangle, scale, position, point_1, point_2, point_3,
-                )),
-        ))
-    }
-}
+// impl<
+//         TPosition,
+//         TTrianglePoint: GetVertexData + GetNumberOfVertices,
+//         TTriangle,
+//         TTriangleInstance,
+//         TTriangleInstanceConstructor: ConstructObject<
+//             TTriangleInstance,
+//             TriangleInstanceParameters<TTriangle, TPosition, TTrianglePoint>,
+//         >,
+//     > CreateTriangleInstance<TPosition, TTrianglePoint, TTriangleInstance, TTriangle>
+//     for TriangleInstanceCreator<TTriangleInstanceConstructor>
+// {
+//     fn create_triangle_instance(
+//         &self,
+//         name: String,
+//         triangle: Rc<RefCell<TTriangle>>,
+//         scale: f32,
+//         position: TPosition,
+//         point_1: TTrianglePoint,
+//         point_2: TTrianglePoint,
+//         point_3: TTrianglePoint,
+//     ) -> Rc<RefCell<TTriangleInstance>> {
+//         Rc::new(RefCell::new(
+//             self.triangle_instance_constructor
+//                 .construct_object(TriangleInstanceParameters::new(
+//                     name, triangle, scale, position, point_1, point_2, point_3,
+//                 )),
+//         ))
+//     }
+// }
 
 pub struct TriangleInstanceScaler<
     TTriangleInstanceCreator,
@@ -668,7 +668,10 @@ impl<
 }
 
 impl<
-        TTriangleInstanceCreator: CreateTriangleInstance<TTwoDPoint, TTrianglePoint, TTriangleInstance, TTriangle>,
+        TTriangleInstanceCreator: CreateObject<
+            TTriangleInstance,
+            TriangleInstanceParameters<TTriangle, TTwoDPoint, TTrianglePoint>,
+        >,
         TTriangleInstance: GetContentInstanceData
             + GetPosition<TTwoDPoint>
             + GetTrianglePoints<TTrianglePoint>
@@ -714,15 +717,16 @@ impl<
             .triangle_instance_point_creator
             .create_triangle_instance_point(triangle_instance.borrow().get_point_3(), x, y);
 
-        self.triangle_instance_creator.create_triangle_instance(
-            triangle_instance.borrow().get_name().to_string(),
-            triangle_instance.borrow().get_triangle(),
-            triangle_instance.borrow().get_scale(),
-            new_position,
-            new_point_1,
-            new_point_2,
-            new_point_3,
-        )
+        self.triangle_instance_creator
+            .create_object(TriangleInstanceParameters::new(
+                triangle_instance.borrow().get_name().to_string(),
+                triangle_instance.borrow().get_triangle(),
+                triangle_instance.borrow().get_scale(),
+                new_position,
+                new_point_1,
+                new_point_2,
+                new_point_3,
+            ))
     }
 }
 
