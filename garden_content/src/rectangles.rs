@@ -109,6 +109,35 @@ impl<TRgb> ConstructObject<Rectangle<TRgb>, RectangleParameters<TRgb>> for Recta
     }
 }
 
+pub struct RectangleInstanceParameters<TRectangle, TTwoDPoint> {
+    name: String,
+    rectangle: Rc<RefCell<TRectangle>>,
+    scale: f32,
+    position: TTwoDPoint,
+    width: f32,
+    height: f32,
+}
+
+impl<TRectangle, TTwoDPoint> RectangleInstanceParameters<TRectangle, TTwoDPoint> {
+    fn new(
+        name: String,
+        rectangle: Rc<RefCell<TRectangle>>,
+        scale: f32,
+        position: TTwoDPoint,
+        width: f32,
+        height: f32,
+    ) -> Self {
+        Self {
+            name,
+            rectangle,
+            scale,
+            position,
+            width,
+            height,
+        }
+    }
+}
+
 pub struct RectangleInstance<TPosition, TPoint, TRectangle> {
     name: String,
     rectangle: Rc<RefCell<TRectangle>>,
@@ -258,18 +287,6 @@ impl<TPosition, TPoint, TRectangle> GetRectangle<TRectangle>
     }
 }
 
-pub trait ConstructRectangleInstance<TPosition, TPoint, TRectangle, TRectangleInstance> {
-    fn construct_rectangle_instance(
-        &self,
-        name: String,
-        rectangle: Rc<RefCell<TRectangle>>,
-        scale: f32,
-        position: TPosition,
-        width: f32,
-        height: f32,
-    ) -> TRectangleInstance;
-}
-
 pub struct RectangleInstanceConstructor<TTrianglePointCreator, TGeometryTriangleCreator> {
     triangle_point_creator: Rc<TTrianglePointCreator>,
     geometry_triangle_creator: Rc<TGeometryTriangleCreator>,
@@ -294,58 +311,52 @@ impl<
         TTrianglePointCreator: CreateTrianglePoint<TTrianglePoint>,
         TGeometryTriangleCreator: CreateGeometryTriangle<TTrianglePoint>,
         TTrianglePoint: Get2DCoordiantes + GetRgbValues,
+        TTwoDPoint: Get2DCoordiantes,
     >
-    ConstructRectangleInstance<
-        TwoDPoint,
-        TTrianglePoint,
-        TRectangle,
-        RectangleInstance<TwoDPoint, TTrianglePoint, TRectangle>,
+    ConstructObject<
+        RectangleInstance<TTwoDPoint, TTrianglePoint, TRectangle>,
+        RectangleInstanceParameters<TRectangle, TTwoDPoint>,
     > for RectangleInstanceConstructor<TTrianglePointCreator, TGeometryTriangleCreator>
 {
-    fn construct_rectangle_instance(
+    fn construct_object(
         &self,
-        name: String,
-        rectangle: Rc<RefCell<TRectangle>>,
-        scale: f32,
-        position: TwoDPoint,
-        width: f32,
-        height: f32,
-    ) -> RectangleInstance<TwoDPoint, TTrianglePoint, TRectangle> {
+        parameters: RectangleInstanceParameters<TRectangle, TTwoDPoint>,
+    ) -> RectangleInstance<TTwoDPoint, TTrianglePoint, TRectangle> {
         let mut vertex_data = vec![];
 
-        let x = width / 2.0;
-        let y = height / 2.0;
+        let x = parameters.width / 2.0;
+        let y = parameters.height / 2.0;
 
         let point_1 = self.triangle_point_creator.create_triangle_point(
-            position.get_x() + x,
-            position.get_y() + y,
-            rectangle.borrow().get_r(),
-            rectangle.borrow().get_g(),
-            rectangle.borrow().get_b(),
+            parameters.position.get_x() + x,
+            parameters.position.get_y() + y,
+            parameters.rectangle.borrow().get_r(),
+            parameters.rectangle.borrow().get_g(),
+            parameters.rectangle.borrow().get_b(),
         );
 
         let point_2 = self.triangle_point_creator.create_triangle_point(
-            position.get_x() - x,
-            position.get_y() + y,
-            rectangle.borrow().get_r(),
-            rectangle.borrow().get_g(),
-            rectangle.borrow().get_b(),
+            parameters.position.get_x() - x,
+            parameters.position.get_y() + y,
+            parameters.rectangle.borrow().get_r(),
+            parameters.rectangle.borrow().get_g(),
+            parameters.rectangle.borrow().get_b(),
         );
 
         let point_3 = self.triangle_point_creator.create_triangle_point(
-            position.get_x() - x,
-            position.get_y() - y,
-            rectangle.borrow().get_r(),
-            rectangle.borrow().get_g(),
-            rectangle.borrow().get_b(),
+            parameters.position.get_x() - x,
+            parameters.position.get_y() - y,
+            parameters.rectangle.borrow().get_r(),
+            parameters.rectangle.borrow().get_g(),
+            parameters.rectangle.borrow().get_b(),
         );
 
         let point_4 = self.triangle_point_creator.create_triangle_point(
-            position.get_x() + x,
-            position.get_y() - y,
-            rectangle.borrow().get_r(),
-            rectangle.borrow().get_g(),
-            rectangle.borrow().get_b(),
+            parameters.position.get_x() + x,
+            parameters.position.get_y() - y,
+            parameters.rectangle.borrow().get_r(),
+            parameters.rectangle.borrow().get_g(),
+            parameters.rectangle.borrow().get_b(),
         );
 
         let geometry_triangle_1_point_1 = self.triangle_point_creator.create_triangle_point(
@@ -415,10 +426,10 @@ impl<
             + geometry_triangle_2.get_number_of_vertices();
 
         RectangleInstance::new(
-            name,
-            rectangle,
-            scale,
-            position,
+            parameters.name,
+            parameters.rectangle,
+            parameters.scale,
+            parameters.position,
             point_1,
             point_2,
             point_3,
@@ -463,12 +474,7 @@ impl<
         TPosition: Get2DCoordiantes,
         TRectangle: GetWidth + GetHeight + GetRgb<Rgb>,
         TRectangleInstance,
-        TRectangleInstanceConstructor: ConstructRectangleInstance<
-            TPosition,
-            TrianglePoint<TwoDPoint, Rgb>,
-            TRectangle,
-            TRectangleInstance,
-        >,
+        TRectangleInstanceConstructor: ConstructObject<TRectangleInstance, RectangleInstanceParameters<TRectangle, TPosition>>,
     > CreateRectangleInstance<TPosition, TRectangleInstance, TRectangle>
     for RectangleInstanceCreator<TRectangleInstance, TRectangleInstanceConstructor>
 {
@@ -483,7 +489,9 @@ impl<
     ) -> Rc<RefCell<TRectangleInstance>> {
         Rc::new(RefCell::new(
             self.rectangle_instance_constructor
-                .construct_rectangle_instance(name, rectangle, scale, position, width, height),
+                .construct_object(RectangleInstanceParameters::new(
+                    name, rectangle, scale, position, width, height,
+                )),
         ))
     }
 }
