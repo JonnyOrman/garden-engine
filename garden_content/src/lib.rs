@@ -648,6 +648,22 @@ impl<
     }
 }
 
+pub struct Store<T> {
+    objects: Vec<Rc<RefCell<T>>>,
+}
+
+impl<T> Store<T> {
+    pub fn new(objects: Vec<Rc<RefCell<T>>>) -> Self {
+        Self { objects }
+    }
+}
+
+impl<TObject> StoreObject<TObject> for Store<TObject> {
+    fn store_object(&mut self, object: Rc<RefCell<TObject>>) {
+        self.objects.push(object)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use mockall::mock;
