@@ -10,9 +10,10 @@ use garden_content::{
         TriangleInstancePointCalculator, TriangleInstancePointCreator, TriangleInstanceScaler,
         TriangleInstanceVertexCounter, TriangleInstanceVertexDataGenerator, TriangleParameters,
     },
-    Content, CreateObject, Get2DCoordiantes, GetContent, GetNumberOfVertices, GetRgbValues,
-    GetVertexData, ObjectCreator, ObjectInstanceRunner, Rgb, RgbCreator, RunObjectInstance, Store,
-    TrianglePoint, TrianglePointConstructor, TrianglePointCreator, TwoDPoint, TwoDPointCreator,
+    Content, CreateObject, CreateRgb, CreateTrianglePoint, CreateTwoDPoint, Get2DCoordiantes,
+    GetContent, GetNumberOfVertices, GetRgbValues, GetTrianglePointProperties, GetVertexData,
+    ObjectCreator, ObjectInstanceRunner, Rgb, RgbCreator, RunObjectInstance, Store, TrianglePoint,
+    TrianglePointConstructor, TrianglePointCreator, TwoDPoint, TwoDPointCreator,
     TwoDPointTranslator,
 };
 use garden_json::{ConvertJsonToValue, JsonToF32Converter, JsonToStringConverter};
@@ -776,106 +777,31 @@ impl<TJsonToF32Converter: ConvertJsonToValue<f32>> ConvertJsonToValue<Rgb>
     }
 }
 
-pub fn compose_json_to_content_converter(
-    json_to_f32_converter: Rc<JsonToF32Converter>,
-    json_to_string_converter: Rc<JsonToStringConverter>,
-) -> JsonToContentConverter<
-    TypedJsonToValueConverter<JsonToStringConverter, Box<Rc<RefCell<dyn GetName>>>>,
-    TypedJsonToValueConverter<JsonToStringConverter, Box<dyn RunObjectInstance>>,
-> {
-    let json_to_two_d_point_converter = Rc::new(JsonToTwoDPointConverter::new(Rc::clone(
-        &json_to_f32_converter,
-    )));
-
-    let json_to_rgb_converter = Rc::new(JsonToRgbConverter::new(Rc::clone(&json_to_f32_converter)));
-
-    let json_to_triangle_point_converter = Rc::new(JsonToTrianglePointConverter::new(
-        Rc::clone(&json_to_two_d_point_converter),
-        Rc::clone(&json_to_rgb_converter),
-    ));
-
-    let triangle_provider = ContentProvider::<Triangle<TrianglePoint<TwoDPoint, Rgb>>>::new(vec![]);
-
-    let triangle_provider_ref_cell = Rc::new(RefCell::new(triangle_provider));
-
-    let triangle_constructor = Rc::new(TriangleConstructor::new());
-
-    let triangle_creator = ObjectCreator::new(
-        Rc::clone(&triangle_constructor),
-        Rc::clone(&triangle_provider_ref_cell),
-    );
-
-    let json_to_triangle_converter = JsonToTriangleConverter::new(
-        Rc::clone(&json_to_string_converter),
-        Rc::clone(&json_to_triangle_point_converter),
-        triangle_creator,
-    );
-
-    let json_to_boxed_triangle_converter =
-        JsonToBoxedTriangleConverter::new(json_to_triangle_converter);
-
-    let triangle_instance_vertex_data_generator =
-        Rc::new(TriangleInstanceVertexDataGenerator::new());
-
-    let triangle_instance_vertex_counter = Rc::new(TriangleInstanceVertexCounter::new());
-
-    let triangle_instance_constructor = Rc::new(TriangleInstanceConstructor::new(
-        Rc::clone(&triangle_instance_vertex_data_generator),
-        Rc::clone(&triangle_instance_vertex_counter),
-    ));
-
-    let triangle_instance_store = Rc::new(RefCell::new(Store::new(vec![])));
-
-    let triangle_instance_creator = Rc::new(ObjectCreator::new(
-        Rc::clone(&triangle_instance_constructor),
-        Rc::clone(&triangle_instance_store),
-    ));
-
-    let two_d_point_creator = Rc::new(TwoDPointCreator::new());
-
-    let rgb_creator = Rc::new(RgbCreator::new());
-
-    let triangle_point_constructor = Rc::new(TrianglePointConstructor::new());
-
-    let triangle_point_creator = Rc::new(TrianglePointCreator::new(
-        Rc::clone(&two_d_point_creator),
-        Rc::clone(&rgb_creator),
-        Rc::clone(&triangle_point_constructor),
-    ));
-
-    let triangle_instance_point_creator = Rc::new(TriangleInstancePointCreator::new(Rc::clone(
-        &triangle_point_creator,
-    )));
-
-    let triangle_instance_point_calculator = Rc::new(TriangleInstancePointCalculator::new(
-        Rc::clone(&triangle_point_creator),
-    ));
-
-    let json_to_triangle_instance_converter = JsonToTriangleInstanceConverter::new(
-        Rc::clone(&json_to_string_converter),
-        Rc::clone(&json_to_two_d_point_converter),
-        Rc::clone(&json_to_f32_converter),
-        Rc::clone(&triangle_instance_creator),
-        Rc::clone(&triangle_provider_ref_cell),
-        Rc::clone(&triangle_instance_point_calculator),
-    );
-
-    let two_d_point_translator = Rc::new(TwoDPointTranslator::new());
-
-    let triangle_instance_scaler = Rc::new(TriangleInstanceScaler::new(
-        Rc::clone(&triangle_instance_creator),
-        Rc::clone(&triangle_instance_point_creator),
-        Rc::clone(&two_d_point_translator),
-    ));
-
-    let json_to_triangle_instance_runner_converter = JsonToObjectInstanceRunnerConverter::new(
-        json_to_triangle_instance_converter,
-        Rc::clone(&triangle_instance_scaler),
-    );
-
-    let json_to_boxed_triangle_instance_runner_converter =
-        JsonToBoxedObjectInstanceRunnerConverter::new(json_to_triangle_instance_runner_converter);
-
+pub fn compose_rectangles<
+    TJsonToStringConverter: ConvertJsonToValue<String> + 'static,
+    TJsonToF32Converter: ConvertJsonToValue<f32> + 'static,
+    TJsontoRgbConverter: ConvertJsonToValue<Rgb> + 'static,
+    TJsonToTwoDPointConverter: ConvertJsonToValue<TTwoDPoint> + 'static,
+    TTwoDPointCreator: CreateTwoDPoint<TTwoDPoint> + 'static,
+    TTrianglePointCreator: CreateTrianglePoint<TTrianglePoint> + 'static,
+    TTwoDPoint: Get2DCoordiantes + 'static,
+    TTrianglePoint: GetTrianglePointProperties + GetVertexData + GetNumberOfVertices + 'static,
+>(
+    object_converters: &mut HashMap<
+        String,
+        Box<dyn ConvertJsonToValue<Box<Rc<RefCell<dyn GetName>>>>>,
+    >,
+    object_instance_runner_converters: &mut HashMap<
+        String,
+        Box<dyn ConvertJsonToValue<Box<dyn RunObjectInstance>>>,
+    >,
+    json_to_string_converter: Rc<TJsonToStringConverter>,
+    json_to_f32_converter: Rc<TJsonToF32Converter>,
+    json_to_rgb_converter: Rc<TJsontoRgbConverter>,
+    json_to_two_d_point_converter: Rc<TJsonToTwoDPointConverter>,
+    two_d_point_creator: Rc<TTwoDPointCreator>,
+    triangle_point_creator: Rc<TTrianglePointCreator>,
+) {
     let rectangle_provider = ContentProvider::<Rectangle<Rgb>>::new(vec![]);
 
     let rectangle_provider_ref_cell = Rc::new(RefCell::new(rectangle_provider));
@@ -932,28 +858,185 @@ pub fn compose_json_to_content_converter(
     let json_to_boxed_rectangle_instance_runner_converter =
         JsonToBoxedObjectInstanceRunnerConverter::new(json_to_rectangle_instance_runner_converter);
 
-    let mut object_converters =
-        HashMap::<String, Box<dyn ConvertJsonToValue<Box<Rc<RefCell<dyn GetName>>>>>>::new();
-
-    let c = Box::new(json_to_boxed_triangle_converter);
-    object_converters.insert("triangle".to_string(), c);
-
     let b = Box::new(json_to_boxed_rectangle_converter);
     object_converters.insert("rectangle".to_string(), b);
 
-    let json_to_object_converter =
-        TypedJsonToValueConverter::new(Rc::clone(&json_to_string_converter), object_converters);
-
-    let mut object_instance_runner_converters =
-        HashMap::<String, Box<dyn ConvertJsonToValue<Box<dyn RunObjectInstance>>>>::new();
-    object_instance_runner_converters.insert(
-        "triangle".to_string(),
-        Box::new(json_to_boxed_triangle_instance_runner_converter),
-    );
     object_instance_runner_converters.insert(
         "rectangle".to_string(),
         Box::new(json_to_boxed_rectangle_instance_runner_converter),
     );
+}
+
+pub fn compose_triangles<
+    TJsonToStringConverter: ConvertJsonToValue<String> + 'static,
+    TJsonToTrianglePointConverter: ConvertJsonToValue<TrianglePoint<TwoDPoint, Rgb>> + 'static,
+    TTwoDPointCreator: CreateTwoDPoint<TwoDPoint> + 'static,
+    TRgbCreator: CreateRgb<Rgb> + 'static,
+    TJsonToTwoDPointConverter: ConvertJsonToValue<TwoDPoint> + 'static,
+    TJsonToF32Converter: ConvertJsonToValue<f32> + 'static,
+>(
+    object_converters: &mut HashMap<
+        String,
+        Box<dyn ConvertJsonToValue<Box<Rc<RefCell<dyn GetName>>>>>,
+    >,
+    object_instance_runner_converters: &mut HashMap<
+        String,
+        Box<dyn ConvertJsonToValue<Box<dyn RunObjectInstance>>>,
+    >,
+    json_to_string_converter: Rc<TJsonToStringConverter>,
+    json_to_triangle_point_converter: Rc<TJsonToTrianglePointConverter>,
+    two_d_point_creator: Rc<TTwoDPointCreator>,
+    rgb_creator: Rc<TRgbCreator>,
+    json_to_two_d_point_converter: Rc<TJsonToTwoDPointConverter>,
+    json_to_f32_converter: Rc<TJsonToF32Converter>,
+) {
+    let triangle_provider = ContentProvider::<Triangle<TrianglePoint<TwoDPoint, Rgb>>>::new(vec![]);
+
+    let triangle_provider_ref_cell = Rc::new(RefCell::new(triangle_provider));
+
+    let triangle_constructor = Rc::new(TriangleConstructor::new());
+
+    let triangle_creator = ObjectCreator::new(
+        Rc::clone(&triangle_constructor),
+        Rc::clone(&triangle_provider_ref_cell),
+    );
+
+    let json_to_triangle_converter = JsonToTriangleConverter::new(
+        Rc::clone(&json_to_string_converter),
+        Rc::clone(&json_to_triangle_point_converter),
+        triangle_creator,
+    );
+
+    let json_to_boxed_triangle_converter =
+        JsonToBoxedTriangleConverter::new(json_to_triangle_converter);
+
+    let triangle_instance_vertex_data_generator =
+        Rc::new(TriangleInstanceVertexDataGenerator::new());
+
+    let triangle_instance_vertex_counter = Rc::new(TriangleInstanceVertexCounter::new());
+
+    let triangle_instance_constructor = Rc::new(TriangleInstanceConstructor::new(
+        Rc::clone(&triangle_instance_vertex_data_generator),
+        Rc::clone(&triangle_instance_vertex_counter),
+    ));
+
+    let triangle_instance_store = Rc::new(RefCell::new(Store::new(vec![])));
+
+    let triangle_instance_creator = Rc::new(ObjectCreator::new(
+        Rc::clone(&triangle_instance_constructor),
+        Rc::clone(&triangle_instance_store),
+    ));
+
+    let triangle_point_constructor = Rc::new(TrianglePointConstructor::new());
+
+    let triangle_point_creator = Rc::new(TrianglePointCreator::new(
+        Rc::clone(&two_d_point_creator),
+        Rc::clone(&rgb_creator),
+        Rc::clone(&triangle_point_constructor),
+    ));
+
+    let triangle_instance_point_creator = Rc::new(TriangleInstancePointCreator::new(Rc::clone(
+        &triangle_point_creator,
+    )));
+
+    let triangle_instance_point_calculator = Rc::new(TriangleInstancePointCalculator::new(
+        Rc::clone(&triangle_point_creator),
+    ));
+
+    let json_to_triangle_instance_converter = JsonToTriangleInstanceConverter::new(
+        Rc::clone(&json_to_string_converter),
+        Rc::clone(&json_to_two_d_point_converter),
+        Rc::clone(&json_to_f32_converter),
+        Rc::clone(&triangle_instance_creator),
+        Rc::clone(&triangle_provider_ref_cell),
+        Rc::clone(&triangle_instance_point_calculator),
+    );
+
+    let two_d_point_translator = Rc::new(TwoDPointTranslator::new());
+
+    let triangle_instance_scaler = Rc::new(TriangleInstanceScaler::new(
+        Rc::clone(&triangle_instance_creator),
+        Rc::clone(&triangle_instance_point_creator),
+        Rc::clone(&two_d_point_translator),
+    ));
+
+    let json_to_triangle_instance_runner_converter = JsonToObjectInstanceRunnerConverter::new(
+        json_to_triangle_instance_converter,
+        Rc::clone(&triangle_instance_scaler),
+    );
+
+    let json_to_boxed_triangle_instance_runner_converter =
+        JsonToBoxedObjectInstanceRunnerConverter::new(json_to_triangle_instance_runner_converter);
+
+    let c = Box::new(json_to_boxed_triangle_converter);
+    object_converters.insert("triangle".to_string(), c);
+
+    object_instance_runner_converters.insert(
+        "triangle".to_string(),
+        Box::new(json_to_boxed_triangle_instance_runner_converter),
+    );
+}
+
+pub fn compose_json_to_content_converter(
+    json_to_f32_converter: Rc<JsonToF32Converter>,
+    json_to_string_converter: Rc<JsonToStringConverter>,
+) -> JsonToContentConverter<
+    TypedJsonToValueConverter<JsonToStringConverter, Box<Rc<RefCell<dyn GetName>>>>,
+    TypedJsonToValueConverter<JsonToStringConverter, Box<dyn RunObjectInstance>>,
+> {
+    let json_to_rgb_converter = Rc::new(JsonToRgbConverter::new(Rc::clone(&json_to_f32_converter)));
+
+    let two_d_point_creator = Rc::new(TwoDPointCreator::new());
+
+    let rgb_creator = Rc::new(RgbCreator::new());
+
+    let mut object_instance_runner_converters =
+        HashMap::<String, Box<dyn ConvertJsonToValue<Box<dyn RunObjectInstance>>>>::new();
+
+    let mut object_converters =
+        HashMap::<String, Box<dyn ConvertJsonToValue<Box<Rc<RefCell<dyn GetName>>>>>>::new();
+
+    let json_to_two_d_point_converter = Rc::new(JsonToTwoDPointConverter::new(Rc::clone(
+        &json_to_f32_converter,
+    )));
+
+    let json_to_triangle_point_converter = Rc::new(JsonToTrianglePointConverter::new(
+        Rc::clone(&json_to_two_d_point_converter),
+        Rc::clone(&json_to_rgb_converter),
+    ));
+
+    let triangle_point_constructor = Rc::new(TrianglePointConstructor::new());
+
+    let triangle_point_creator = Rc::new(TrianglePointCreator::new(
+        Rc::clone(&two_d_point_creator),
+        Rc::clone(&rgb_creator),
+        Rc::clone(&triangle_point_constructor),
+    ));
+
+    compose_rectangles(
+        &mut object_converters,
+        &mut object_instance_runner_converters,
+        Rc::clone(&json_to_string_converter),
+        Rc::clone(&json_to_f32_converter),
+        Rc::clone(&json_to_rgb_converter),
+        Rc::clone(&json_to_two_d_point_converter),
+        Rc::clone(&two_d_point_creator),
+        Rc::clone(&triangle_point_creator),
+    );
+
+    compose_triangles(
+        &mut object_converters,
+        &mut object_instance_runner_converters,
+        Rc::clone(&json_to_string_converter),
+        Rc::clone(&json_to_triangle_point_converter),
+        Rc::clone(&two_d_point_creator),
+        Rc::clone(&&rgb_creator),
+        Rc::clone(&json_to_two_d_point_converter),
+        Rc::clone(&json_to_f32_converter),
+    );
+
+    let json_to_object_converter =
+        TypedJsonToValueConverter::new(Rc::clone(&json_to_string_converter), object_converters);
 
     let json_to_object_instance_runner_converter = TypedJsonToValueConverter::new(
         Rc::clone(&json_to_string_converter),
