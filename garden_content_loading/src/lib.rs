@@ -5,10 +5,11 @@ use garden_content::{
         RectangleInstanceParameters, RectangleInstanceScaler, RectangleParameters,
     },
     triangles::{
-        CalculateTriangleInstancePoint, GeometryTriangleCreator, GetTrianglePoints, Triangle,
-        TriangleConstructor, TriangleInstanceConstructor, TriangleInstanceParameters,
-        TriangleInstancePointCalculator, TriangleInstancePointCreator, TriangleInstanceScaler,
-        TriangleInstanceVertexCounter, TriangleInstanceVertexDataGenerator, TriangleParameters,
+        CalculateTriangleInstancePoint, GeometryTriangleConstructor, GeometryTrianglesCreator,
+        GetTrianglePoints, Triangle, TriangleConstructor, TriangleInstanceConstructor,
+        TriangleInstanceParameters, TriangleInstancePointCalculator, TriangleInstancePointCreator,
+        TriangleInstanceScaler, TriangleInstanceVertexCounter, TriangleInstanceVertexDataGenerator,
+        TriangleParameters,
     },
     Content, CreateObject, CreateRgb, CreateTrianglePoint, CreateTwoDPoint, Get2DCoordiantes,
     GetContent, GetNumberOfVertices, GetRgbValues, GetTrianglePointProperties, GetVertexData,
@@ -823,12 +824,16 @@ pub fn compose_rectangles<
     let json_to_boxed_rectangle_converter =
         JsonToBoxedRectangleConverter::new(json_to_rectangle_converter);
 
-    let geometry_triangle_creator = Rc::new(GeometryTriangleCreator::new());
+    let geometry_triangle_constructor = Rc::new(GeometryTriangleConstructor::new());
 
-    let rectangle_instance_constructor = Rc::new(RectangleInstanceConstructor::new(
+    let geometry_triangles_creator = Rc::new(GeometryTrianglesCreator::new(
+        Rc::clone(&geometry_triangle_constructor),
         Rc::clone(&triangle_point_creator),
-        Rc::clone(&geometry_triangle_creator),
     ));
+
+    let rectangle_instance_constructor = Rc::new(RectangleInstanceConstructor::new(Rc::clone(
+        &geometry_triangles_creator,
+    )));
 
     let rectangle_instance_store = Rc::new(RefCell::new(Store::new(vec![])));
 
@@ -1077,12 +1082,11 @@ mod tests {
 
     use garden_content::{
         rectangles::{
-            Rectangle, RectangleInstance, RectangleInstanceConstructor, RectangleInstanceCreator,
-            RectangleInstanceScaler,
+            Rectangle, RectangleInstance, RectangleInstanceConstructor, RectangleInstanceScaler,
         },
         triangles::{
-            Triangle, TriangleInstance, TriangleInstanceConstructor, TriangleInstanceCreator,
-            TriangleInstancePointCreator, TriangleInstanceScaler, TriangleInstanceVertexCounter,
+            Triangle, TriangleInstance, TriangleInstanceConstructor, TriangleInstancePointCreator,
+            TriangleInstanceScaler, TriangleInstanceVertexCounter,
             TriangleInstanceVertexDataGenerator,
         },
         Content, GetVertexData, ObjectInstanceRunner, Rgb, RgbCreator, TrianglePoint,
