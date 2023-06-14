@@ -5,14 +5,16 @@ use garden_content::{
         RectangleInstanceParameters, RectangleInstanceScaler, RectangleParameters,
     },
     triangles::{
-        CalculateTriangleInstancePoint, GeometryTriangleCreator, GetTrianglePoints, Triangle,
-        TriangleConstructor, TriangleInstanceConstructor, TriangleInstanceParameters,
-        TriangleInstancePointCalculator, TriangleInstancePointCreator, TriangleInstanceScaler,
-        TriangleInstanceVertexCounter, TriangleInstanceVertexDataGenerator, TriangleParameters,
+        CalculateTriangleInstancePoint, GeometryTriangleConstructor, GeometryTrianglesCreator,
+        GetTrianglePoints, Triangle, TriangleConstructor, TriangleInstanceConstructor,
+        TriangleInstanceParameters, TriangleInstancePointCalculator, TriangleInstancePointCreator,
+        TriangleInstanceScaler, TriangleInstanceVertexCounter, TriangleInstanceVertexDataGenerator,
+        TriangleParameters,
     },
-    Content, CreateObject, Get2DCoordiantes, GetContent, GetNumberOfVertices, GetRgbValues,
-    GetVertexData, ObjectCreator, ObjectInstanceRunner, Rgb, RgbCreator, RunObjectInstance, Store,
-    TrianglePoint, TrianglePointConstructor, TrianglePointCreator, TwoDPoint, TwoDPointCreator,
+    Content, CreateObject, CreateRgb, CreateTrianglePoint, CreateTwoDPoint, Get2DCoordiantes,
+    GetContent, GetNumberOfVertices, GetRgbValues, GetTrianglePointProperties, GetVertexData,
+    ObjectCreator, ObjectInstanceRunner, Rgb, RgbCreator, RunObjectInstance, Store, TrianglePoint,
+    TrianglePointConstructor, TrianglePointCreator, TwoDPoint, TwoDPointCreator,
     TwoDPointTranslator,
 };
 use garden_json::{ConvertJsonToValue, JsonToF32Converter, JsonToStringConverter};
@@ -776,24 +778,123 @@ impl<TJsonToF32Converter: ConvertJsonToValue<f32>> ConvertJsonToValue<Rgb>
     }
 }
 
-pub fn compose_json_to_content_converter(
-    json_to_f32_converter: Rc<JsonToF32Converter>,
-    json_to_string_converter: Rc<JsonToStringConverter>,
-) -> JsonToContentConverter<
-    TypedJsonToValueConverter<JsonToStringConverter, Box<Rc<RefCell<dyn GetName>>>>,
-    TypedJsonToValueConverter<JsonToStringConverter, Box<dyn RunObjectInstance>>,
-> {
-    let json_to_two_d_point_converter = Rc::new(JsonToTwoDPointConverter::new(Rc::clone(
-        &json_to_f32_converter,
-    )));
+pub fn compose_rectangles<
+    TJsonToStringConverter: ConvertJsonToValue<String> + 'static,
+    TJsonToF32Converter: ConvertJsonToValue<f32> + 'static,
+    TJsontoRgbConverter: ConvertJsonToValue<Rgb> + 'static,
+    TJsonToTwoDPointConverter: ConvertJsonToValue<TTwoDPoint> + 'static,
+    TTwoDPointCreator: CreateTwoDPoint<TTwoDPoint> + 'static,
+    TTrianglePointCreator: CreateTrianglePoint<TTrianglePoint> + 'static,
+    TTwoDPoint: Get2DCoordiantes + 'static,
+    TTrianglePoint: GetTrianglePointProperties + GetVertexData + GetNumberOfVertices + 'static,
+>(
+    object_converters: &mut HashMap<
+        String,
+        Box<dyn ConvertJsonToValue<Box<Rc<RefCell<dyn GetName>>>>>,
+    >,
+    object_instance_runner_converters: &mut HashMap<
+        String,
+        Box<dyn ConvertJsonToValue<Box<dyn RunObjectInstance>>>,
+    >,
+    json_to_string_converter: Rc<TJsonToStringConverter>,
+    json_to_f32_converter: Rc<TJsonToF32Converter>,
+    json_to_rgb_converter: Rc<TJsontoRgbConverter>,
+    json_to_two_d_point_converter: Rc<TJsonToTwoDPointConverter>,
+    two_d_point_creator: Rc<TTwoDPointCreator>,
+    triangle_point_creator: Rc<TTrianglePointCreator>,
+) {
+    let rectangle_provider = ContentProvider::<Rectangle<Rgb>>::new(vec![]);
 
-    let json_to_rgb_converter = Rc::new(JsonToRgbConverter::new(Rc::clone(&json_to_f32_converter)));
+    let rectangle_provider_ref_cell = Rc::new(RefCell::new(rectangle_provider));
 
-    let json_to_triangle_point_converter = Rc::new(JsonToTrianglePointConverter::new(
-        Rc::clone(&json_to_two_d_point_converter),
-        Rc::clone(&json_to_rgb_converter),
+    let rectangle_constructor = Rc::new(RectangleConstructor::new());
+
+    let rectangle_creator = Rc::new(ObjectCreator::new(
+        Rc::clone(&rectangle_constructor),
+        Rc::clone(&rectangle_provider_ref_cell),
     ));
 
+    let json_to_rectangle_converter = JsonToRectangleConverter::new(
+        Rc::clone(&json_to_string_converter),
+        Rc::clone(&json_to_f32_converter),
+        Rc::clone(&json_to_rgb_converter),
+        Rc::clone(&rectangle_creator),
+    );
+
+    let json_to_boxed_rectangle_converter =
+        JsonToBoxedRectangleConverter::new(json_to_rectangle_converter);
+
+    let geometry_triangle_constructor = Rc::new(GeometryTriangleConstructor::new());
+
+    let geometry_triangles_creator = Rc::new(GeometryTrianglesCreator::new(
+        Rc::clone(&geometry_triangle_constructor),
+        Rc::clone(&triangle_point_creator),
+    ));
+
+    let rectangle_instance_constructor = Rc::new(RectangleInstanceConstructor::new(Rc::clone(
+        &geometry_triangles_creator,
+    )));
+
+    let rectangle_instance_store = Rc::new(RefCell::new(Store::new(vec![])));
+
+    let rectangle_instance_creator = Rc::new(ObjectCreator::new(
+        Rc::clone(&rectangle_instance_constructor),
+        Rc::clone(&rectangle_instance_store),
+    ));
+
+    let json_to_rectangle_instance_converter = JsonToRectangleInstanceConverter::new(
+        Rc::clone(&json_to_string_converter),
+        Rc::clone(&json_to_f32_converter),
+        Rc::clone(&json_to_two_d_point_converter),
+        Rc::clone(&rectangle_instance_creator),
+        Rc::clone(&rectangle_provider_ref_cell),
+    );
+
+    let rectangle_instance_scaler = Rc::new(RectangleInstanceScaler::new(
+        Rc::clone(&rectangle_instance_creator),
+        Rc::clone(&two_d_point_creator),
+    ));
+
+    let json_to_rectangle_instance_runner_converter = JsonToObjectInstanceRunnerConverter::new(
+        json_to_rectangle_instance_converter,
+        Rc::clone(&rectangle_instance_scaler),
+    );
+
+    let json_to_boxed_rectangle_instance_runner_converter =
+        JsonToBoxedObjectInstanceRunnerConverter::new(json_to_rectangle_instance_runner_converter);
+
+    let b = Box::new(json_to_boxed_rectangle_converter);
+    object_converters.insert("rectangle".to_string(), b);
+
+    object_instance_runner_converters.insert(
+        "rectangle".to_string(),
+        Box::new(json_to_boxed_rectangle_instance_runner_converter),
+    );
+}
+
+pub fn compose_triangles<
+    TJsonToStringConverter: ConvertJsonToValue<String> + 'static,
+    TJsonToTrianglePointConverter: ConvertJsonToValue<TrianglePoint<TwoDPoint, Rgb>> + 'static,
+    TTwoDPointCreator: CreateTwoDPoint<TwoDPoint> + 'static,
+    TRgbCreator: CreateRgb<Rgb> + 'static,
+    TJsonToTwoDPointConverter: ConvertJsonToValue<TwoDPoint> + 'static,
+    TJsonToF32Converter: ConvertJsonToValue<f32> + 'static,
+>(
+    object_converters: &mut HashMap<
+        String,
+        Box<dyn ConvertJsonToValue<Box<Rc<RefCell<dyn GetName>>>>>,
+    >,
+    object_instance_runner_converters: &mut HashMap<
+        String,
+        Box<dyn ConvertJsonToValue<Box<dyn RunObjectInstance>>>,
+    >,
+    json_to_string_converter: Rc<TJsonToStringConverter>,
+    json_to_triangle_point_converter: Rc<TJsonToTrianglePointConverter>,
+    two_d_point_creator: Rc<TTwoDPointCreator>,
+    rgb_creator: Rc<TRgbCreator>,
+    json_to_two_d_point_converter: Rc<TJsonToTwoDPointConverter>,
+    json_to_f32_converter: Rc<TJsonToF32Converter>,
+) {
     let triangle_provider = ContentProvider::<Triangle<TrianglePoint<TwoDPoint, Rgb>>>::new(vec![]);
 
     let triangle_provider_ref_cell = Rc::new(RefCell::new(triangle_provider));
@@ -830,10 +931,6 @@ pub fn compose_json_to_content_converter(
         Rc::clone(&triangle_instance_constructor),
         Rc::clone(&triangle_instance_store),
     ));
-
-    let two_d_point_creator = Rc::new(TwoDPointCreator::new());
-
-    let rgb_creator = Rc::new(RgbCreator::new());
 
     let triangle_point_constructor = Rc::new(TrianglePointConstructor::new());
 
@@ -876,84 +973,75 @@ pub fn compose_json_to_content_converter(
     let json_to_boxed_triangle_instance_runner_converter =
         JsonToBoxedObjectInstanceRunnerConverter::new(json_to_triangle_instance_runner_converter);
 
-    let rectangle_provider = ContentProvider::<Rectangle<Rgb>>::new(vec![]);
-
-    let rectangle_provider_ref_cell = Rc::new(RefCell::new(rectangle_provider));
-
-    let rectangle_constructor = Rc::new(RectangleConstructor::new());
-
-    let rectangle_creator = Rc::new(ObjectCreator::new(
-        Rc::clone(&rectangle_constructor),
-        Rc::clone(&rectangle_provider_ref_cell),
-    ));
-
-    let json_to_rectangle_converter = JsonToRectangleConverter::new(
-        Rc::clone(&json_to_string_converter),
-        Rc::clone(&json_to_f32_converter),
-        Rc::clone(&json_to_rgb_converter),
-        Rc::clone(&rectangle_creator),
-    );
-
-    let json_to_boxed_rectangle_converter =
-        JsonToBoxedRectangleConverter::new(json_to_rectangle_converter);
-
-    let geometry_triangle_creator = Rc::new(GeometryTriangleCreator::new());
-
-    let rectangle_instance_constructor = Rc::new(RectangleInstanceConstructor::new(
-        Rc::clone(&triangle_point_creator),
-        Rc::clone(&geometry_triangle_creator),
-    ));
-
-    let rectangle_instance_store = Rc::new(RefCell::new(Store::new(vec![])));
-
-    let rectangle_instance_creator = Rc::new(ObjectCreator::new(
-        Rc::clone(&rectangle_instance_constructor),
-        Rc::clone(&rectangle_instance_store),
-    ));
-
-    let json_to_rectangle_instance_converter = JsonToRectangleInstanceConverter::new(
-        Rc::clone(&json_to_string_converter),
-        Rc::clone(&json_to_f32_converter),
-        Rc::clone(&json_to_two_d_point_converter),
-        Rc::clone(&rectangle_instance_creator),
-        Rc::clone(&rectangle_provider_ref_cell),
-    );
-
-    let rectangle_instance_scaler = Rc::new(RectangleInstanceScaler::new(
-        Rc::clone(&rectangle_instance_creator),
-        Rc::clone(&two_d_point_creator),
-    ));
-
-    let json_to_rectangle_instance_runner_converter = JsonToObjectInstanceRunnerConverter::new(
-        json_to_rectangle_instance_converter,
-        Rc::clone(&rectangle_instance_scaler),
-    );
-
-    let json_to_boxed_rectangle_instance_runner_converter =
-        JsonToBoxedObjectInstanceRunnerConverter::new(json_to_rectangle_instance_runner_converter);
-
-    let mut object_converters =
-        HashMap::<String, Box<dyn ConvertJsonToValue<Box<Rc<RefCell<dyn GetName>>>>>>::new();
-
     let c = Box::new(json_to_boxed_triangle_converter);
     object_converters.insert("triangle".to_string(), c);
 
-    let b = Box::new(json_to_boxed_rectangle_converter);
-    object_converters.insert("rectangle".to_string(), b);
-
-    let json_to_object_converter =
-        TypedJsonToValueConverter::new(Rc::clone(&json_to_string_converter), object_converters);
-
-    let mut object_instance_runner_converters =
-        HashMap::<String, Box<dyn ConvertJsonToValue<Box<dyn RunObjectInstance>>>>::new();
     object_instance_runner_converters.insert(
         "triangle".to_string(),
         Box::new(json_to_boxed_triangle_instance_runner_converter),
     );
-    object_instance_runner_converters.insert(
-        "rectangle".to_string(),
-        Box::new(json_to_boxed_rectangle_instance_runner_converter),
+}
+
+pub fn compose_json_to_content_converter(
+    json_to_f32_converter: Rc<JsonToF32Converter>,
+    json_to_string_converter: Rc<JsonToStringConverter>,
+) -> JsonToContentConverter<
+    TypedJsonToValueConverter<JsonToStringConverter, Box<Rc<RefCell<dyn GetName>>>>,
+    TypedJsonToValueConverter<JsonToStringConverter, Box<dyn RunObjectInstance>>,
+> {
+    let json_to_rgb_converter = Rc::new(JsonToRgbConverter::new(Rc::clone(&json_to_f32_converter)));
+
+    let two_d_point_creator = Rc::new(TwoDPointCreator::new());
+
+    let rgb_creator = Rc::new(RgbCreator::new());
+
+    let mut object_instance_runner_converters =
+        HashMap::<String, Box<dyn ConvertJsonToValue<Box<dyn RunObjectInstance>>>>::new();
+
+    let mut object_converters =
+        HashMap::<String, Box<dyn ConvertJsonToValue<Box<Rc<RefCell<dyn GetName>>>>>>::new();
+
+    let json_to_two_d_point_converter = Rc::new(JsonToTwoDPointConverter::new(Rc::clone(
+        &json_to_f32_converter,
+    )));
+
+    let json_to_triangle_point_converter = Rc::new(JsonToTrianglePointConverter::new(
+        Rc::clone(&json_to_two_d_point_converter),
+        Rc::clone(&json_to_rgb_converter),
+    ));
+
+    let triangle_point_constructor = Rc::new(TrianglePointConstructor::new());
+
+    let triangle_point_creator = Rc::new(TrianglePointCreator::new(
+        Rc::clone(&two_d_point_creator),
+        Rc::clone(&rgb_creator),
+        Rc::clone(&triangle_point_constructor),
+    ));
+
+    compose_rectangles(
+        &mut object_converters,
+        &mut object_instance_runner_converters,
+        Rc::clone(&json_to_string_converter),
+        Rc::clone(&json_to_f32_converter),
+        Rc::clone(&json_to_rgb_converter),
+        Rc::clone(&json_to_two_d_point_converter),
+        Rc::clone(&two_d_point_creator),
+        Rc::clone(&triangle_point_creator),
     );
+
+    compose_triangles(
+        &mut object_converters,
+        &mut object_instance_runner_converters,
+        Rc::clone(&json_to_string_converter),
+        Rc::clone(&json_to_triangle_point_converter),
+        Rc::clone(&two_d_point_creator),
+        Rc::clone(&&rgb_creator),
+        Rc::clone(&json_to_two_d_point_converter),
+        Rc::clone(&json_to_f32_converter),
+    );
+
+    let json_to_object_converter =
+        TypedJsonToValueConverter::new(Rc::clone(&json_to_string_converter), object_converters);
 
     let json_to_object_instance_runner_converter = TypedJsonToValueConverter::new(
         Rc::clone(&json_to_string_converter),
@@ -994,16 +1082,15 @@ mod tests {
 
     use garden_content::{
         rectangles::{
-            Rectangle, RectangleInstance, RectangleInstanceConstructor, RectangleInstanceCreator,
-            RectangleInstanceScaler,
+            Rectangle, RectangleInstance, RectangleInstanceConstructor, RectangleInstanceScaler,
         },
         triangles::{
-            Triangle, TriangleInstance, TriangleInstanceConstructor, TriangleInstanceCreator,
-            TriangleInstancePointCreator, TriangleInstanceScaler, TriangleInstanceVertexCounter,
-            TriangleInstanceVertexDataGenerator,
+            GeometryTriangleConstructor, GeometryTrianglesCreator, Triangle, TriangleInstance,
+            TriangleInstanceConstructor, TriangleInstancePointCreator, TriangleInstanceScaler,
+            TriangleInstanceVertexCounter, TriangleInstanceVertexDataGenerator,
         },
-        Content, GetVertexData, ObjectInstanceRunner, Rgb, RgbCreator, TrianglePoint,
-        TrianglePointConstructor, TrianglePointCreator, TwoDPoint, TwoDPointCreator,
+        Content, GetVertexData, ObjectCreator, ObjectInstanceRunner, Rgb, RgbCreator, Store,
+        TrianglePoint, TrianglePointConstructor, TrianglePointCreator, TwoDPoint, TwoDPointCreator,
         TwoDPointTranslator,
     };
     use garden_json::{ConvertJsonToValue, JsonToF32Converter, JsonToStringConverter};
@@ -1224,10 +1311,12 @@ mod tests {
                         ],
                     ))),
                     Rc::new(TriangleInstanceScaler::new(
-                        Rc::new(TriangleInstanceCreator::new(
-                            Rc::new(TriangleInstanceVertexDataGenerator::new()),
-                            Rc::new(TriangleInstanceVertexCounter::new()),
-                            Rc::new(TriangleInstanceConstructor::new()),
+                        Rc::new(ObjectCreator::new(
+                            Rc::new(TriangleInstanceConstructor::new(
+                                Rc::new(TriangleInstanceVertexDataGenerator::new()),
+                                Rc::new(TriangleInstanceVertexCounter::new()),
+                            )),
+                            Rc::new(RefCell::new(Store::new(vec![]))),
                         )),
                         Rc::new(TriangleInstancePointCreator::new(Rc::new(
                             TrianglePointCreator::new(
@@ -1292,10 +1381,12 @@ mod tests {
                         ],
                     ))),
                     Rc::new(TriangleInstanceScaler::new(
-                        Rc::new(TriangleInstanceCreator::new(
-                            Rc::new(TriangleInstanceVertexDataGenerator::new()),
-                            Rc::new(TriangleInstanceVertexCounter::new()),
-                            Rc::new(TriangleInstanceConstructor::new()),
+                        Rc::new(ObjectCreator::new(
+                            Rc::new(TriangleInstanceConstructor::new(
+                                Rc::new(TriangleInstanceVertexDataGenerator::new()),
+                                Rc::new(TriangleInstanceVertexCounter::new()),
+                            )),
+                            Rc::new(RefCell::new(Store::new(vec![]))),
                         )),
                         Rc::new(TriangleInstancePointCreator::new(Rc::new(
                             TrianglePointCreator::new(
@@ -1318,147 +1409,27 @@ mod tests {
                         ))),
                         1.0,
                         TwoDPoint::new(-5.0, 5.0),
-                        TrianglePoint::new(
-                            TwoDPoint::new(0.0, 0.0),
-                            Rgb::new(1.0, 0.0, 0.0),
-                            5,
-                            vec![0.0, 0.0, 1.0, 0.0, 0.0],
-                        ),
-                        TrianglePoint::new(
-                            TwoDPoint::new(0.0, 0.0),
-                            Rgb::new(1.0, 0.0, 0.0),
-                            5,
-                            vec![0.0, 0.0, 1.0, 0.0, 0.0],
-                        ),
-                        TrianglePoint::new(
-                            TwoDPoint::new(0.0, 0.0),
-                            Rgb::new(1.0, 0.0, 0.0),
-                            5,
-                            vec![0.0, 0.0, 1.0, 0.0, 0.0],
-                        ),
-                        TrianglePoint::new(
-                            TwoDPoint::new(0.0, 0.0),
-                            Rgb::new(1.0, 0.0, 0.0),
-                            5,
-                            vec![0.0, 0.0, 1.0, 0.0, 0.0],
-                        ),
                         30,
                         vec![
                             -4.0, 7.5, 0.0, 0.0, 1.0, -6.0, 7.5, 0.0, 0.0, 1.0, -6.0, 2.5, 0.0,
                             0.0, 1.0, -4.0, 7.5, 0.0, 0.0, 1.0, -6.0, 2.5, 0.0, 0.0, 1.0, -4.0,
                             2.5, 0.0, 0.0, 1.0,
                         ],
-                        Rc::new(RefCell::new(TriangleInstance::new(
-                            "".to_string(),
-                            Rc::new(RefCell::new(Triangle::new(
-                                "triangle".to_string(),
-                                TrianglePoint::new(
-                                    TwoDPoint::new(1.0, 1.0),
-                                    Rgb::new(1.0, 1.0, 1.0),
-                                    0,
-                                    vec![],
-                                ),
-                                TrianglePoint::new(
-                                    TwoDPoint::new(1.0, 1.0),
-                                    Rgb::new(1.0, 1.0, 1.0),
-                                    0,
-                                    vec![],
-                                ),
-                                TrianglePoint::new(
-                                    TwoDPoint::new(1.0, 1.0),
-                                    Rgb::new(1.0, 1.0, 1.0),
-                                    0,
-                                    vec![],
-                                ),
-                                vec![],
-                                0,
-                            ))),
-                            0.0,
-                            TwoDPoint::new(0.0, 0.0),
-                            TrianglePoint::new(
-                                TwoDPoint::new(0.0, 0.0),
-                                Rgb::new(1.0, 0.0, 0.0),
-                                5,
-                                vec![0.0, 0.0, 1.0, 0.0, 0.0],
-                            ),
-                            TrianglePoint::new(
-                                TwoDPoint::new(0.0, 0.0),
-                                Rgb::new(1.0, 0.0, 0.0),
-                                5,
-                                vec![0.0, 0.0, 1.0, 0.0, 0.0],
-                            ),
-                            TrianglePoint::new(
-                                TwoDPoint::new(0.0, 0.0),
-                                Rgb::new(1.0, 0.0, 0.0),
-                                5,
-                                vec![0.0, 0.0, 1.0, 0.0, 0.0],
-                            ),
-                            15,
-                            vec![],
-                        ))),
-                        Rc::new(RefCell::new(TriangleInstance::new(
-                            "".to_string(),
-                            Rc::new(RefCell::new(Triangle::new(
-                                "triangle".to_string(),
-                                TrianglePoint::new(
-                                    TwoDPoint::new(1.0, 1.0),
-                                    Rgb::new(1.0, 1.0, 1.0),
-                                    0,
-                                    vec![],
-                                ),
-                                TrianglePoint::new(
-                                    TwoDPoint::new(1.0, 1.0),
-                                    Rgb::new(1.0, 1.0, 1.0),
-                                    0,
-                                    vec![],
-                                ),
-                                TrianglePoint::new(
-                                    TwoDPoint::new(1.0, 1.0),
-                                    Rgb::new(1.0, 1.0, 1.0),
-                                    0,
-                                    vec![],
-                                ),
-                                vec![],
-                                0,
-                            ))),
-                            0.0,
-                            TwoDPoint::new(0.0, 0.0),
-                            TrianglePoint::new(
-                                TwoDPoint::new(0.0, 0.0),
-                                Rgb::new(1.0, 0.0, 0.0),
-                                5,
-                                vec![0.0, 0.0, 1.0, 0.0, 0.0],
-                            ),
-                            TrianglePoint::new(
-                                TwoDPoint::new(0.0, 0.0),
-                                Rgb::new(1.0, 0.0, 0.0),
-                                5,
-                                vec![0.0, 0.0, 1.0, 0.0, 0.0],
-                            ),
-                            TrianglePoint::new(
-                                TwoDPoint::new(0.0, 0.0),
-                                Rgb::new(1.0, 0.0, 0.0),
-                                5,
-                                vec![0.0, 0.0, 1.0, 0.0, 0.0],
-                            ),
-                            15,
-                            vec![],
-                        ))),
+                        vec![],
                     ))),
                     Rc::new(RectangleInstanceScaler::new(
-                        Rc::new(RectangleInstanceCreator::new(
-                            Rc::new(TriangleInstanceCreator::new(
-                                Rc::new(TriangleInstanceVertexDataGenerator::new()),
-                                Rc::new(TriangleInstanceVertexCounter::new()),
-                                Rc::new(TriangleInstanceConstructor::new()),
-                            )),
-                            Rc::new(TrianglePointCreator::new(
-                                Rc::new(TwoDPointCreator::new()),
-                                Rc::new(RgbCreator::new()),
-                                Rc::new(TrianglePointConstructor::new()),
-                            )),
-                            Rc::new(TwoDPointCreator::new()),
-                            Rc::new(RectangleInstanceConstructor::new()),
+                        Rc::new(ObjectCreator::new(
+                            Rc::new(RectangleInstanceConstructor::new(Rc::new(
+                                GeometryTrianglesCreator::new(
+                                    Rc::new(GeometryTriangleConstructor::new()),
+                                    Rc::new(TrianglePointCreator::new(
+                                        Rc::new(TwoDPointCreator::new()),
+                                        Rc::new(RgbCreator::new()),
+                                        Rc::new(TrianglePointConstructor::new()),
+                                    )),
+                                ),
+                            ))),
+                            Rc::new(RefCell::new(Store::new(vec![]))),
                         )),
                         Rc::new(TwoDPointCreator::new()),
                     )),
@@ -1474,147 +1445,27 @@ mod tests {
                         ))),
                         1.0,
                         TwoDPoint::new(5.0, -5.0),
-                        TrianglePoint::new(
-                            TwoDPoint::new(0.0, 0.0),
-                            Rgb::new(1.0, 0.0, 0.0),
-                            5,
-                            vec![0.0, 0.0, 1.0, 0.0, 0.0],
-                        ),
-                        TrianglePoint::new(
-                            TwoDPoint::new(0.0, 0.0),
-                            Rgb::new(1.0, 0.0, 0.0),
-                            5,
-                            vec![0.0, 0.0, 1.0, 0.0, 0.0],
-                        ),
-                        TrianglePoint::new(
-                            TwoDPoint::new(0.0, 0.0),
-                            Rgb::new(1.0, 0.0, 0.0),
-                            5,
-                            vec![0.0, 0.0, 1.0, 0.0, 0.0],
-                        ),
-                        TrianglePoint::new(
-                            TwoDPoint::new(0.0, 0.0),
-                            Rgb::new(1.0, 0.0, 0.0),
-                            5,
-                            vec![0.0, 0.0, 1.0, 0.0, 0.0],
-                        ),
                         30,
                         vec![
                             6.5, -4.0, 1.0, 0.0, 0.0, 3.5, -4.0, 1.0, 0.0, 0.0, 3.5, -6.0, 1.0,
                             0.0, 0.0, 6.5, -4.0, 1.0, 0.0, 0.0, 3.5, -6.0, 1.0, 0.0, 0.0, 6.5,
                             -6.0, 1.0, 0.0, 0.0,
                         ],
-                        Rc::new(RefCell::new(TriangleInstance::new(
-                            "".to_string(),
-                            Rc::new(RefCell::new(Triangle::new(
-                                "triangle".to_string(),
-                                TrianglePoint::new(
-                                    TwoDPoint::new(1.0, 1.0),
-                                    Rgb::new(1.0, 1.0, 1.0),
-                                    0,
-                                    vec![],
-                                ),
-                                TrianglePoint::new(
-                                    TwoDPoint::new(1.0, 1.0),
-                                    Rgb::new(1.0, 1.0, 1.0),
-                                    0,
-                                    vec![],
-                                ),
-                                TrianglePoint::new(
-                                    TwoDPoint::new(1.0, 1.0),
-                                    Rgb::new(1.0, 1.0, 1.0),
-                                    0,
-                                    vec![],
-                                ),
-                                vec![],
-                                0,
-                            ))),
-                            0.0,
-                            TwoDPoint::new(0.0, 0.0),
-                            TrianglePoint::new(
-                                TwoDPoint::new(0.0, 0.0),
-                                Rgb::new(1.0, 0.0, 0.0),
-                                5,
-                                vec![0.0, 0.0, 1.0, 0.0, 0.0],
-                            ),
-                            TrianglePoint::new(
-                                TwoDPoint::new(0.0, 0.0),
-                                Rgb::new(1.0, 0.0, 0.0),
-                                5,
-                                vec![0.0, 0.0, 1.0, 0.0, 0.0],
-                            ),
-                            TrianglePoint::new(
-                                TwoDPoint::new(0.0, 0.0),
-                                Rgb::new(1.0, 0.0, 0.0),
-                                5,
-                                vec![0.0, 0.0, 1.0, 0.0, 0.0],
-                            ),
-                            15,
-                            vec![],
-                        ))),
-                        Rc::new(RefCell::new(TriangleInstance::new(
-                            "".to_string(),
-                            Rc::new(RefCell::new(Triangle::new(
-                                "triangle".to_string(),
-                                TrianglePoint::new(
-                                    TwoDPoint::new(1.0, 1.0),
-                                    Rgb::new(1.0, 1.0, 1.0),
-                                    0,
-                                    vec![],
-                                ),
-                                TrianglePoint::new(
-                                    TwoDPoint::new(1.0, 1.0),
-                                    Rgb::new(1.0, 1.0, 1.0),
-                                    0,
-                                    vec![],
-                                ),
-                                TrianglePoint::new(
-                                    TwoDPoint::new(1.0, 1.0),
-                                    Rgb::new(1.0, 1.0, 1.0),
-                                    0,
-                                    vec![],
-                                ),
-                                vec![],
-                                0,
-                            ))),
-                            0.0,
-                            TwoDPoint::new(0.0, 0.0),
-                            TrianglePoint::new(
-                                TwoDPoint::new(0.0, 0.0),
-                                Rgb::new(1.0, 0.0, 0.0),
-                                5,
-                                vec![0.0, 0.0, 1.0, 0.0, 0.0],
-                            ),
-                            TrianglePoint::new(
-                                TwoDPoint::new(0.0, 0.0),
-                                Rgb::new(1.0, 0.0, 0.0),
-                                5,
-                                vec![0.0, 0.0, 1.0, 0.0, 0.0],
-                            ),
-                            TrianglePoint::new(
-                                TwoDPoint::new(0.0, 0.0),
-                                Rgb::new(1.0, 0.0, 0.0),
-                                5,
-                                vec![0.0, 0.0, 1.0, 0.0, 0.0],
-                            ),
-                            15,
-                            vec![],
-                        ))),
+                        vec![],
                     ))),
                     Rc::new(RectangleInstanceScaler::new(
-                        Rc::new(RectangleInstanceCreator::new(
-                            Rc::new(TriangleInstanceCreator::new(
-                                Rc::new(TriangleInstanceVertexDataGenerator::new()),
-                                Rc::new(TriangleInstanceVertexCounter::new()),
-                                Rc::new(TriangleInstanceConstructor::new()),
-                            )),
-                            Rc::new(TrianglePointCreator::new(
-                                Rc::new(TwoDPointCreator::new()),
-                                Rc::new(RgbCreator::new()),
-                                Rc::new(TrianglePointConstructor::new()),
-                            )),
-                            Rc::new(TwoDPointCreator::new()),
-                            Rc::new(RectangleInstanceConstructor::new()),
+                        Rc::new(ObjectCreator::new(
+                            Rc::new(RectangleInstanceConstructor::new(Rc::new(
+                                GeometryTrianglesCreator::new(
+                                    Rc::new(GeometryTriangleConstructor::new()),
+                                    Rc::new(TrianglePointCreator::new(
+                                        Rc::new(TwoDPointCreator::new()),
+                                        Rc::new(RgbCreator::new()),
+                                        Rc::new(TrianglePointConstructor::new()),
+                                    )),
+                                ),
+                            ))),
+                            Rc::new(RefCell::new(Store::new(vec![]))),
                         )),
                         Rc::new(TwoDPointCreator::new()),
                     )),

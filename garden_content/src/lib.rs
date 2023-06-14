@@ -666,11 +666,14 @@ impl<TObject> StoreObject<TObject> for Store<TObject> {
 
 #[cfg(test)]
 mod tests {
+    use std::{cell::RefCell, rc::Rc};
+
     use mockall::mock;
 
     use crate::{
-        Content, GetContentInstanceData, GetNumberOfObjects, GetNumberOfVertices, GetVertexData,
-        GetX, GetY, Rgb, RunObjectInstance, Scale, TrianglePoint, TwoDPoint,
+        ConstructObject, Content, CreateObject, GetContentInstanceData, GetNumberOfObjects,
+        GetNumberOfVertices, GetVertexData, GetX, GetY, ObjectCreator, Rgb, RunObjectInstance,
+        Scale, StoreObject, TrianglePoint, TwoDPoint,
     };
 
     #[test]
@@ -1119,6 +1122,47 @@ mod tests {
         assert_eq!(result, [x, y]);
     }
 
+    #[test]
+    fn when_two_d_point_gets_number_of_vertices_then_the_number_of_vertices_is_returned() {
+        let x = 0.0;
+
+        let y = 0.0;
+
+        let two_d_point = TwoDPoint::new(x, y);
+
+        let result = two_d_point.get_number_of_vertices();
+
+        assert_eq!(result, 2);
+    }
+
+    #[test]
+    fn when_an_object_creator_creates_an_object_then_the_object_is_created() {
+        let name = "RectangleName";
+
+        let mut object_constructor = MockObjectConstructor::new();
+        object_constructor
+            .expect_construct_object()
+            .times(1)
+            .returning(move |_| Object::new(name.to_string()));
+
+        let mut object_store = MockObjectStore::new();
+        object_store
+            .expect_store_object()
+            .times(1)
+            .returning(move |_| {});
+
+        let object_creator = ObjectCreator::new(
+            Rc::new(object_constructor),
+            Rc::new(RefCell::new(object_store)),
+        );
+
+        let parameters = MockParameters::new();
+
+        let result = object_creator.create_object(parameters);
+
+        assert_eq!("object", result.borrow().get_name());
+    }
+
     mock! {
         VertexObject {}
         impl GetVertexData for VertexObject {
@@ -1158,6 +1202,38 @@ mod tests {
         }
         impl GetVertexData for ObjectInstanceRunner {
             fn get_vertex_data(&self) -> Vec<f32>;
+        }
+    }
+
+    struct Object {
+        name: String,
+    }
+
+    impl Object {
+        fn new(name: String) -> Self {
+            Self { name }
+        }
+
+        fn get_name(&self) -> &str {
+            &self.name
+        }
+    }
+
+    mock! {
+        Parameters {}
+    }
+
+    mock! {
+        ObjectConstructor<TObject, TParameters> {}
+        impl<TObject, TParameters> ConstructObject<TObject, TParameters> for ObjectConstructor<TObject, TParameters> {
+            fn construct_object(&self, parameters: TParameters) -> TObject;
+        }
+    }
+
+    mock! {
+        ObjectStore<T> {}
+        impl<T> StoreObject<T> for ObjectStore<T> {
+            fn store_object(&mut self, object: Rc::<RefCell::<T>>);
         }
     }
 
