@@ -444,23 +444,27 @@ mod tests {
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    use garden::GetName;
+    use garden::{GetHeight, GetName, GetWidth};
     use mockall::mock;
 
     use crate::{
-        ConstructObject, CreateObject, Get2DCoordiantes, GetB, GetG, GetR, GetX, GetY,
-        ObjectCreator, StoreObject,
+        Get2DCoordiantes, GetB, GetG, GetNumberOfObjects, GetNumberOfVertices, GetR, GetRgb,
+        GetScale, GetVertexData, GetX, GetY,
     };
 
-    use crate::rectangles::{Rectangle, RectangleInstance, RectangleParameters};
+    use crate::rectangles::{Rectangle, RectangleInstance};
 
     #[test]
     fn when_a_rectangle_gets_its_name_then_the_name_is_returned() {
         let name = "RectangleName";
 
+        let width = 0.0;
+
+        let height = 0.0;
+
         let rgb = MockRectangleRgb::new();
 
-        let rectangle = Rectangle::<MockRectangleRgb>::new(name.to_string(), 0.0, 0.0, rgb);
+        let rectangle = Rectangle::<MockRectangleRgb>::new(name.to_string(), width, height, rgb);
 
         let result = rectangle.get_name();
 
@@ -468,89 +472,216 @@ mod tests {
     }
 
     #[test]
-    fn when_a_rectangle_creator_creates_a_rectangle_then_the_rectangle_is_created() {
-        let name = "RectangleName";
+    fn when_a_rectangle_gets_its_width_then_the_width_is_returned() {
+        let name = "";
 
-        let width = 1.23;
+        let width = 123.45;
 
-        let height = 4.56;
+        let height = 0.0;
 
         let rgb = MockRectangleRgb::new();
 
-        let rectangle_provider = Rc::new(RefCell::new(MockRectangleProvider::new()));
-        rectangle_provider
-            .borrow_mut()
-            .expect_store_object()
-            .times(1)
-            .returning(move |_| {});
+        let rectangle = Rectangle::<MockRectangleRgb>::new(name.to_string(), width, height, rgb);
 
-        let mut rectangle_constructor = MockRectangleConstructor::new();
-        rectangle_constructor
-            .expect_construct_object()
-            .times(1)
-            .returning(move |_| {
-                Rectangle::new(name.to_string(), 0.0, 0.0, MockRectangleRgb::new())
-            });
+        let result = rectangle.get_width();
 
-        let rectangle_creator =
-            ObjectCreator::new(Rc::new(rectangle_constructor), rectangle_provider);
+        assert_eq!(width, result);
+    }
 
-        let parameters = RectangleParameters::new(name.to_string(), width, height, rgb);
+    #[test]
+    fn when_a_rectangle_gets_its_height_then_the_height_is_returned() {
+        let name = "";
 
-        let result = rectangle_creator.create_object(parameters);
+        let width = 0.0;
 
-        assert_eq!(name, result.borrow().get_name());
+        let height = 123.45;
+
+        let rgb = MockRectangleRgb::new();
+
+        let rectangle = Rectangle::<MockRectangleRgb>::new(name.to_string(), width, height, rgb);
+
+        let result = rectangle.get_height();
+
+        assert_eq!(height, result);
+    }
+
+    #[test]
+    fn when_a_rectangle_gets_its_rgb_then_the_rgb_is_returned() {
+        let name = "";
+
+        let width = 0.0;
+
+        let height = 123.45;
+
+        let mut rgb = MockRectangleRgb::new();
+        rgb.expect_get_r().returning(move || 1.23);
+        rgb.expect_get_g().returning(move || 4.56);
+        rgb.expect_get_b().returning(move || 7.89);
+
+        let rectangle = Rectangle::<MockRectangleRgb>::new(name.to_string(), width, height, rgb);
+
+        let result = rectangle.get_rgb();
+
+        assert_eq!(1.23, result.get_r());
+        assert_eq!(4.56, result.get_g());
+        assert_eq!(7.89, result.get_b());
     }
 
     #[test]
     fn when_a_rectangle_instance_gets_its_name_then_the_name_is_returned() {
         let name = "RectangleInstanceName";
 
-        let rectangle = Rc::new(RefCell::new(Rectangle::new(
-            "Rectangle".to_string(),
-            1.0,
-            2.0,
-            MockRectangleRgb::new(),
-        )));
+        let rectangle = Rc::new(RefCell::new(MockRectangle::new()));
 
         let scale = 0.0;
 
         let position = MockRectanglePosition::new();
 
-        let point_1 = MockRectanglePoint::new();
-
-        let point_2 = MockRectanglePoint::new();
-
-        let point_3 = MockRectanglePoint::new();
-
-        let point_4 = MockRectanglePoint::new();
-
         let number_of_vertices = 0;
 
         let vertex_data = vec![];
 
-        let triangle_instance_1 = Rc::new(RefCell::new(MockRectangleTriangleInstance::new()));
-
-        let triangle_instance_2 = Rc::new(RefCell::new(MockRectangleTriangleInstance::new()));
+        let geometry_triangles = Vec::<MockGeometryTriangle>::new();
 
         let rectangle_instance = RectangleInstance::new(
             name.to_string(),
             rectangle,
             scale,
             position,
-            point_1,
-            point_2,
-            point_3,
-            point_4,
             number_of_vertices,
             vertex_data,
-            triangle_instance_1,
-            triangle_instance_2,
+            geometry_triangles,
         );
 
         let result = rectangle_instance.get_name();
 
         assert_eq!(name, result);
+    }
+
+    #[test]
+    fn when_a_rectangle_instance_gets_its_vertex_data_then_the_vertex_data_is_returned() {
+        let name = "";
+
+        let rectangle = Rc::new(RefCell::new(MockRectangle::new()));
+
+        let scale = 0.0;
+
+        let position = MockRectanglePosition::new();
+
+        let number_of_vertices = 0;
+
+        let vertex_data = vec![1.23, 4.56, 7.89];
+
+        let geometry_triangles = Vec::<MockGeometryTriangle>::new();
+
+        let rectangle_instance = RectangleInstance::new(
+            name.to_string(),
+            rectangle,
+            scale,
+            position,
+            number_of_vertices,
+            vertex_data.clone(),
+            geometry_triangles,
+        );
+
+        let result = rectangle_instance.get_vertex_data();
+
+        assert_eq!(vertex_data, result);
+    }
+
+    #[test]
+    fn when_a_rectangle_instance_gets_its_number_of_vertices_then_the_number_of_vertices_is_returned(
+    ) {
+        let name = "";
+
+        let rectangle = Rc::new(RefCell::new(MockRectangle::new()));
+
+        let scale = 0.0;
+
+        let position = MockRectanglePosition::new();
+
+        let number_of_vertices = 123;
+
+        let vertex_data = vec![];
+
+        let geometry_triangles = Vec::<MockGeometryTriangle>::new();
+
+        let rectangle_instance = RectangleInstance::new(
+            name.to_string(),
+            rectangle,
+            scale,
+            position,
+            number_of_vertices,
+            vertex_data.clone(),
+            geometry_triangles,
+        );
+
+        let result = rectangle_instance.get_number_of_vertices();
+
+        assert_eq!(number_of_vertices, result);
+    }
+
+    #[test]
+    fn when_a_rectangle_instance_gets_its_number_of_objects_then_the_number_of_objects_is_returned()
+    {
+        let name = "";
+
+        let rectangle = Rc::new(RefCell::new(MockRectangle::new()));
+
+        let scale = 0.0;
+
+        let position = MockRectanglePosition::new();
+
+        let number_of_vertices = 0;
+
+        let vertex_data = vec![];
+
+        let geometry_triangles = Vec::<MockGeometryTriangle>::new();
+
+        let rectangle_instance = RectangleInstance::new(
+            name.to_string(),
+            rectangle,
+            scale,
+            position,
+            number_of_vertices,
+            vertex_data.clone(),
+            geometry_triangles,
+        );
+
+        let result = rectangle_instance.get_number_of_objects();
+
+        assert_eq!(2, result);
+    }
+
+    #[test]
+    fn when_a_rectangle_instance_gets_its_scale_then_the_scale_is_returned() {
+        let name = "";
+
+        let rectangle = Rc::new(RefCell::new(MockRectangle::new()));
+
+        let scale = 1.23;
+
+        let position = MockRectanglePosition::new();
+
+        let number_of_vertices = 0;
+
+        let vertex_data = vec![];
+
+        let geometry_triangles = Vec::<MockGeometryTriangle>::new();
+
+        let rectangle_instance = RectangleInstance::new(
+            name.to_string(),
+            rectangle,
+            scale,
+            position,
+            number_of_vertices,
+            vertex_data.clone(),
+            geometry_triangles,
+        );
+
+        let result = rectangle_instance.get_scale();
+
+        assert_eq!(scale, result);
     }
 
     mock! {
@@ -578,24 +709,10 @@ mod tests {
     }
 
     mock! {
-        RectanglePoint {}
+        GeometryTriangle {}
     }
 
     mock! {
-        RectangleTriangleInstance {}
-    }
-
-    mock! {
-        RectangleProvider {}
-        impl StoreObject<Rectangle<MockRectangleRgb>> for RectangleProvider {
-            fn store_object(&mut self, content: Rc<RefCell<Rectangle<MockRectangleRgb>>>);
-        }
-    }
-
-    mock! {
-        RectangleConstructor {}
-        impl ConstructObject<Rectangle<MockRectangleRgb>, RectangleParameters<MockRectangleRgb>> for RectangleConstructor {
-            fn construct_object(&self, parameters: RectangleParameters<MockRectangleRgb>) -> Rectangle<MockRectangleRgb>;
-        }
+        Rectangle {}
     }
 }
