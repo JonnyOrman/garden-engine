@@ -52,18 +52,6 @@ impl<TTrianglePoint: GetVertexData + GetNumberOfVertices> Triangle<TTrianglePoin
             vertex_data,
         }
     }
-
-    pub fn get_point_1(&self) -> &TTrianglePoint {
-        &self.point_1
-    }
-
-    pub fn get_point_2(&self) -> &TTrianglePoint {
-        &self.point_2
-    }
-
-    pub fn get_point_3(&self) -> &TTrianglePoint {
-        &self.point_3
-    }
 }
 
 impl<TTrianglePoint> GetName for Triangle<TTrianglePoint> {
