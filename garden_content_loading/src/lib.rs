@@ -1,5 +1,8 @@
 use garden::{GetHeight, GetName, GetWidth};
 use garden_content::{
+    equilateral_triangles::{
+        CalculateEquilateralTrianglePoint, EquilateralTrianglePointCalculator,
+    },
     rectangles::{
         ContentProvider, Rectangle, RectangleConstructor, RectangleInstanceConstructor,
         RectangleInstanceParameters, RectangleInstanceScaler, RectangleParameters,
@@ -177,6 +180,119 @@ impl<
         let point_3 = self
             .json_to_triangle_point_converter
             .convert_json_to_value(&json["point3"]);
+
+        let parameters = TriangleParameters::new(name, point_1, point_2, point_3);
+
+        self.triangle_creator.create_object(parameters)
+    }
+}
+
+pub struct JsonToEquilateralTriangleConverter<
+    TJsonToStringConverter,
+    TJsonToF32Converter,
+    TJsonToRgbConverter,
+    TEquilateralTrianglePointCalculator,
+    TTriangleCreator,
+    TTrianglePoint,
+    TTriangle,
+    TRgb,
+> {
+    json_to_string_converter: Rc<TJsonToStringConverter>,
+    json_to_f32_converter: Rc<TJsonToF32Converter>,
+    json_to_rgb_converter: Rc<TJsonToRgbConverter>,
+    equilateral_triangle_point_calculator: Rc<TEquilateralTrianglePointCalculator>,
+    triangle_creator: TTriangleCreator,
+    triangle_point_type: PhantomData<TTrianglePoint>,
+    triangle_type: PhantomData<TTriangle>,
+    rgb_type: PhantomData<TRgb>,
+}
+
+impl<
+        TJsonToStringConverter,
+        TJsonToF32Converter,
+        TJsonToRgbConverter,
+        TEquilateralTrianglePointCalculator,
+        TTriangleCreator,
+        TTrianglePoint,
+        TTriangle,
+        TRgb,
+    >
+    JsonToEquilateralTriangleConverter<
+        TJsonToStringConverter,
+        TJsonToF32Converter,
+        TJsonToRgbConverter,
+        TEquilateralTrianglePointCalculator,
+        TTriangleCreator,
+        TTrianglePoint,
+        TTriangle,
+        TRgb,
+    >
+{
+    pub fn new(
+        json_to_string_converter: Rc<TJsonToStringConverter>,
+        json_to_f32_converter: Rc<TJsonToF32Converter>,
+        json_to_rgb_converter: Rc<TJsonToRgbConverter>,
+        equilateral_triangle_point_calculator: Rc<TEquilateralTrianglePointCalculator>,
+        triangle_creator: TTriangleCreator,
+    ) -> Self {
+        Self {
+            json_to_string_converter: json_to_string_converter,
+            json_to_f32_converter: json_to_f32_converter,
+            json_to_rgb_converter: json_to_rgb_converter,
+            equilateral_triangle_point_calculator: equilateral_triangle_point_calculator,
+            triangle_creator: triangle_creator,
+            triangle_point_type: PhantomData,
+            triangle_type: PhantomData,
+            rgb_type: PhantomData,
+        }
+    }
+}
+
+impl<
+        TJsonToStringConverter: ConvertJsonToValue<String>,
+        TJsonToF32Converter: ConvertJsonToValue<f32>,
+        TJsonToRgbConverter: ConvertJsonToValue<TRgb>,
+        TEquilateralTrianglePointCalculator: CalculateEquilateralTrianglePoint<TTrianglePoint, TRgb>,
+        TTriangleCreator: CreateObject<TTriangle, TriangleParameters<TTrianglePoint>>,
+        TTrianglePoint,
+        TTriangle,
+        TRgb,
+    > ConvertJsonToValue<Rc<RefCell<TTriangle>>>
+    for JsonToEquilateralTriangleConverter<
+        TJsonToStringConverter,
+        TJsonToF32Converter,
+        TJsonToRgbConverter,
+        TEquilateralTrianglePointCalculator,
+        TTriangleCreator,
+        TTrianglePoint,
+        TTriangle,
+        TRgb,
+    >
+{
+    fn convert_json_to_value(&self, json: &Value) -> Rc<RefCell<TTriangle>> {
+        let name = self
+            .json_to_string_converter
+            .convert_json_to_value(&json["name"]);
+
+        let size = self
+            .json_to_f32_converter
+            .convert_json_to_value(&json["size"]);
+
+        let rgb = self
+            .json_to_rgb_converter
+            .convert_json_to_value(&json["rgb"]);
+
+        let point_1 = self
+            .equilateral_triangle_point_calculator
+            .calculate_equilateral_triangle_point(size, &rgb, 1);
+
+        let point_2 = self
+            .equilateral_triangle_point_calculator
+            .calculate_equilateral_triangle_point(size, &rgb, 2);
+
+        let point_3 = self
+            .equilateral_triangle_point_calculator
+            .calculate_equilateral_triangle_point(size, &rgb, 3);
 
         let parameters = TriangleParameters::new(name, point_1, point_2, point_3);
 
@@ -982,6 +1098,122 @@ pub fn compose_triangles<
     );
 }
 
+pub fn compose_equilateral_triangles<
+    TJsonToStringConverter: ConvertJsonToValue<String> + 'static,
+    TJsonToTrianglePointConverter: ConvertJsonToValue<TrianglePoint<TwoDPoint, Rgb>> + 'static,
+    TTwoDPointCreator: CreateTwoDPoint<TwoDPoint> + 'static,
+    TRgbCreator: CreateRgb<Rgb> + 'static,
+    TJsonToTwoDPointConverter: ConvertJsonToValue<TwoDPoint> + 'static,
+    TJsonToF32Converter: ConvertJsonToValue<f32> + 'static,
+    TJsonToRgbConverter: ConvertJsonToValue<Rgb> + 'static,
+>(
+    object_converters: &mut HashMap<
+        String,
+        Box<dyn ConvertJsonToValue<Box<Rc<RefCell<dyn GetName>>>>>,
+    >,
+    object_instance_runner_converters: &mut HashMap<
+        String,
+        Box<dyn ConvertJsonToValue<Box<dyn RunObjectInstance>>>,
+    >,
+    json_to_string_converter: Rc<TJsonToStringConverter>,
+    json_to_triangle_point_converter: Rc<TJsonToTrianglePointConverter>,
+    two_d_point_creator: Rc<TTwoDPointCreator>,
+    rgb_creator: Rc<TRgbCreator>,
+    json_to_two_d_point_converter: Rc<TJsonToTwoDPointConverter>,
+    json_to_f32_converter: Rc<TJsonToF32Converter>,
+    json_to_rgb_converter: Rc<TJsonToRgbConverter>,
+) {
+    let triangle_provider = ContentProvider::<Triangle<TrianglePoint<TwoDPoint, Rgb>>>::new(vec![]);
+
+    let triangle_provider_ref_cell = Rc::new(RefCell::new(triangle_provider));
+
+    let triangle_constructor = Rc::new(TriangleConstructor::new());
+
+    let equilateral_triangle_point_calculator = Rc::new(EquilateralTrianglePointCalculator::new());
+
+    let triangle_creator = ObjectCreator::new(
+        Rc::clone(&triangle_constructor),
+        Rc::clone(&triangle_provider_ref_cell),
+    );
+
+    let json_to_equilateral_triangle_converter = JsonToEquilateralTriangleConverter::new(
+        Rc::clone(&json_to_string_converter),
+        Rc::clone(&json_to_f32_converter),
+        Rc::clone(&json_to_rgb_converter),
+        Rc::clone(&equilateral_triangle_point_calculator),
+        triangle_creator,
+    );
+
+    let json_to_boxed_triangle_converter =
+        JsonToBoxedTriangleConverter::new(json_to_equilateral_triangle_converter);
+
+    let triangle_instance_vertex_data_generator =
+        Rc::new(TriangleInstanceVertexDataGenerator::new());
+
+    let triangle_instance_vertex_counter = Rc::new(TriangleInstanceVertexCounter::new());
+
+    let triangle_instance_constructor = Rc::new(TriangleInstanceConstructor::new(
+        Rc::clone(&triangle_instance_vertex_data_generator),
+        Rc::clone(&triangle_instance_vertex_counter),
+    ));
+
+    let triangle_instance_store = Rc::new(RefCell::new(Store::new(vec![])));
+
+    let triangle_instance_creator = Rc::new(ObjectCreator::new(
+        Rc::clone(&triangle_instance_constructor),
+        Rc::clone(&triangle_instance_store),
+    ));
+
+    let triangle_point_constructor = Rc::new(TrianglePointConstructor::new());
+
+    let triangle_point_creator = Rc::new(TrianglePointCreator::new(
+        Rc::clone(&two_d_point_creator),
+        Rc::clone(&rgb_creator),
+        Rc::clone(&triangle_point_constructor),
+    ));
+
+    let triangle_instance_point_creator = Rc::new(TriangleInstancePointCreator::new(Rc::clone(
+        &triangle_point_creator,
+    )));
+
+    let triangle_instance_point_calculator = Rc::new(TriangleInstancePointCalculator::new(
+        Rc::clone(&triangle_point_creator),
+    ));
+
+    let json_to_triangle_instance_converter = JsonToTriangleInstanceConverter::new(
+        Rc::clone(&json_to_string_converter),
+        Rc::clone(&json_to_two_d_point_converter),
+        Rc::clone(&json_to_f32_converter),
+        Rc::clone(&triangle_instance_creator),
+        Rc::clone(&triangle_provider_ref_cell),
+        Rc::clone(&triangle_instance_point_calculator),
+    );
+
+    let two_d_point_translator = Rc::new(TwoDPointTranslator::new());
+
+    let triangle_instance_scaler = Rc::new(TriangleInstanceScaler::new(
+        Rc::clone(&triangle_instance_creator),
+        Rc::clone(&triangle_instance_point_creator),
+        Rc::clone(&two_d_point_translator),
+    ));
+
+    let json_to_triangle_instance_runner_converter = JsonToObjectInstanceRunnerConverter::new(
+        json_to_triangle_instance_converter,
+        Rc::clone(&triangle_instance_scaler),
+    );
+
+    let json_to_boxed_triangle_instance_runner_converter =
+        JsonToBoxedObjectInstanceRunnerConverter::new(json_to_triangle_instance_runner_converter);
+
+    let c = Box::new(json_to_boxed_triangle_converter);
+    object_converters.insert("equilateral-triangle".to_string(), c);
+
+    object_instance_runner_converters.insert(
+        "equilateral-triangle".to_string(),
+        Box::new(json_to_boxed_triangle_instance_runner_converter),
+    );
+}
+
 pub fn compose_json_to_content_converter(
     json_to_f32_converter: Rc<JsonToF32Converter>,
     json_to_string_converter: Rc<JsonToStringConverter>,
@@ -1038,6 +1270,18 @@ pub fn compose_json_to_content_converter(
         Rc::clone(&&rgb_creator),
         Rc::clone(&json_to_two_d_point_converter),
         Rc::clone(&json_to_f32_converter),
+    );
+
+    compose_equilateral_triangles(
+        &mut object_converters,
+        &mut object_instance_runner_converters,
+        Rc::clone(&json_to_string_converter),
+        Rc::clone(&json_to_triangle_point_converter),
+        Rc::clone(&two_d_point_creator),
+        Rc::clone(&&rgb_creator),
+        Rc::clone(&json_to_two_d_point_converter),
+        Rc::clone(&json_to_f32_converter),
+        Rc::clone(&json_to_rgb_converter),
     );
 
     let json_to_object_converter =

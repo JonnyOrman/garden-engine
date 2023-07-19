@@ -63,6 +63,16 @@
                     "g": 0.0,
                     "b": 0.0
                 }
+            },
+            {
+                "name": "EquilateralTriangle1",
+                "type": "equilateral-triangle",
+                "size": 3.0,
+                "rgb": {
+                    "r": 0.5,
+                    "g": 0.5,
+                    "b": 0.5
+                }
             }
         ]
     },
@@ -105,6 +115,16 @@
             "position": {
                 "x": 5.0,
                 "y": -5.0
+            }
+        },
+        {
+            "name": "EquilateralTriangle1-a",
+            "contentName": "EquilateralTriangle1",
+            "type": "equilateral-triangle",
+            "scale": 1.0,
+            "position": {
+                "x": 2.5,
+                "y": -2.5
             }
         }
     ]
