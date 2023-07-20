@@ -73,6 +73,16 @@
                     "g": 0.5,
                     "b": 0.5
                 }
+            },
+            {
+                "name": "Square1",
+                "type": "square",
+                "size": 4.0,
+                "rgb": {
+                    "r": 0.0,
+                    "g": 1.0,
+                    "b": 0.0
+                }
             }
         ]
     },
@@ -124,6 +134,16 @@
             "scale": 1.0,
             "position": {
                 "x": 2.5,
+                "y": -2.5
+            }
+        },
+        {
+            "name": "Square1-a",
+            "contentName": "Square1",
+            "type": "square",
+            "scale": 1.0,
+            "position": {
+                "x": -2.5,
                 "y": -2.5
             }
         }

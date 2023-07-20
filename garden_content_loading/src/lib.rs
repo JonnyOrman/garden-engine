@@ -400,6 +400,80 @@ impl<
     }
 }
 
+pub struct JsonToSquareConverter<
+    TJsonToStringConverter,
+    TJsonToF32Converter,
+    TJsonToRgbConverter,
+    TRgb,
+    TRectangleCreator,
+> {
+    json_to_string_converter: Rc<TJsonToStringConverter>,
+    json_to_f32_converter: Rc<TJsonToF32Converter>,
+    json_to_rgb_converter: Rc<TJsonToRgbConverter>,
+    rgb_type: PhantomData<TRgb>,
+    rectangle_creator: Rc<TRectangleCreator>,
+}
+
+impl<TJsonToStringConverter, TJsonToF32Converter, TJsonToRgbConverter, TRgb, TRectangleCreator>
+    JsonToSquareConverter<
+        TJsonToStringConverter,
+        TJsonToF32Converter,
+        TJsonToRgbConverter,
+        TRgb,
+        TRectangleCreator,
+    >
+{
+    fn new(
+        json_to_string_converter: Rc<TJsonToStringConverter>,
+        json_to_f32_converter: Rc<TJsonToF32Converter>,
+        json_to_rgb_converter: Rc<TJsonToRgbConverter>,
+        rectangle_creator: Rc<TRectangleCreator>,
+    ) -> Self {
+        Self {
+            json_to_string_converter: json_to_string_converter,
+            json_to_f32_converter: json_to_f32_converter,
+            json_to_rgb_converter: json_to_rgb_converter,
+            rgb_type: PhantomData,
+            rectangle_creator: rectangle_creator,
+        }
+    }
+}
+
+impl<
+        TJsonToStringConverter: ConvertJsonToValue<String>,
+        TJsonToF32Converter: ConvertJsonToValue<f32>,
+        TJsonToRgbConverter: ConvertJsonToValue<TRgb>,
+        TRgb,
+        TRectangleCreator: CreateObject<TRectangle, RectangleParameters<TRgb>>,
+        TRectangle,
+    > ConvertJsonToValue<Rc<RefCell<TRectangle>>>
+    for JsonToSquareConverter<
+        TJsonToStringConverter,
+        TJsonToF32Converter,
+        TJsonToRgbConverter,
+        TRgb,
+        TRectangleCreator,
+    >
+{
+    fn convert_json_to_value(&self, json: &Value) -> Rc<RefCell<TRectangle>> {
+        let name = self
+            .json_to_string_converter
+            .convert_json_to_value(&json["name"]);
+
+        let size = self
+            .json_to_f32_converter
+            .convert_json_to_value(&json["size"]);
+
+        let rgb = self
+            .json_to_rgb_converter
+            .convert_json_to_value(&json["rgb"]);
+
+        let parameters = RectangleParameters::new(name, size, size, rgb);
+
+        self.rectangle_creator.create_object(parameters)
+    }
+}
+
 pub struct JsonToBoxedRectangleConverter<TJsonToRectangleConverter, TRectangle> {
     json_to_rectangle_converter: TJsonToRectangleConverter,
     rectangle_type: PhantomData<TRectangle>,
@@ -988,6 +1062,100 @@ pub fn compose_rectangles<
     );
 }
 
+pub fn compose_squares<
+    TJsonToStringConverter: ConvertJsonToValue<String> + 'static,
+    TJsonToF32Converter: ConvertJsonToValue<f32> + 'static,
+    TJsontoRgbConverter: ConvertJsonToValue<Rgb> + 'static,
+    TJsonToTwoDPointConverter: ConvertJsonToValue<TTwoDPoint> + 'static,
+    TTwoDPointCreator: CreateTwoDPoint<TTwoDPoint> + 'static,
+    TTrianglePointCreator: CreateTrianglePoint<TTrianglePoint> + 'static,
+    TTwoDPoint: Get2DCoordiantes + 'static,
+    TTrianglePoint: GetTrianglePointProperties + GetVertexData + GetNumberOfVertices + 'static,
+>(
+    object_converters: &mut HashMap<
+        String,
+        Box<dyn ConvertJsonToValue<Box<Rc<RefCell<dyn GetName>>>>>,
+    >,
+    object_instance_runner_converters: &mut HashMap<
+        String,
+        Box<dyn ConvertJsonToValue<Box<dyn RunObjectInstance>>>,
+    >,
+    json_to_string_converter: Rc<TJsonToStringConverter>,
+    json_to_f32_converter: Rc<TJsonToF32Converter>,
+    json_to_rgb_converter: Rc<TJsontoRgbConverter>,
+    json_to_two_d_point_converter: Rc<TJsonToTwoDPointConverter>,
+    two_d_point_creator: Rc<TTwoDPointCreator>,
+    triangle_point_creator: Rc<TTrianglePointCreator>,
+) {
+    let rectangle_provider = ContentProvider::<Rectangle<Rgb>>::new(vec![]);
+
+    let rectangle_provider_ref_cell = Rc::new(RefCell::new(rectangle_provider));
+
+    let rectangle_constructor = Rc::new(RectangleConstructor::new());
+
+    let rectangle_creator = Rc::new(ObjectCreator::new(
+        Rc::clone(&rectangle_constructor),
+        Rc::clone(&rectangle_provider_ref_cell),
+    ));
+
+    let json_to_square_converter = JsonToSquareConverter::new(
+        Rc::clone(&json_to_string_converter),
+        Rc::clone(&json_to_f32_converter),
+        Rc::clone(&json_to_rgb_converter),
+        Rc::clone(&rectangle_creator),
+    );
+
+    let json_to_boxed_rectangle_converter =
+        JsonToBoxedRectangleConverter::new(json_to_square_converter);
+
+    let geometry_triangle_constructor = Rc::new(GeometryTriangleConstructor::new());
+
+    let geometry_triangles_creator = Rc::new(GeometryTrianglesCreator::new(
+        Rc::clone(&geometry_triangle_constructor),
+        Rc::clone(&triangle_point_creator),
+    ));
+
+    let rectangle_instance_constructor = Rc::new(RectangleInstanceConstructor::new(Rc::clone(
+        &geometry_triangles_creator,
+    )));
+
+    let rectangle_instance_store = Rc::new(RefCell::new(Store::new(vec![])));
+
+    let rectangle_instance_creator = Rc::new(ObjectCreator::new(
+        Rc::clone(&rectangle_instance_constructor),
+        Rc::clone(&rectangle_instance_store),
+    ));
+
+    let json_to_rectangle_instance_converter = JsonToRectangleInstanceConverter::new(
+        Rc::clone(&json_to_string_converter),
+        Rc::clone(&json_to_f32_converter),
+        Rc::clone(&json_to_two_d_point_converter),
+        Rc::clone(&rectangle_instance_creator),
+        Rc::clone(&rectangle_provider_ref_cell),
+    );
+
+    let rectangle_instance_scaler = Rc::new(RectangleInstanceScaler::new(
+        Rc::clone(&rectangle_instance_creator),
+        Rc::clone(&two_d_point_creator),
+    ));
+
+    let json_to_rectangle_instance_runner_converter = JsonToObjectInstanceRunnerConverter::new(
+        json_to_rectangle_instance_converter,
+        Rc::clone(&rectangle_instance_scaler),
+    );
+
+    let json_to_boxed_rectangle_instance_runner_converter =
+        JsonToBoxedObjectInstanceRunnerConverter::new(json_to_rectangle_instance_runner_converter);
+
+    let b = Box::new(json_to_boxed_rectangle_converter);
+    object_converters.insert("square".to_string(), b);
+
+    object_instance_runner_converters.insert(
+        "square".to_string(),
+        Box::new(json_to_boxed_rectangle_instance_runner_converter),
+    );
+}
+
 pub fn compose_triangles<
     TJsonToStringConverter: ConvertJsonToValue<String> + 'static,
     TJsonToTrianglePointConverter: ConvertJsonToValue<TrianglePoint<TwoDPoint, Rgb>> + 'static,
@@ -1251,6 +1419,17 @@ pub fn compose_json_to_content_converter(
     ));
 
     compose_rectangles(
+        &mut object_converters,
+        &mut object_instance_runner_converters,
+        Rc::clone(&json_to_string_converter),
+        Rc::clone(&json_to_f32_converter),
+        Rc::clone(&json_to_rgb_converter),
+        Rc::clone(&json_to_two_d_point_converter),
+        Rc::clone(&two_d_point_creator),
+        Rc::clone(&triangle_point_creator),
+    );
+
+    compose_squares(
         &mut object_converters,
         &mut object_instance_runner_converters,
         Rc::clone(&json_to_string_converter),
