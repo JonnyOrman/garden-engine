@@ -3,9 +3,10 @@ use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 use garden::GetName;
 
 use crate::{
-    triangles::CreateGeometryTriangles, ConstructObject, CreateObject, CreateTwoDPoint,
-    Get2DCoordiantes, GetB, GetContentInstanceData, GetG, GetNumberOfObjects, GetNumberOfVertices,
-    GetPosition, GetR, GetRgb, GetRgbValues, GetScale, GetVertexData, Rgb, ScaleObjectInstance,
+    triangles::{ConstructGeometryTriangle, CreateGeometryTriangles},
+    ConstructObject, CreateObject, CreateTrianglePoint, CreateTwoDPoint, Get2DCoordiantes, GetB,
+    GetContentInstanceData, GetG, GetNumberOfObjects, GetNumberOfVertices, GetPosition, GetR,
+    GetRgb, GetRgbValues, GetScale, GetVertexData, Rgb, ScaleObjectInstance,
 };
 
 pub trait GetDiameter {
@@ -369,5 +370,163 @@ impl<
                 ),
                 circle_instance.borrow().get_diameter() / x,
             ))
+    }
+}
+
+pub struct CircleGeometryTrianglesCreator<
+    TGeometryTriangleConstructor,
+    TTrianglePointCreator,
+    TTrianglePoint,
+> {
+    geometry_triangle_constructor: Rc<TGeometryTriangleConstructor>,
+    triangle_point_creator: Rc<TTrianglePointCreator>,
+    triangle_point_type: PhantomData<TTrianglePoint>,
+}
+
+impl<TGeometryTriangleConstructor, TTrianglePointCreator, TTrianglePoint>
+    CircleGeometryTrianglesCreator<
+        TGeometryTriangleConstructor,
+        TTrianglePointCreator,
+        TTrianglePoint,
+    >
+{
+    pub fn new(
+        geometry_triangle_constructor: Rc<TGeometryTriangleConstructor>,
+        triangle_point_creator: Rc<TTrianglePointCreator>,
+    ) -> Self {
+        Self {
+            geometry_triangle_constructor: geometry_triangle_constructor,
+            triangle_point_creator: triangle_point_creator,
+            triangle_point_type: PhantomData,
+        }
+    }
+}
+
+impl<
+        TObject: GetRgbValues + GetDiameter,
+        TPosition: Get2DCoordiantes,
+        TGeometryTriangle,
+        TGeometryTriangleConstructor: ConstructGeometryTriangle<TGeometryTriangle, TTrianglePoint>,
+        TTrianglePointCreator: CreateTrianglePoint<TTrianglePoint>,
+        TTrianglePoint,
+    > CreateGeometryTriangles<TGeometryTriangle, TObject, TPosition>
+    for CircleGeometryTrianglesCreator<
+        TGeometryTriangleConstructor,
+        TTrianglePointCreator,
+        TTrianglePoint,
+    >
+{
+    fn create_geometry_triangles(
+        &self,
+        object: &TObject,
+        position: &TPosition,
+        width: f32,
+        height: f32,
+    ) -> Vec<TGeometryTriangle> {
+        let mut geometry_triangles = vec![];
+
+        let radius = (object.get_diameter() / 2.0) as f64;
+
+        println!("diameter {}, radius {}", object.get_diameter(), radius);
+
+        let mut triangle = 0;
+        let mut next = 1;
+
+        let mut point_1_x = 0.0;
+        let mut point_1_y = 0.0;
+
+        let mut point_2_x = 0.0;
+        let mut point_2_y = 0.0;
+
+        let mut point_3_x = 0.0;
+        let mut point_3_y = 0.0;
+
+        while triangle < 90 {
+            let radians = next as f64 * (std::f64::consts::PI / 180 as f64);
+
+            point_1_x = position.get_x();
+            point_1_y = position.get_y();
+
+            let point_1 = self.triangle_point_creator.create_triangle_point(
+                point_1_x,
+                point_1_y,
+                object.get_r(),
+                object.get_g(),
+                object.get_b(),
+            );
+
+            if triangle == 0 {
+                point_2_x = position.get_x() + radius as f32;
+                point_2_y = position.get_y();
+
+                let point_2 = self.triangle_point_creator.create_triangle_point(
+                    point_2_x,
+                    point_2_y,
+                    object.get_r(),
+                    object.get_g(),
+                    object.get_b(),
+                );
+
+                point_3_x = (radians.cos() * radius) + position.get_x() as f64;
+
+                point_3_y = (radians.sin() * radius) + position.get_y() as f64;
+
+                let point_3 = self.triangle_point_creator.create_triangle_point(
+                    point_3_x as f32,
+                    point_3_y as f32,
+                    object.get_r(),
+                    object.get_g(),
+                    object.get_b(),
+                );
+
+                let geometry_triangle = self
+                    .geometry_triangle_constructor
+                    .construct_geometry_triangle(point_1, point_2, point_3);
+
+                println!(
+                    "Triangle {} - point 1 {}, {} point 2 {}, {} point 3 {}, {}",
+                    triangle, point_1_x, point_1_y, point_2_x, point_2_y, point_3_x, point_3_y
+                );
+                geometry_triangles.push(geometry_triangle);
+            } else {
+                point_2_x = point_3_x as f32;
+                point_2_y = point_3_y as f32;
+
+                let point_2 = self.triangle_point_creator.create_triangle_point(
+                    point_2_x,
+                    point_2_y,
+                    object.get_r(),
+                    object.get_g(),
+                    object.get_b(),
+                );
+
+                point_3_x = (radians.cos() * radius) + position.get_x() as f64;
+
+                point_3_y = (radians.sin() * radius) + position.get_y() as f64;
+
+                let point_3 = self.triangle_point_creator.create_triangle_point(
+                    point_3_x as f32,
+                    point_3_y as f32,
+                    object.get_r(),
+                    object.get_g(),
+                    object.get_b(),
+                );
+
+                let geometry_triangle = self
+                    .geometry_triangle_constructor
+                    .construct_geometry_triangle(point_1, point_2, point_3);
+
+                println!(
+                    "Triangle {} - point 1 {}, {} point 2 {}, {} point 3 {}, {}",
+                    triangle, point_1_x, point_1_y, point_2_x, point_2_y, point_3_x, point_3_y
+                );
+                geometry_triangles.push(geometry_triangle);
+            }
+
+            triangle = triangle + 1;
+            next = next + 1;
+        }
+
+        return geometry_triangles;
     }
 }

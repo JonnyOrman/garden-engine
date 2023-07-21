@@ -1,8 +1,8 @@
 use garden::{GetHeight, GetName, GetWidth};
 use garden_content::{
     circles::{
-        Circle, CircleConstructor, CircleInstanceConstructor, CircleInstanceParameters,
-        CircleInstanceScaler, CircleParameters, GetDiameter,
+        Circle, CircleConstructor, CircleGeometryTrianglesCreator, CircleInstanceConstructor,
+        CircleInstanceParameters, CircleInstanceScaler, CircleParameters, GetDiameter,
     },
     equilateral_triangles::{
         CalculateEquilateralTrianglePoint, EquilateralTrianglePointCalculator,
@@ -1636,7 +1636,7 @@ pub fn compose_circles<
 
     let geometry_triangle_constructor = Rc::new(GeometryTriangleConstructor::new());
 
-    let geometry_triangles_creator = Rc::new(GeometryTrianglesCreator::new(
+    let geometry_triangles_creator = Rc::new(CircleGeometryTrianglesCreator::new(
         Rc::clone(&geometry_triangle_constructor),
         Rc::clone(&triangle_point_creator),
     ));
