@@ -439,6 +439,70 @@ impl<
         width: f32,
         height: f32,
     ) -> Vec<TGeometryTriangle> {
+        let builder = CircleGeometryBuilder::new(
+            Rc::clone(&self.geometry_triangle_constructor),
+            Rc::clone(&self.triangle_point_creator),
+            object,
+            position,
+        );
+
+        builder.build()
+    }
+}
+
+pub struct CircleGeometryBuilder<
+    'a,
+    TGeometryTriangleConstructor,
+    TTrianglePointCreator,
+    TGeometryTriangle,
+    TObject,
+    TPosition,
+    TTrianglePoint,
+> {
+    geometry_triangle_constructor: Rc<TGeometryTriangleConstructor>,
+    triangle_point_creator: Rc<TTrianglePointCreator>,
+    object: &'a TObject,
+    position: &'a TPosition,
+    geometry_triangle_type: PhantomData<TGeometryTriangle>,
+    triangle_point_type: PhantomData<TTrianglePoint>,
+}
+
+impl<
+        'a,
+        TGeometryTriangleConstructor: ConstructGeometryTriangle<TGeometryTriangle, TTrianglePoint>,
+        TTrianglePointCreator: CreateTrianglePoint<TTrianglePoint>,
+        TGeometryTriangle,
+        TObject: GetRgbValues + GetRadius,
+        TPosition: Get2DCoordiantes,
+        TTrianglePoint,
+    >
+    CircleGeometryBuilder<
+        'a,
+        TGeometryTriangleConstructor,
+        TTrianglePointCreator,
+        TGeometryTriangle,
+        TObject,
+        TPosition,
+        TTrianglePoint,
+    >
+{
+    fn new(
+        geometry_triangle_constructor: Rc<TGeometryTriangleConstructor>,
+        triangle_point_creator: Rc<TTrianglePointCreator>,
+        object: &'a TObject,
+        position: &'a TPosition,
+    ) -> Self {
+        Self {
+            geometry_triangle_constructor: geometry_triangle_constructor,
+            triangle_point_creator: triangle_point_creator,
+            object: object,
+            position: position,
+            geometry_triangle_type: PhantomData,
+            triangle_point_type: PhantomData,
+        }
+    }
+
+    fn build(&self) -> Vec<TGeometryTriangle> {
         let mut geometry_triangles = vec![];
 
         let mut triangle = 0;
@@ -450,44 +514,46 @@ impl<
         let mut point_2_x = 0.0;
         let mut point_2_y = 0.0;
 
-        let mut point_3_x = 0.0;
-        let mut point_3_y = 0.0;
+        let mut point_3_x: f64 = self.position.get_x() as f64 + self.object.get_radius() as f64;
+        let mut point_3_y = self.position.get_y() as f64;
 
         while triangle < 360 {
-            point_1_x = position.get_x();
-            point_1_y = position.get_y();
+            point_1_x = self.position.get_x();
+            point_1_y = self.position.get_y();
 
             let point_1 = self.triangle_point_creator.create_triangle_point(
                 point_1_x,
                 point_1_y,
-                object.get_r(),
-                object.get_g(),
-                object.get_b(),
+                self.object.get_r(),
+                self.object.get_g(),
+                self.object.get_b(),
             );
 
             if triangle == 0 {
                 let radians = next as f64 * (std::f64::consts::PI / 180 as f64);
 
-                point_2_x = position.get_x() + object.get_radius();
-                point_2_y = position.get_y();
+                point_2_x = point_3_x as f32;
+                point_2_y = point_3_y as f32;
 
                 let point_2 = self.triangle_point_creator.create_triangle_point(
                     point_2_x,
                     point_2_y,
-                    object.get_r(),
-                    object.get_g(),
-                    object.get_b(),
+                    self.object.get_r(),
+                    self.object.get_g(),
+                    self.object.get_b(),
                 );
 
-                point_3_x = (radians.cos() * object.get_radius() as f64) + position.get_x() as f64;
-                point_3_y = (radians.sin() * object.get_radius() as f64) + position.get_y() as f64;
+                point_3_x = (radians.cos() * self.object.get_radius() as f64)
+                    + self.position.get_x() as f64;
+                point_3_y = (radians.sin() * self.object.get_radius() as f64)
+                    + self.position.get_y() as f64;
 
                 let point_3 = self.triangle_point_creator.create_triangle_point(
                     point_3_x as f32,
                     point_3_y as f32,
-                    object.get_r(),
-                    object.get_g(),
-                    object.get_b(),
+                    self.object.get_r(),
+                    self.object.get_g(),
+                    self.object.get_b(),
                 );
 
                 let geometry_triangle = self
@@ -504,20 +570,22 @@ impl<
                 let point_2 = self.triangle_point_creator.create_triangle_point(
                     point_2_x,
                     point_2_y,
-                    object.get_r(),
-                    object.get_g(),
-                    object.get_b(),
+                    self.object.get_r(),
+                    self.object.get_g(),
+                    self.object.get_b(),
                 );
 
-                point_3_x = (radians.cos() * object.get_radius() as f64) + position.get_x() as f64;
-                point_3_y = (radians.sin() * object.get_radius() as f64) + position.get_y() as f64;
+                point_3_x = (radians.cos() * self.object.get_radius() as f64)
+                    + self.position.get_x() as f64;
+                point_3_y = (radians.sin() * self.object.get_radius() as f64)
+                    + self.position.get_y() as f64;
 
                 let point_3 = self.triangle_point_creator.create_triangle_point(
                     point_3_x as f32,
                     point_3_y as f32,
-                    object.get_r(),
-                    object.get_g(),
-                    object.get_b(),
+                    self.object.get_r(),
+                    self.object.get_g(),
+                    self.object.get_b(),
                 );
 
                 let geometry_triangle = self
@@ -528,27 +596,28 @@ impl<
             } else if triangle == 90 {
                 let radians = (next - 90) as f64 * (std::f64::consts::PI / 180 as f64);
 
-                point_2_x = position.get_x();
-                point_2_y = position.get_y() + object.get_radius();
+                point_2_x = self.position.get_x();
+                point_2_y = self.position.get_y() + self.object.get_radius();
 
                 let point_2 = self.triangle_point_creator.create_triangle_point(
                     point_2_x,
                     point_2_y,
-                    object.get_r(),
-                    object.get_g(),
-                    object.get_b(),
+                    self.object.get_r(),
+                    self.object.get_g(),
+                    self.object.get_b(),
                 );
 
-                point_3_x = position.get_x() as f64 - (radians.sin() * object.get_radius() as f64);
-
-                point_3_y = (radians.cos() * object.get_radius() as f64) + position.get_y() as f64;
+                point_3_x = self.position.get_x() as f64
+                    - (radians.sin() * self.object.get_radius() as f64);
+                point_3_y = (radians.cos() * self.object.get_radius() as f64)
+                    + self.position.get_y() as f64;
 
                 let point_3 = self.triangle_point_creator.create_triangle_point(
                     point_3_x as f32,
                     point_3_y as f32,
-                    object.get_r(),
-                    object.get_g(),
-                    object.get_b(),
+                    self.object.get_r(),
+                    self.object.get_g(),
+                    self.object.get_b(),
                 );
 
                 let geometry_triangle = self
@@ -565,20 +634,22 @@ impl<
                 let point_2 = self.triangle_point_creator.create_triangle_point(
                     point_2_x,
                     point_2_y,
-                    object.get_r(),
-                    object.get_g(),
-                    object.get_b(),
+                    self.object.get_r(),
+                    self.object.get_g(),
+                    self.object.get_b(),
                 );
 
-                point_3_x = position.get_x() as f64 - (radians.sin() * object.get_radius() as f64);
-                point_3_y = (radians.cos() * object.get_radius() as f64) + position.get_y() as f64;
+                point_3_x = self.position.get_x() as f64
+                    - (radians.sin() * self.object.get_radius() as f64);
+                point_3_y = (radians.cos() * self.object.get_radius() as f64)
+                    + self.position.get_y() as f64;
 
                 let point_3 = self.triangle_point_creator.create_triangle_point(
                     point_3_x as f32,
                     point_3_y as f32,
-                    object.get_r(),
-                    object.get_g(),
-                    object.get_b(),
+                    self.object.get_r(),
+                    self.object.get_g(),
+                    self.object.get_b(),
                 );
 
                 let geometry_triangle = self
@@ -589,26 +660,28 @@ impl<
             } else if triangle == 180 {
                 let radians = (next - 180) as f64 * (std::f64::consts::PI / 180 as f64);
 
-                point_2_x = position.get_x() - object.get_radius();
-                point_2_y = position.get_y();
+                point_2_x = self.position.get_x() - self.object.get_radius();
+                point_2_y = self.position.get_y();
 
                 let point_2 = self.triangle_point_creator.create_triangle_point(
                     point_2_x,
                     point_2_y,
-                    object.get_r(),
-                    object.get_g(),
-                    object.get_b(),
+                    self.object.get_r(),
+                    self.object.get_g(),
+                    self.object.get_b(),
                 );
 
-                point_3_x = position.get_x() as f64 - (radians.cos() * object.get_radius() as f64);
-                point_3_y = position.get_y() as f64 - (radians.sin() * object.get_radius() as f64);
+                point_3_x = self.position.get_x() as f64
+                    - (radians.cos() * self.object.get_radius() as f64);
+                point_3_y = self.position.get_y() as f64
+                    - (radians.sin() * self.object.get_radius() as f64);
 
                 let point_3 = self.triangle_point_creator.create_triangle_point(
                     point_3_x as f32,
                     point_3_y as f32,
-                    object.get_r(),
-                    object.get_g(),
-                    object.get_b(),
+                    self.object.get_r(),
+                    self.object.get_g(),
+                    self.object.get_b(),
                 );
 
                 let geometry_triangle = self
@@ -619,26 +692,28 @@ impl<
             } else if triangle < 270 {
                 let radians = (next - 180) as f64 * (std::f64::consts::PI / 180 as f64);
 
-                point_2_x = position.get_x() - object.get_radius();
-                point_2_y = position.get_y();
+                point_2_x = point_3_x as f32;
+                point_2_y = point_3_y as f32;
 
                 let point_2 = self.triangle_point_creator.create_triangle_point(
                     point_2_x,
                     point_2_y,
-                    object.get_r(),
-                    object.get_g(),
-                    object.get_b(),
+                    self.object.get_r(),
+                    self.object.get_g(),
+                    self.object.get_b(),
                 );
 
-                point_3_x = position.get_x() as f64 - (radians.cos() * object.get_radius() as f64);
-                point_3_y = position.get_y() as f64 - (radians.sin() * object.get_radius() as f64);
+                point_3_x = self.position.get_x() as f64
+                    - (radians.cos() * self.object.get_radius() as f64);
+                point_3_y = self.position.get_y() as f64
+                    - (radians.sin() * self.object.get_radius() as f64);
 
                 let point_3 = self.triangle_point_creator.create_triangle_point(
                     point_3_x as f32,
                     point_3_y as f32,
-                    object.get_r(),
-                    object.get_g(),
-                    object.get_b(),
+                    self.object.get_r(),
+                    self.object.get_g(),
+                    self.object.get_b(),
                 );
 
                 let geometry_triangle = self
@@ -649,26 +724,28 @@ impl<
             } else if triangle == 271 {
                 let radians = (next - 270) as f64 * (std::f64::consts::PI / 180 as f64);
 
-                point_2_x = position.get_x();
-                point_2_y = position.get_y() - object.get_radius();
+                point_2_x = point_3_x as f32;
+                point_2_y = point_3_y as f32;
 
                 let point_2 = self.triangle_point_creator.create_triangle_point(
                     point_2_x,
                     point_2_y,
-                    object.get_r(),
-                    object.get_g(),
-                    object.get_b(),
+                    self.object.get_r(),
+                    self.object.get_g(),
+                    self.object.get_b(),
                 );
 
-                point_3_x = position.get_x() as f64 + (radians.sin() * object.get_radius() as f64);
-                point_3_y = position.get_y() as f64 - (radians.cos() * object.get_radius() as f64);
+                point_3_x = self.position.get_x() as f64
+                    + (radians.sin() * self.object.get_radius() as f64);
+                point_3_y = self.position.get_y() as f64
+                    - (radians.cos() * self.object.get_radius() as f64);
 
                 let point_3 = self.triangle_point_creator.create_triangle_point(
                     point_3_x as f32,
                     point_3_y as f32,
-                    object.get_r(),
-                    object.get_g(),
-                    object.get_b(),
+                    self.object.get_r(),
+                    self.object.get_g(),
+                    self.object.get_b(),
                 );
 
                 let geometry_triangle = self
@@ -685,20 +762,22 @@ impl<
                 let point_2 = self.triangle_point_creator.create_triangle_point(
                     point_2_x,
                     point_2_y,
-                    object.get_r(),
-                    object.get_g(),
-                    object.get_b(),
+                    self.object.get_r(),
+                    self.object.get_g(),
+                    self.object.get_b(),
                 );
 
-                point_3_x = position.get_x() as f64 + (radians.cos() * object.get_radius() as f64);
-                point_3_y = position.get_y() as f64 - (radians.sin() * object.get_radius() as f64);
+                point_3_x = self.position.get_x() as f64
+                    + (radians.cos() * self.object.get_radius() as f64);
+                point_3_y = self.position.get_y() as f64
+                    - (radians.sin() * self.object.get_radius() as f64);
 
                 let point_3 = self.triangle_point_creator.create_triangle_point(
                     point_3_x as f32,
                     point_3_y as f32,
-                    object.get_r(),
-                    object.get_g(),
-                    object.get_b(),
+                    self.object.get_r(),
+                    self.object.get_g(),
+                    self.object.get_b(),
                 );
 
                 let geometry_triangle = self
