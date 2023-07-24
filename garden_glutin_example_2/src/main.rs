@@ -13,10 +13,13 @@ fn main() {
 
     let scene_component = garden_scenes_component::compose_component(&json_component);
 
+    let maths_component = garden_maths_component::compose_component();
+
     add_content(
         &mut game_instance_builder,
         scene_component.get_scene(),
         &json_component,
+        &maths_component,
     );
 
     game_instance_builder.add(scene_component);

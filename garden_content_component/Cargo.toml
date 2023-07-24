@@ -12,4 +12,5 @@ garden_content = { path = "../garden_content" }
 garden_content_loading = { path = "../garden_content_loading" }
 garden_json_component = { path = "../garden_json_component" }
 garden_loading = { path = "../garden_loading" }
+garden_maths_component = { path = "../garden_maths_component" }
 garden_scenes = { path = "../garden_scenes" }
