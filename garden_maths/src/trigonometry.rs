@@ -7,7 +7,7 @@ pub trait ConvertDegreesToRadians {
 pub struct DegreesToRadiansConverter {}
 
 impl DegreesToRadiansConverter {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {}
     }
 }
@@ -25,7 +25,7 @@ pub trait CalculateAdjacent {
 pub struct AdjacentCalculator {}
 
 impl AdjacentCalculator {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {}
     }
 }
@@ -43,7 +43,7 @@ pub trait CalculateOpposite {
 pub struct OppositeCalculator {}
 
 impl OppositeCalculator {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {}
     }
 }
@@ -72,7 +72,7 @@ pub struct TrigonometryCalculator<
 impl<TDegreesToRadiansConverter, TAdjacentCalculator, TOppositeCalculator>
     TrigonometryCalculator<TDegreesToRadiansConverter, TAdjacentCalculator, TOppositeCalculator>
 {
-    fn new(
+    pub fn new(
         degrees_to_radians_converter: Rc<TDegreesToRadiansConverter>,
         adjacent_calculator: Rc<TAdjacentCalculator>,
         opposite_calculator: Rc<TOppositeCalculator>,

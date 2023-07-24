@@ -10,4 +10,5 @@ garden = { path = "../garden" }
 garden_content = { path = "../garden_content" }
 garden_loading = { path = "../garden_loading" }
 garden_json = { path = "../garden_json" }
+garden_maths = { path = "../garden_maths" }
 serde_json = "1.0.89"

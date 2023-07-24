@@ -26,6 +26,9 @@ use garden_content::{
 };
 use garden_json::{ConvertJsonToValue, JsonToF32Converter, JsonToStringConverter};
 use garden_loading::Load;
+use garden_maths::trigonometry::{
+    AdjacentCalculator, DegreesToRadiansConverter, OppositeCalculator, TrigonometryCalculator,
+};
 use serde_json::Value;
 use std::{cell::RefCell, collections::HashMap, fs, marker::PhantomData, rc::Rc};
 
@@ -1636,9 +1639,22 @@ pub fn compose_circles<
 
     let geometry_triangle_constructor = Rc::new(GeometryTriangleConstructor::new());
 
+    let degrees_to_radians_converter = Rc::new(DegreesToRadiansConverter::new());
+
+    let adjacent_calculator = Rc::new(AdjacentCalculator::new());
+
+    let opposite_calculator = Rc::new(OppositeCalculator::new());
+
+    let trigonometry_calculator = Rc::new(TrigonometryCalculator::new(
+        Rc::clone(&degrees_to_radians_converter),
+        Rc::clone(&adjacent_calculator),
+        Rc::clone(&opposite_calculator),
+    ));
+
     let geometry_triangles_creator = Rc::new(CircleGeometryTrianglesCreator::new(
         Rc::clone(&geometry_triangle_constructor),
         Rc::clone(&triangle_point_creator),
+        Rc::clone(&trigonometry_calculator),
     ));
 
     let circle_instance_constructor = Rc::new(CircleInstanceConstructor::new(Rc::clone(

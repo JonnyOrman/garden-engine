@@ -1,6 +1,7 @@
 use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
 use garden::GetName;
+use garden_maths::trigonometry::CalculateTrigonometry;
 
 use crate::{
     triangles::{ConstructGeometryTriangle, CreateGeometryTriangles},
@@ -392,27 +393,37 @@ impl<
 pub struct CircleGeometryTrianglesCreator<
     TGeometryTriangleConstructor,
     TTrianglePointCreator,
+    TTrigonometryCalculator,
     TTrianglePoint,
 > {
     geometry_triangle_constructor: Rc<TGeometryTriangleConstructor>,
     triangle_point_creator: Rc<TTrianglePointCreator>,
+    trigonometry_calculator: Rc<TTrigonometryCalculator>,
     triangle_point_type: PhantomData<TTrianglePoint>,
 }
 
-impl<TGeometryTriangleConstructor, TTrianglePointCreator, TTrianglePoint>
+impl<
+        TGeometryTriangleConstructor,
+        TTrianglePointCreator,
+        TTrigonometryCalculator,
+        TTrianglePoint,
+    >
     CircleGeometryTrianglesCreator<
         TGeometryTriangleConstructor,
         TTrianglePointCreator,
+        TTrigonometryCalculator,
         TTrianglePoint,
     >
 {
     pub fn new(
         geometry_triangle_constructor: Rc<TGeometryTriangleConstructor>,
         triangle_point_creator: Rc<TTrianglePointCreator>,
+        trigonometry_calculator: Rc<TTrigonometryCalculator>,
     ) -> Self {
         Self {
             geometry_triangle_constructor: geometry_triangle_constructor,
             triangle_point_creator: triangle_point_creator,
+            trigonometry_calculator: trigonometry_calculator,
             triangle_point_type: PhantomData,
         }
     }
@@ -424,11 +435,13 @@ impl<
         TGeometryTriangle,
         TGeometryTriangleConstructor: ConstructGeometryTriangle<TGeometryTriangle, TTrianglePoint>,
         TTrianglePointCreator: CreateTrianglePoint<TTrianglePoint>,
+        TTrigonometryCalculator: CalculateTrigonometry,
         TTrianglePoint,
     > CreateGeometryTriangles<TGeometryTriangle, TObject, TPosition>
     for CircleGeometryTrianglesCreator<
         TGeometryTriangleConstructor,
         TTrianglePointCreator,
+        TTrigonometryCalculator,
         TTrianglePoint,
     >
 {
@@ -442,6 +455,7 @@ impl<
         let builder = CircleGeometryBuilder::new(
             Rc::clone(&self.geometry_triangle_constructor),
             Rc::clone(&self.triangle_point_creator),
+            Rc::clone(&self.trigonometry_calculator),
             object,
             position,
         );
@@ -454,6 +468,7 @@ pub struct CircleGeometryBuilder<
     'a,
     TGeometryTriangleConstructor,
     TTrianglePointCreator,
+    TTrigonometryCalculator,
     TGeometryTriangle,
     TObject,
     TPosition,
@@ -461,6 +476,7 @@ pub struct CircleGeometryBuilder<
 > {
     geometry_triangle_constructor: Rc<TGeometryTriangleConstructor>,
     triangle_point_creator: Rc<TTrianglePointCreator>,
+    trigonometry_calculator: Rc<TTrigonometryCalculator>,
     object: &'a TObject,
     position: &'a TPosition,
     geometry_triangle_type: PhantomData<TGeometryTriangle>,
@@ -480,6 +496,7 @@ impl<
         'a,
         TGeometryTriangleConstructor: ConstructGeometryTriangle<TGeometryTriangle, TTrianglePoint>,
         TTrianglePointCreator: CreateTrianglePoint<TTrianglePoint>,
+        TTrigonometryCalculator: CalculateTrigonometry,
         TGeometryTriangle,
         TObject: GetRgbValues + GetRadius,
         TPosition: Get2DCoordiantes,
@@ -489,6 +506,7 @@ impl<
         'a,
         TGeometryTriangleConstructor,
         TTrianglePointCreator,
+        TTrigonometryCalculator,
         TGeometryTriangle,
         TObject,
         TPosition,
@@ -498,12 +516,14 @@ impl<
     fn new(
         geometry_triangle_constructor: Rc<TGeometryTriangleConstructor>,
         triangle_point_creator: Rc<TTrianglePointCreator>,
+        trigonometry_calculator: Rc<TTrigonometryCalculator>,
         object: &'a TObject,
         position: &'a TPosition,
     ) -> Self {
         Self {
             geometry_triangle_constructor: geometry_triangle_constructor,
             triangle_point_creator: triangle_point_creator,
+            trigonometry_calculator: trigonometry_calculator,
             object: object,
             position: position,
             geometry_triangle_type: PhantomData,
@@ -516,7 +536,6 @@ impl<
             point_3_y: position.get_y() as f64,
             triangle: 0,
             next: 1,
-            //geometry_triangles: Vec::new(),
             geometry_triangles: vec![],
         }
     }
@@ -546,33 +565,57 @@ impl<
             );
 
             if self.triangle < 90 {
-                let radians = self.next as f64 * (std::f64::consts::PI / 180 as f64);
+                let radians = self
+                    .trigonometry_calculator
+                    .convert_degrees_to_radians(self.next as f64);
 
-                self.point_3_x = (radians.cos() * self.object.get_radius() as f64)
+                self.point_3_x = self
+                    .trigonometry_calculator
+                    .calculate_adjacent(self.object.get_radius() as f64, radians)
                     + self.position.get_x() as f64;
-                self.point_3_y = (radians.sin() * self.object.get_radius() as f64)
+                self.point_3_y = self
+                    .trigonometry_calculator
+                    .calculate_opposite(self.object.get_radius() as f64, radians)
                     + self.position.get_y() as f64;
             } else if self.triangle < 180 {
-                let radians = (self.next - 90) as f64 * (std::f64::consts::PI / 180 as f64);
+                let radians = self
+                    .trigonometry_calculator
+                    .convert_degrees_to_radians((self.next - 90) as f64);
 
                 self.point_3_x = self.position.get_x() as f64
-                    - (radians.sin() * self.object.get_radius() as f64);
-                self.point_3_y = (radians.cos() * self.object.get_radius() as f64)
+                    - self
+                        .trigonometry_calculator
+                        .calculate_opposite(self.object.get_radius() as f64, radians);
+                self.point_3_y = self
+                    .trigonometry_calculator
+                    .calculate_adjacent(self.object.get_radius() as f64, radians)
                     + self.position.get_y() as f64;
             } else if self.triangle < 270 {
-                let radians = (self.next - 180) as f64 * (std::f64::consts::PI / 180 as f64);
+                let radians = self
+                    .trigonometry_calculator
+                    .convert_degrees_to_radians((self.next - 180) as f64);
 
                 self.point_3_x = self.position.get_x() as f64
-                    - (radians.cos() * self.object.get_radius() as f64);
+                    - self
+                        .trigonometry_calculator
+                        .calculate_adjacent(self.object.get_radius() as f64, radians);
                 self.point_3_y = self.position.get_y() as f64
-                    - (radians.sin() * self.object.get_radius() as f64);
+                    - self
+                        .trigonometry_calculator
+                        .calculate_opposite(self.object.get_radius() as f64, radians);
             } else if self.triangle < 360 {
-                let radians = (self.next - 270) as f64 * (std::f64::consts::PI / 180 as f64);
+                let radians = self
+                    .trigonometry_calculator
+                    .convert_degrees_to_radians((self.next - 270) as f64);
 
                 self.point_3_x = self.position.get_x() as f64
-                    + (radians.cos() * self.object.get_radius() as f64);
+                    + self
+                        .trigonometry_calculator
+                        .calculate_adjacent(self.object.get_radius() as f64, radians);
                 self.point_3_y = self.position.get_y() as f64
-                    - (radians.sin() * self.object.get_radius() as f64);
+                    - self
+                        .trigonometry_calculator
+                        .calculate_opposite(self.object.get_radius() as f64, radians);
             }
 
             let point_3 = self.triangle_point_creator.create_triangle_point(
@@ -594,16 +637,5 @@ impl<
         }
 
         return self.geometry_triangles;
-    }
-
-    fn get_variables(&self, degrees: i32) -> (f64, f64, f64) {
-        let radians = (self.next - degrees) as f64 * (std::f64::consts::PI / 180 as f64);
-
-        let point_3_x =
-            (radians.cos() * self.object.get_radius() as f64) + self.position.get_x() as f64;
-        let point_3_y =
-            (radians.sin() * self.object.get_radius() as f64) + self.position.get_y() as f64;
-
-        (radians, point_3_x, point_3_y)
     }
 }

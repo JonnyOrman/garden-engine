@@ -406,6 +406,7 @@ dependencies = [
  "garden_content",
  "garden_json",
  "garden_loading",
+ "garden_maths",
  "serde_json",
 ]
 
