@@ -1,3 +1,4 @@
+pub mod circles;
 pub mod equilateral_triangles;
 pub mod rectangles;
 pub mod triangles;

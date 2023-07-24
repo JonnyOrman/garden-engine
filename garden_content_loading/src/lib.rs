@@ -1,5 +1,9 @@
 use garden::{GetHeight, GetName, GetWidth};
 use garden_content::{
+    circles::{
+        Circle, CircleConstructor, CircleGeometryTrianglesCreator, CircleInstanceConstructor,
+        CircleInstanceParameters, CircleInstanceScaler, CircleParameters, GetDiameter,
+    },
     equilateral_triangles::{
         CalculateEquilateralTrianglePoint, EquilateralTrianglePointCalculator,
     },
@@ -22,6 +26,9 @@ use garden_content::{
 };
 use garden_json::{ConvertJsonToValue, JsonToF32Converter, JsonToStringConverter};
 use garden_loading::Load;
+use garden_maths::trigonometry::{
+    AdjacentCalculator, DegreesToRadiansConverter, OppositeCalculator, TrigonometryCalculator,
+};
 use serde_json::Value;
 use std::{cell::RefCell, collections::HashMap, fs, marker::PhantomData, rc::Rc};
 
@@ -648,6 +655,209 @@ impl<
         self.triangle_instance_creator
             .create_object(TriangleInstanceParameters::new(
                 name, triangle, scale, position, point_1, point_2, point_3,
+            ))
+    }
+}
+
+pub struct JsonToCircleConverter<
+    TJsonToStringConverter,
+    TJsonToF32Converter,
+    TJsonToRgbConverter,
+    TRgb,
+    TCircleCreator,
+> {
+    json_to_string_converter: Rc<TJsonToStringConverter>,
+    json_to_f32_converter: Rc<TJsonToF32Converter>,
+    json_to_rgb_converter: Rc<TJsonToRgbConverter>,
+    rgb_type: PhantomData<TRgb>,
+    circle_creator: Rc<TCircleCreator>,
+}
+
+impl<TJsonToStringConverter, TJsonToF32Converter, TJsonToRgbConverter, TRgb, TCircleCreator>
+    JsonToCircleConverter<
+        TJsonToStringConverter,
+        TJsonToF32Converter,
+        TJsonToRgbConverter,
+        TRgb,
+        TCircleCreator,
+    >
+{
+    fn new(
+        json_to_string_converter: Rc<TJsonToStringConverter>,
+        json_to_f32_converter: Rc<TJsonToF32Converter>,
+        json_to_rgb_converter: Rc<TJsonToRgbConverter>,
+        circle_creator: Rc<TCircleCreator>,
+    ) -> Self {
+        Self {
+            json_to_string_converter: json_to_string_converter,
+            json_to_f32_converter: json_to_f32_converter,
+            json_to_rgb_converter: json_to_rgb_converter,
+            rgb_type: PhantomData,
+            circle_creator: circle_creator,
+        }
+    }
+}
+
+impl<
+        TJsonToStringConverter: ConvertJsonToValue<String>,
+        TJsonToF32Converter: ConvertJsonToValue<f32>,
+        TJsonToRgbConverter: ConvertJsonToValue<TRgb>,
+        TRgb,
+        TCircleCreator: CreateObject<TCircle, CircleParameters<TRgb>>,
+        TCircle,
+    > ConvertJsonToValue<Rc<RefCell<TCircle>>>
+    for JsonToCircleConverter<
+        TJsonToStringConverter,
+        TJsonToF32Converter,
+        TJsonToRgbConverter,
+        TRgb,
+        TCircleCreator,
+    >
+{
+    fn convert_json_to_value(&self, json: &Value) -> Rc<RefCell<TCircle>> {
+        let name = self
+            .json_to_string_converter
+            .convert_json_to_value(&json["name"]);
+
+        let diameter = self
+            .json_to_f32_converter
+            .convert_json_to_value(&json["diameter"]);
+
+        let rgb = self
+            .json_to_rgb_converter
+            .convert_json_to_value(&json["rgb"]);
+
+        let parameters = CircleParameters::new(name, diameter, rgb);
+
+        self.circle_creator.create_object(parameters)
+    }
+}
+
+pub struct JsonToBoxedCircleConverter<TJsonToCircleConverter, TCircle> {
+    json_to_circle_converter: TJsonToCircleConverter,
+    circle_type: PhantomData<TCircle>,
+}
+
+impl<TJsonToCircleConverter, TCircle> JsonToBoxedCircleConverter<TJsonToCircleConverter, TCircle> {
+    fn new(json_to_circle_converter: TJsonToCircleConverter) -> Self {
+        Self {
+            json_to_circle_converter: json_to_circle_converter,
+            circle_type: PhantomData,
+        }
+    }
+}
+
+impl<
+        TJsonToCircleConverter: ConvertJsonToValue<Rc<RefCell<TCircle>>>,
+        TCircle: GetName + 'static,
+    > ConvertJsonToValue<Box<Rc<RefCell<dyn GetName>>>>
+    for JsonToBoxedCircleConverter<TJsonToCircleConverter, TCircle>
+{
+    fn convert_json_to_value(&self, json: &Value) -> Box<Rc<RefCell<dyn GetName>>> {
+        Box::new(self.json_to_circle_converter.convert_json_to_value(json))
+    }
+}
+
+pub struct JsonToCircleInstanceConverter<
+    TJsonToStringConverter,
+    TJsonToF32Converter,
+    TJsonToPositionConverter,
+    TCircleInstanceCreator,
+    TCircleProvider,
+    TTwoDPoint,
+    TCircle,
+> {
+    json_to_string_converter: Rc<TJsonToStringConverter>,
+    json_to_f32_converter: Rc<TJsonToF32Converter>,
+    json_to_position_converter: Rc<TJsonToPositionConverter>,
+    circle_instance_creator: Rc<TCircleInstanceCreator>,
+    circle_provider: Rc<RefCell<TCircleProvider>>,
+    two_d_point_type: PhantomData<TTwoDPoint>,
+    circle_type: PhantomData<TCircle>,
+}
+
+impl<
+        TJsonToStringConverter,
+        TJsonToF32Converter,
+        TJsonToPositionConverter,
+        TCircleInstanceCreator,
+        TCircleProvider,
+        TTwoDPoint,
+        TCircle,
+    >
+    JsonToCircleInstanceConverter<
+        TJsonToStringConverter,
+        TJsonToF32Converter,
+        TJsonToPositionConverter,
+        TCircleInstanceCreator,
+        TCircleProvider,
+        TTwoDPoint,
+        TCircle,
+    >
+{
+    fn new(
+        json_to_string_converter: Rc<TJsonToStringConverter>,
+        json_to_f32_converter: Rc<TJsonToF32Converter>,
+        json_to_position_converter: Rc<TJsonToPositionConverter>,
+        circle_instance_creator: Rc<TCircleInstanceCreator>,
+        circle_provider: Rc<RefCell<TCircleProvider>>,
+    ) -> Self {
+        Self {
+            json_to_string_converter: json_to_string_converter,
+            json_to_f32_converter: json_to_f32_converter,
+            json_to_position_converter: json_to_position_converter,
+            circle_instance_creator: circle_instance_creator,
+            circle_provider: circle_provider,
+            two_d_point_type: PhantomData,
+            circle_type: PhantomData,
+        }
+    }
+}
+
+impl<
+        TJsonToStringConverter: ConvertJsonToValue<String>,
+        TJsonToF32Converter: ConvertJsonToValue<f32>,
+        TJsonToPositionConverter: ConvertJsonToValue<TTwoDPoint>,
+        TCircleInstanceCreator: CreateObject<TCircleInstance, CircleInstanceParameters<TCircle, TTwoDPoint>>,
+        TCircleProvider: GetContent<TCircle>,
+        TTwoDPoint,
+        TCircleInstance,
+        TCircle: GetDiameter,
+    > ConvertJsonToValue<Rc<RefCell<TCircleInstance>>>
+    for JsonToCircleInstanceConverter<
+        TJsonToStringConverter,
+        TJsonToF32Converter,
+        TJsonToPositionConverter,
+        TCircleInstanceCreator,
+        TCircleProvider,
+        TTwoDPoint,
+        TCircle,
+    >
+{
+    fn convert_json_to_value(&self, json: &Value) -> Rc<RefCell<TCircleInstance>> {
+        let name = self
+            .json_to_string_converter
+            .convert_json_to_value(&json["name"]);
+
+        let content_name = self
+            .json_to_string_converter
+            .convert_json_to_value(&json["contentName"]);
+
+        let scale = self
+            .json_to_f32_converter
+            .convert_json_to_value(&json["scale"]);
+
+        let position = self
+            .json_to_position_converter
+            .convert_json_to_value(&json["position"]);
+
+        let circle = self.circle_provider.borrow_mut().get_content(content_name);
+
+        let diameter = circle.borrow().get_diameter();
+
+        self.circle_instance_creator
+            .create_object(CircleInstanceParameters::new(
+                name, circle, scale, position, diameter, /*rgb*/
             ))
     }
 }
@@ -1382,6 +1592,112 @@ pub fn compose_equilateral_triangles<
     );
 }
 
+pub fn compose_circles<
+    TJsonToStringConverter: ConvertJsonToValue<String> + 'static,
+    TJsonToF32Converter: ConvertJsonToValue<f32> + 'static,
+    TJsontoRgbConverter: ConvertJsonToValue<Rgb> + 'static,
+    TJsonToTwoDPointConverter: ConvertJsonToValue<TTwoDPoint> + 'static,
+    TTwoDPointCreator: CreateTwoDPoint<TTwoDPoint> + 'static,
+    TTrianglePointCreator: CreateTrianglePoint<TTrianglePoint> + 'static,
+    TTwoDPoint: Get2DCoordiantes + 'static,
+    TTrianglePoint: GetTrianglePointProperties + GetVertexData + GetNumberOfVertices + 'static,
+>(
+    object_converters: &mut HashMap<
+        String,
+        Box<dyn ConvertJsonToValue<Box<Rc<RefCell<dyn GetName>>>>>,
+    >,
+    object_instance_runner_converters: &mut HashMap<
+        String,
+        Box<dyn ConvertJsonToValue<Box<dyn RunObjectInstance>>>,
+    >,
+    json_to_string_converter: Rc<TJsonToStringConverter>,
+    json_to_f32_converter: Rc<TJsonToF32Converter>,
+    json_to_rgb_converter: Rc<TJsontoRgbConverter>,
+    json_to_two_d_point_converter: Rc<TJsonToTwoDPointConverter>,
+    two_d_point_creator: Rc<TTwoDPointCreator>,
+    triangle_point_creator: Rc<TTrianglePointCreator>,
+) {
+    let circle_provider = ContentProvider::<Circle<Rgb>>::new(vec![]);
+
+    let circle_provider_ref_cell = Rc::new(RefCell::new(circle_provider));
+
+    let circle_constructor = Rc::new(CircleConstructor::new());
+
+    let circle_creator = Rc::new(ObjectCreator::new(
+        Rc::clone(&circle_constructor),
+        Rc::clone(&circle_provider_ref_cell),
+    ));
+
+    let json_to_circle_converter = JsonToCircleConverter::new(
+        Rc::clone(&json_to_string_converter),
+        Rc::clone(&json_to_f32_converter),
+        Rc::clone(&json_to_rgb_converter),
+        Rc::clone(&circle_creator),
+    );
+
+    let json_to_boxed_circle_converter = JsonToBoxedCircleConverter::new(json_to_circle_converter);
+
+    let geometry_triangle_constructor = Rc::new(GeometryTriangleConstructor::new());
+
+    let degrees_to_radians_converter = Rc::new(DegreesToRadiansConverter::new());
+
+    let adjacent_calculator = Rc::new(AdjacentCalculator::new());
+
+    let opposite_calculator = Rc::new(OppositeCalculator::new());
+
+    let trigonometry_calculator = Rc::new(TrigonometryCalculator::new(
+        Rc::clone(&degrees_to_radians_converter),
+        Rc::clone(&adjacent_calculator),
+        Rc::clone(&opposite_calculator),
+    ));
+
+    let geometry_triangles_creator = Rc::new(CircleGeometryTrianglesCreator::new(
+        Rc::clone(&geometry_triangle_constructor),
+        Rc::clone(&triangle_point_creator),
+        Rc::clone(&trigonometry_calculator),
+    ));
+
+    let circle_instance_constructor = Rc::new(CircleInstanceConstructor::new(Rc::clone(
+        &geometry_triangles_creator,
+    )));
+
+    let circle_instance_store = Rc::new(RefCell::new(Store::new(vec![])));
+
+    let circle_instance_creator = Rc::new(ObjectCreator::new(
+        Rc::clone(&circle_instance_constructor),
+        Rc::clone(&circle_instance_store),
+    ));
+
+    let json_to_circle_instance_converter = JsonToCircleInstanceConverter::new(
+        Rc::clone(&json_to_string_converter),
+        Rc::clone(&json_to_f32_converter),
+        Rc::clone(&json_to_two_d_point_converter),
+        Rc::clone(&circle_instance_creator),
+        Rc::clone(&circle_provider_ref_cell),
+    );
+
+    let circle_instance_scaler = Rc::new(CircleInstanceScaler::new(
+        Rc::clone(&circle_instance_creator),
+        Rc::clone(&two_d_point_creator),
+    ));
+
+    let json_to_circle_instance_runner_converter = JsonToObjectInstanceRunnerConverter::new(
+        json_to_circle_instance_converter,
+        Rc::clone(&circle_instance_scaler),
+    );
+
+    let json_to_boxed_circle_instance_runner_converter =
+        JsonToBoxedObjectInstanceRunnerConverter::new(json_to_circle_instance_runner_converter);
+
+    let b = Box::new(json_to_boxed_circle_converter);
+    object_converters.insert("circle".to_string(), b);
+
+    object_instance_runner_converters.insert(
+        "circle".to_string(),
+        Box::new(json_to_boxed_circle_instance_runner_converter),
+    );
+}
+
 pub fn compose_json_to_content_converter(
     json_to_f32_converter: Rc<JsonToF32Converter>,
     json_to_string_converter: Rc<JsonToStringConverter>,
@@ -1461,6 +1777,17 @@ pub fn compose_json_to_content_converter(
         Rc::clone(&json_to_two_d_point_converter),
         Rc::clone(&json_to_f32_converter),
         Rc::clone(&json_to_rgb_converter),
+    );
+
+    compose_circles(
+        &mut object_converters,
+        &mut object_instance_runner_converters,
+        Rc::clone(&json_to_string_converter),
+        Rc::clone(&json_to_f32_converter),
+        Rc::clone(&json_to_rgb_converter),
+        Rc::clone(&json_to_two_d_point_converter),
+        Rc::clone(&two_d_point_creator),
+        Rc::clone(&triangle_point_creator),
     );
 
     let json_to_object_converter =

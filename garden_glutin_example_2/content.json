@@ -83,6 +83,16 @@
                     "g": 1.0,
                     "b": 0.0
                 }
+            },
+            {
+                "name": "Circle1",
+                "type": "circle",
+                "diameter": 3.5,
+                "rgb": {
+                    "r": 0.2,
+                    "g": 0.8,
+                    "b": 0.6
+                }
             }
         ]
     },
@@ -145,6 +155,16 @@
             "position": {
                 "x": -2.5,
                 "y": -2.5
+            }
+        },
+        {
+            "name": "Circle1-a",
+            "contentName": "Circle1",
+            "type": "circle",
+            "scale": 1.0,
+            "position": {
+                "x": -2.5,
+                "y": 2.5
             }
         }
     ]

@@ -395,6 +395,7 @@ name = "garden_content"
 version = "0.1.0"
 dependencies = [
  "garden",
+ "garden_maths",
 ]
 
 [[package]]
@@ -405,6 +406,7 @@ dependencies = [
  "garden_content",
  "garden_json",
  "garden_loading",
+ "garden_maths",
  "serde_json",
 ]
 
@@ -449,6 +451,10 @@ dependencies = [
 
 [[package]]
 name = "garden_loading"
+version = "0.1.0"
+
+[[package]]
+name = "garden_maths"
 version = "0.1.0"
 
 [[package]]
