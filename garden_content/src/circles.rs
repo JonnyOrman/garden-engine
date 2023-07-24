@@ -603,7 +603,7 @@ impl<
                     - self
                         .trigonometry_calculator
                         .calculate_opposite(self.object.get_radius() as f64, radians);
-            } else if self.triangle < 360 {
+            } else if self.triangle < 359 {
                 let radians = self
                     .trigonometry_calculator
                     .convert_degrees_to_radians((self.next - 270) as f64);
@@ -616,6 +616,9 @@ impl<
                     - self
                         .trigonometry_calculator
                         .calculate_opposite(self.object.get_radius() as f64, radians);
+            } else if self.triangle == 359 {
+                self.point_3_x = self.position.get_x() as f64 + self.object.get_radius() as f64;
+                self.point_3_y = self.position.get_y() as f64;
             }
 
             let point_3 = self.triangle_point_creator.create_triangle_point(
