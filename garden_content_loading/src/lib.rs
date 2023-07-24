@@ -26,9 +26,7 @@ use garden_content::{
 };
 use garden_json::{ConvertJsonToValue, JsonToF32Converter, JsonToStringConverter};
 use garden_loading::Load;
-use garden_maths::trigonometry::{
-    AdjacentCalculator, DegreesToRadiansConverter, OppositeCalculator, TrigonometryCalculator,
-};
+use garden_maths::trigonometry::CalculateTrigonometry;
 use serde_json::Value;
 use std::{cell::RefCell, collections::HashMap, fs, marker::PhantomData, rc::Rc};
 
@@ -1601,6 +1599,7 @@ pub fn compose_circles<
     TTrianglePointCreator: CreateTrianglePoint<TTrianglePoint> + 'static,
     TTwoDPoint: Get2DCoordiantes + 'static,
     TTrianglePoint: GetTrianglePointProperties + GetVertexData + GetNumberOfVertices + 'static,
+    TTrigonometryCalculator: CalculateTrigonometry + 'static,
 >(
     object_converters: &mut HashMap<
         String,
@@ -1616,6 +1615,7 @@ pub fn compose_circles<
     json_to_two_d_point_converter: Rc<TJsonToTwoDPointConverter>,
     two_d_point_creator: Rc<TTwoDPointCreator>,
     triangle_point_creator: Rc<TTrianglePointCreator>,
+    trigonometry_calculator: Rc<TTrigonometryCalculator>,
 ) {
     let circle_provider = ContentProvider::<Circle<Rgb>>::new(vec![]);
 
@@ -1638,18 +1638,6 @@ pub fn compose_circles<
     let json_to_boxed_circle_converter = JsonToBoxedCircleConverter::new(json_to_circle_converter);
 
     let geometry_triangle_constructor = Rc::new(GeometryTriangleConstructor::new());
-
-    let degrees_to_radians_converter = Rc::new(DegreesToRadiansConverter::new());
-
-    let adjacent_calculator = Rc::new(AdjacentCalculator::new());
-
-    let opposite_calculator = Rc::new(OppositeCalculator::new());
-
-    let trigonometry_calculator = Rc::new(TrigonometryCalculator::new(
-        Rc::clone(&degrees_to_radians_converter),
-        Rc::clone(&adjacent_calculator),
-        Rc::clone(&opposite_calculator),
-    ));
 
     let geometry_triangles_creator = Rc::new(CircleGeometryTrianglesCreator::new(
         Rc::clone(&geometry_triangle_constructor),
@@ -1698,9 +1686,12 @@ pub fn compose_circles<
     );
 }
 
-pub fn compose_json_to_content_converter(
+pub fn compose_json_to_content_converter<
+    TTrigonometryCalculator: CalculateTrigonometry + 'static,
+>(
     json_to_f32_converter: Rc<JsonToF32Converter>,
     json_to_string_converter: Rc<JsonToStringConverter>,
+    trigonometry_calculator: Rc<TTrigonometryCalculator>,
 ) -> JsonToContentConverter<
     TypedJsonToValueConverter<JsonToStringConverter, Box<Rc<RefCell<dyn GetName>>>>,
     TypedJsonToValueConverter<JsonToStringConverter, Box<dyn RunObjectInstance>>,
@@ -1788,6 +1779,7 @@ pub fn compose_json_to_content_converter(
         Rc::clone(&json_to_two_d_point_converter),
         Rc::clone(&two_d_point_creator),
         Rc::clone(&triangle_point_creator),
+        Rc::clone(&trigonometry_calculator),
     );
 
     let json_to_object_converter =
@@ -1806,17 +1798,21 @@ pub fn compose_json_to_content_converter(
     json_to_content_converter
 }
 
-pub fn compose_content_loader(
+pub fn compose_content_loader<TTrigonometryCalculator: CalculateTrigonometry + 'static>(
     json_to_f32_converter: Rc<JsonToF32Converter>,
     json_to_string_converter: Rc<JsonToStringConverter>,
+    trigonometry_calculator: Rc<TTrigonometryCalculator>,
 ) -> ContentLoader<
     JsonToContentConverter<
         TypedJsonToValueConverter<JsonToStringConverter, Box<Rc<RefCell<dyn GetName>>>>,
         TypedJsonToValueConverter<JsonToStringConverter, Box<dyn RunObjectInstance>>,
     >,
 > {
-    let json_to_content_converter =
-        compose_json_to_content_converter(json_to_f32_converter, json_to_string_converter);
+    let json_to_content_converter = compose_json_to_content_converter(
+        json_to_f32_converter,
+        json_to_string_converter,
+        trigonometry_calculator,
+    );
 
     ContentLoader::<
         JsonToContentConverter<

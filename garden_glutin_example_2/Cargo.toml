@@ -11,4 +11,5 @@ garden_glutin = { path = "../garden_glutin" }
 garden_json_component = { path = "../garden_json_component" }
 garden_winit = { path = "../garden_winit" }
 garden_content_component = { path = "../garden_content_component" }
+garden_maths_component = { path = "../garden_maths_component" }
 garden_scenes_component = { path = "../garden_scenes_component" }
