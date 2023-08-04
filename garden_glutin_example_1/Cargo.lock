@@ -399,22 +399,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "garden_content_loading"
-version = "0.1.0"
-dependencies = [
- "garden",
- "garden_content",
- "garden_json",
- "garden_loading",
- "garden_maths",
- "serde_json",
-]
-
-[[package]]
 name = "garden_games"
 version = "0.1.0"
 dependencies = [
  "garden",
+ "garden_glutin",
+ "garden_winit",
+ "winit",
 ]
 
 [[package]]
@@ -423,9 +414,6 @@ version = "0.1.0"
 dependencies = [
  "cfg_aliases",
  "garden",
- "garden_content",
- "garden_content_loading",
- "garden_games",
  "garden_winit",
  "gl_generator",
  "glutin",
@@ -438,20 +426,10 @@ dependencies = [
 name = "garden_glutin_example_1"
 version = "0.1.0"
 dependencies = [
+ "garden_games",
  "garden_glutin",
  "garden_winit",
 ]
-
-[[package]]
-name = "garden_json"
-version = "0.1.0"
-dependencies = [
- "serde_json",
-]
-
-[[package]]
-name = "garden_loading"
-version = "0.1.0"
 
 [[package]]
 name = "garden_maths"
@@ -463,7 +441,6 @@ version = "0.1.0"
 dependencies = [
  "garden",
  "garden_content",
- "garden_games",
  "winit",
 ]
 
@@ -559,12 +536,6 @@ dependencies = [
  "wasm-bindgen",
  "web-sys",
 ]
-
-[[package]]
-name = "itoa"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4217ad341ebadf8d8e724e264f13e593e0648f5b3e94b3896a5df283be015ecc"
 
 [[package]]
 name = "jni-sys"
@@ -921,12 +892,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ryu"
-version = "1.0.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4501abdff3ae82a1c1b477a17252eb69cee9e66eb915c1abaa4f44d873df9f09"
-
-[[package]]
 name = "safe_arch"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -974,17 +939,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "serde_json"
-version = "1.0.89"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "020ff22c755c2ed3f8cf162dbb41a7268d934702f3ed3631656ea597e08fc3db"
-dependencies = [
- "itoa",
- "ryu",
- "serde",
 ]
 
 [[package]]

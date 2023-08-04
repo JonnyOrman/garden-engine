@@ -418,6 +418,7 @@ version = "0.1.0"
 dependencies = [
  "garden",
  "garden_content",
+ "garden_games",
  "garden_json",
  "garden_loading",
  "garden_maths",
@@ -429,6 +430,9 @@ name = "garden_games"
 version = "0.1.0"
 dependencies = [
  "garden",
+ "garden_glutin",
+ "garden_winit",
+ "winit",
 ]
 
 [[package]]
@@ -437,9 +441,6 @@ version = "0.1.0"
 dependencies = [
  "cfg_aliases",
  "garden",
- "garden_content",
- "garden_content_loading",
- "garden_games",
  "garden_winit",
  "gl_generator",
  "glutin",
@@ -526,7 +527,6 @@ version = "0.1.0"
 dependencies = [
  "garden",
  "garden_content",
- "garden_games",
  "winit",
 ]
 

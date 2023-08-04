@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 garden_glutin = { path = "../garden_glutin" }
 garden_winit = { path = "../garden_winit" }
+garden_games = { path = "../garden_games" }

@@ -4,12 +4,13 @@ use std::{
     ops::Deref,
 };
 
-use garden_games::{EndEngine, StartEngine};
+//use garden_games::{EndEngine, StartEngine};
 
 use garden::{gl, Create, RunFullComponent};
-use garden_winit::{
-    create_game_instance_builder, CreateLoopSystem, GameInstanceBuilder, RunLoopSystem,
-};
+//use garden_games::GameInstanceBuilder;
+//use garden_games::GameInstanceBuilder;
+//use garden_games::StartEngine;
+use garden_winit::{CreateLoopSystem, RunLoopSystem};
 use glutin::{
     config::{Config, ConfigTemplateBuilder},
     context::{
@@ -25,131 +26,11 @@ use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use winit::{
     dpi::PhysicalSize,
     event::{Event, WindowEvent},
-    event_loop::{ControlFlow, EventLoop, EventLoopBuilder, EventLoopWindowTarget},
+    event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
     window::{Window, WindowBuilder},
 };
 
 use glutin::surface::{Surface, SwapInterval};
-
-pub fn generate_game_instance_builder_and_event_loop<'a>(
-    game_name: &'a str,
-) -> (
-    GameInstanceBuilder<
-        EngineStarterCreator,
-        LoopSystemCreator<
-            DisplayCreator,
-            ContextAttributesCreator,
-            FallbackContextAttributesCreator,
-            NotCurrentGlContextCreator,
-            ResumedEventCreator,
-            WindowResizedEventCreator,
-            WindowCloseRequestedEventCreator,
-            RedrawEventsClearedEventCreator,
-        >,
-        EngineEnderCreator,
-    >,
-    EventLoop<()>,
-) {
-    let event_loop = EventLoopBuilder::new().build();
-    let game_instance_builder = generate_game_instance_builder(game_name, &event_loop);
-
-    (game_instance_builder, event_loop)
-}
-
-fn generate_game_instance_builder<'a>(
-    game_name: &'a str,
-    event_loop: &EventLoop<()>,
-) -> GameInstanceBuilder<
-    'a,
-    EngineStarterCreator,
-    LoopSystemCreator<
-        DisplayCreator,
-        ContextAttributesCreator,
-        FallbackContextAttributesCreator,
-        NotCurrentGlContextCreator,
-        ResumedEventCreator,
-        WindowResizedEventCreator,
-        WindowCloseRequestedEventCreator,
-        RedrawEventsClearedEventCreator,
-    >,
-    EngineEnderCreator,
-> {
-    create_game_instance_builder::<
-        EngineStarter,
-        EngineStarterCreator,
-        LoopSystem<
-            EventRunner<
-                ResumedEvent<GlWindowCreator>,
-                WindowResizedEvent,
-                WindowCloseRequestedEvent,
-                RedrawEventsClearedEvent,
-                Renderer,
-            >,
-        >,
-        LoopSystemCreator<
-            DisplayCreator,
-            ContextAttributesCreator,
-            FallbackContextAttributesCreator,
-            NotCurrentGlContextCreator,
-            ResumedEventCreator,
-            WindowResizedEventCreator,
-            WindowCloseRequestedEventCreator,
-            RedrawEventsClearedEventCreator,
-        >,
-        EngineEnder,
-        EngineEnderCreator,
-    >(
-        game_name,
-        EngineStarterCreator::new(),
-        LoopSystemCreator::new(
-            DisplayCreator::new(),
-            ContextAttributesCreator::new(),
-            FallbackContextAttributesCreator::new(),
-            NotCurrentGlContextCreator::new(),
-            StateCreator::new(),
-            ResumedEventCreator::new(),
-            WindowResizedEventCreator::new(),
-            WindowCloseRequestedEventCreator::new(),
-            RedrawEventsClearedEventCreator::new(),
-        ),
-        EngineEnderCreator::new(),
-        &event_loop,
-    )
-}
-
-pub struct EngineStarter {}
-
-impl EngineStarter {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
-impl StartEngine for EngineStarter {
-    fn start_engine(self) {}
-}
-
-pub struct EngineStarterCreator {}
-
-impl EngineStarterCreator {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
-impl Create<EngineStarter> for EngineStarterCreator {
-    fn create(&self) -> EngineStarter {
-        EngineStarter::new()
-    }
-}
-
-pub trait RunEvent {
-    fn run(&self, window_target: &EventLoopWindowTarget<()>);
-}
-
-pub trait RunLoop {
-    fn run_loop(self, event_loop: EventLoop<()>);
-}
 
 pub trait CreateGlWindow {
     fn create_gl_window(&self, window: Window, gl_config: &Config) -> GlWindow;
@@ -252,7 +133,7 @@ impl<TGlWindowCreator: CreateGlWindow> RunResumedEvent<Renderer>
 pub struct ResumedEventCreator {}
 
 impl ResumedEventCreator {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {}
     }
 }
@@ -306,7 +187,7 @@ impl<TRenderer: Resize> RunWindowResizedEvent<TRenderer> for WindowResizedEvent 
 pub struct WindowResizedEventCreator {}
 
 impl WindowResizedEventCreator {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {}
     }
 }
@@ -353,7 +234,7 @@ impl<TRenderer: Render> RunRedrawEventsClearedEvent<TRenderer> for RedrawEventsC
 pub struct RedrawEventsClearedEventCreator {}
 
 impl RedrawEventsClearedEventCreator {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {}
     }
 }
@@ -385,7 +266,7 @@ impl RunWindowCloseRequestedEvent for WindowCloseRequestedEvent {
 pub struct WindowCloseRequestedEventCreator {}
 
 impl WindowCloseRequestedEventCreator {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {}
     }
 }
@@ -1021,7 +902,7 @@ pub trait CreateDisplay {
 pub struct DisplayCreator {}
 
 impl<'a> DisplayCreator {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {}
     }
 }
@@ -1060,7 +941,7 @@ impl CreateDisplay for DisplayCreator {
 pub struct StateCreator {}
 
 impl StateCreator {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {}
     }
 }
@@ -1081,7 +962,7 @@ pub trait CreateContextAttributes {
 pub struct ContextAttributesCreator {}
 
 impl ContextAttributesCreator {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {}
     }
 }
@@ -1105,7 +986,7 @@ pub trait CreateFallbackContextAttributes {
 pub struct FallbackContextAttributesCreator {}
 
 impl FallbackContextAttributesCreator {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {}
     }
 }
@@ -1163,7 +1044,7 @@ impl<
         TRedrawEventsClearedEventCreator,
     >
 {
-    fn new(
+    pub fn new(
         display_creator: TDisplayCreator,
         context_attributes_creator: TContextAttributesCreator,
         fallback_context_attributes_creator: TFallbackContextAttributesCreator,
@@ -1297,7 +1178,7 @@ pub trait CreateNotCurrentGlContext {
 pub struct NotCurrentGlContextCreator {}
 
 impl<'a> NotCurrentGlContextCreator {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {}
     }
 }
@@ -1322,52 +1203,26 @@ impl CreateNotCurrentGlContext for NotCurrentGlContextCreator {
     }
 }
 
-pub struct EngineEnder {}
-
-impl EngineEnder {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
-impl EndEngine for EngineEnder {
-    fn end_engine(self) {}
-}
-
-pub struct EngineEnderCreator {}
-
-impl EngineEnderCreator {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
-impl Create<EngineEnder> for EngineEnderCreator {
-    fn create(&self) -> EngineEnder {
-        EngineEnder::new()
-    }
-}
-
-pub fn create_glutin_game_instance_builder<'a>(
-    game_name: &str,
-    event_loop: EventLoop<()>,
-) -> GameInstanceBuilder<
-    'a,
-    EngineStarterCreator,
-    LoopSystemCreator<
-        DisplayCreator,
-        ContextAttributesCreator,
-        FallbackContextAttributesCreator,
-        NotCurrentGlContextCreator,
-        ResumedEventCreator,
-        WindowResizedEventCreator,
-        WindowCloseRequestedEventCreator,
-        RedrawEventsClearedEventCreator,
-    >,
-    EngineEnderCreator,
-> {
-    todo!()
-}
+// pub fn create_glutin_game_instance_builder<'a>(
+//     game_name: &str,
+//     event_loop: EventLoop<()>,
+// ) -> GameInstanceBuilder<
+//     'a,
+//     EngineStarterCreator,
+//     LoopSystemCreator<
+//         DisplayCreator,
+//         ContextAttributesCreator,
+//         FallbackContextAttributesCreator,
+//         NotCurrentGlContextCreator,
+//         ResumedEventCreator,
+//         WindowResizedEventCreator,
+//         WindowCloseRequestedEventCreator,
+//         RedrawEventsClearedEventCreator,
+//     >,
+//     EngineEnderCreator,
+// > {
+//     todo!()
+// }
 
 const VERTEX_SHADER_SOURCE: &[u8] = b"
 #version 100

@@ -43,6 +43,10 @@ pub trait RunFullComponent:
 {
 }
 
+pub trait AddComponent {
+    fn add<T: RunFullComponent + 'static>(&mut self, t: T);
+}
+
 pub trait Create<T> {
     fn create(&self) -> T;
 }

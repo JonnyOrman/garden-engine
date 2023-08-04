@@ -7,7 +7,7 @@ use garden_content_loading::compose_content_loader;
 use garden_json_component::JsonComponent;
 use garden_loading::Load;
 use garden_maths_component::MathsComponent;
-use garden_winit::AddComponent;
+//use garden_winit::AddComponent;
 
 pub fn add_content<TGameInstanceBuilder: AddComponent, TScene: GetWidth + GetHeight>(
     game_instance_builder: &mut TGameInstanceBuilder,
