@@ -6,6 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-garden_glutin = { path = "../garden_glutin" }
-garden_winit = { path = "../garden_winit" }
-garden_games = { path = "../garden_games" }
+garden_glutin = { path = "../../garden_glutin" }
+garden_winit = { path = "../../garden_winit" }
+garden_games = { path = "../../garden_games" }
