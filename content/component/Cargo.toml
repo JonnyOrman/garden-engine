@@ -1,0 +1,16 @@
+[package]
+name = "garden_content_component"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+garden = { path = "../../garden" }
+garden_winit = { path = "../../winit" }
+garden_content = { path = "../content" }
+garden_content_loading = { path = "../loading" }
+garden_json_component = { path = "../../json/component" }
+garden_loading = { path = "../../loading" }
+garden_maths_component = { path = "../../maths/component" }
+garden_scenes = { path = "../../scenes/scenes" }
